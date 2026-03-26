@@ -17,7 +17,7 @@ const EMPTY_TREE: TreeDataItem[] = [],
   readHash = (): { files: string[]; repo: string } => {
     if (!('location' in globalThis)) return { files: [], repo: DEFAULT_REPO }
     const hash = globalThis.location.hash.slice(1)
-    if (!hash) return { files: [], repo: DEFAULT_REPO }
+    if (!hash) return { files: ['README.md', 'src/idecn.tsx'], repo: DEFAULT_REPO }
     const [repo, ...files] = hash.split(',')
     return { files: files.filter(Boolean), repo: repo || DEFAULT_REPO }
   },
