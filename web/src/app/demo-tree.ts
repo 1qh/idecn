@@ -15,6 +15,7 @@ const DEMO_TREE = [
   { path: 'src', type: 'tree' as const },
   { path: 'src/_generated', type: 'tree' as const },
   { path: 'src/_generated/icons.json', type: 'blob' as const },
+  { path: 'src/_generated/monokai-lite.json', type: 'blob' as const },
   { path: 'src/idecn.tsx', type: 'blob' as const },
   { path: 'src/index.ts', type: 'blob' as const },
   { path: 'tsconfig.json', type: 'blob' as const },

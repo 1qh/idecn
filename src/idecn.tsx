@@ -1,17 +1,17 @@
 /** biome-ignore-all lint/security/noDangerouslySetInnerHtml: trusted SVG from material-icon-theme */
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import type { ClassValue } from 'clsx'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ReactNode } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
-import { Editor } from '@monaco-editor/react'
+import { Editor, loader } from '@monaco-editor/react'
+import { shikiToMonaco } from '@shikijs/monaco'
 import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
 import { X } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import {
   Children,
   createContext,
@@ -25,6 +25,7 @@ import {
   useState
 } from 'react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
+import { createHighlighter } from 'shiki'
 import { twMerge } from 'tailwind-merge'
 import iconsData from './_generated/icons.json' with { type: 'json' }
 const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
@@ -277,43 +278,35 @@ const monoFont = () =>
     typeof document === 'undefined'
       ? ''
       : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
-  MONOKAI_RULES = [
-    { foreground: 'F8F8F2', token: 'meta.embedded' },
-    { foreground: '88846f', token: 'comment' },
-    { foreground: 'E6DB74', token: 'string' },
-    { foreground: 'F92672', token: 'punctuation.definition.template-expression' },
-    { foreground: 'F92672', token: 'punctuation.section.embedded' },
-    { foreground: 'AE81FF', token: 'constant.numeric' },
-    { foreground: 'AE81FF', token: 'constant.language' },
-    { foreground: 'AE81FF', token: 'constant.character' },
-    { foreground: 'AE81FF', token: 'constant.other' },
-    { foreground: 'AE81FF', token: 'number' },
-    { foreground: 'AE81FF', token: 'constant' },
-    { foreground: 'F8F8F2', token: 'variable' },
-    { foreground: 'F92672', token: 'keyword' },
-    { foreground: 'F92672', token: 'storage' },
-    { fontStyle: 'italic', foreground: '66D9EF', token: 'storage.type' },
-    { foreground: 'A6E22E', token: 'entity.name.function' },
-    { fontStyle: 'italic', foreground: 'FD971F', token: 'variable.parameter' },
-    { foreground: 'FD971F', token: 'variable.language' },
-    { foreground: 'F92672', token: 'entity.name.tag' },
-    { foreground: 'F92672', token: 'tag' },
-    { foreground: 'A6E22E', token: 'entity.other.attribute-name' },
-    { foreground: 'A6E22E', token: 'attribute.name' },
-    { foreground: '66D9EF', token: 'support.function' },
-    { foreground: '66D9EF', token: 'support.constant' },
-    { fontStyle: 'italic', foreground: '66D9EF', token: 'support.type' },
-    { fontStyle: 'italic', foreground: '66D9EF', token: 'support.class' },
-    { foreground: '66D9EF', token: 'type' },
-    { fontStyle: 'italic', foreground: '66D9EF', token: 'type.identifier' },
-    { foreground: 'F44747', token: 'invalid' },
-    { foreground: 'F92672', token: 'delimiter' },
-    { foreground: 'A6E22E', token: 'metatag' },
-    { foreground: 'F92672', token: 'markup.deleted' },
-    { foreground: 'A6E22E', token: 'markup.inserted' },
-    { foreground: 'E6DB74', token: 'markup.changed' },
-    { foreground: 'A6E22E', token: 'markup.heading' }
-  ],
+  shikiSetup =
+    'location' in globalThis
+      ? (async () => {
+          const mod = await import('./_generated/monokai-lite.json'),
+            highlighter = await createHighlighter({
+              langs: [
+                'css',
+                'go',
+                'html',
+                'javascript',
+                'json',
+                'jsx',
+                'markdown',
+                'python',
+                'rust',
+                'shell',
+                'sql',
+                'toml',
+                'tsx',
+                'typescript',
+                'yaml'
+              ],
+              themes: [mod.default as Parameters<typeof createHighlighter>[0]['themes'][0]]
+            }),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            monaco = await loader.init()
+          shikiToMonaco(highlighter, monaco)
+        })()
+      : null,
   EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
@@ -329,10 +322,13 @@ const monoFont = () =>
     return <div className='h-full overflow-auto'>{content}</div>
   },
   FilePanel = ({ api, params }: IDockviewPanelProps<{ content: string; language: string; loading?: ReactNode }>) => {
-    const { resolvedTheme } = useTheme(),
-      [content, setContent] = useState(params.content),
+    const [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
-      [loadingState, setLoadingState] = useState(params.loading)
+      [loadingState, setLoadingState] = useState(params.loading),
+      [ready, setReady] = useState(!shikiSetup)
+    useEffect(() => {
+      if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
+    }, [])
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
         const p = e as { content?: string; language?: string; loading?: ReactNode }
@@ -347,19 +343,14 @@ const monoFont = () =>
         d.dispose()
       }
     }, [api])
-    if (loadingState) return <div className='flex h-full items-center justify-center'>{loadingState}</div>
+    if (loadingState || !ready) return <div className='flex h-full items-center justify-center'>{loadingState}</div>
     if (!content)
       return <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Empty file</div>
     return (
       <Editor
-        beforeMount={m => {
-          const e = m as { editor: { defineTheme: (name: string, data: Record<string, unknown>) => void } }
-          e.editor.defineTheme('monokai-light', { base: 'vs', colors: {}, inherit: true, rules: MONOKAI_RULES })
-          e.editor.defineTheme('monokai-dark', { base: 'vs-dark', colors: {}, inherit: true, rules: MONOKAI_RULES })
-        }}
         language={language}
         options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
-        theme={resolvedTheme === 'dark' ? 'monokai-dark' : 'monokai-light'}
+        theme='monokai-lite'
         value={content}
       />
     )
@@ -373,7 +364,7 @@ const monoFont = () =>
         className={cn('group/tab flex h-full items-center pl-1', p?.headerClassName)}
         data-fill={p?.headerClassName ? '' : undefined}>
         {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
-        <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
+        <span className={showIcon ? 'my-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (
           <X
             className='size-3.5 stroke-[1.5] opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'

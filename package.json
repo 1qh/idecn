@@ -44,8 +44,10 @@
   },
   "dependencies": {
     "@base-ui/react": "latest",
+    "@shikijs/monaco": "^4.0.2",
     "clsx": "latest",
     "react-resizable-panels": "latest",
+    "shiki": "^4.0.2",
     "tailwind-merge": "latest"
   },
   "devDependencies": {
