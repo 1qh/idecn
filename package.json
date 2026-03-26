@@ -14,6 +14,7 @@
   "devDependencies": {
     "lintmax": "latest",
     "material-icon-theme": "latest",
+    "next": "latest",
     "typescript": "latest"
   }
 }
