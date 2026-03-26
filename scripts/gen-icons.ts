@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: build script accessing manifest */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-non-null-assertion, no-console */
+/* eslint-disable @typescript-eslint/no-non-null-assertion, no-console */
 import { generateManifest } from 'material-icon-theme'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -27,7 +27,7 @@ for (const name of usedIcons)
   } catch {
     /* Icon file not found */
   }
-const outDir = resolve(import.meta.dir, '../packages/nicetree/src/_generated')
+const outDir = resolve(import.meta.dir, '../src/_generated')
 mkdirSync(outDir, { recursive: true })
 writeFileSync(resolve(outDir, 'icon-svgs.json'), JSON.stringify(svgMap))
 writeFileSync(

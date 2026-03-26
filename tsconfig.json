@@ -1,11 +1,14 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
+    "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
+    "types": ["bun-types"],
     "strict": true,
     "target": "esnext"
   },
-  "include": ["scripts"]
+  "include": ["src", "scripts"]
 }
