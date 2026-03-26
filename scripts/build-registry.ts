@@ -7,7 +7,9 @@ const root = resolve(import.meta.dir, '..'),
   read = async (path: string) => file(resolve(root, path)).text()
 mkdirSync(outDir, { recursive: true })
 let content = await read('src/idecn.tsx')
-content = content.replaceAll("from './_generated/icons.json'", "from '@/lib/icons.json'")
+content = content
+  .replaceAll("from './_generated/icons.json'", "from '@/lib/icons.json'")
+  .replaceAll("'./_generated/monokai-lite.json'", "'@/lib/monokai-lite.json'")
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
@@ -16,16 +18,18 @@ await write(
       dependencies: [
         '@base-ui/react',
         '@monaco-editor/react',
+        '@shikijs/monaco',
         'dockview-core',
         'dockview-react',
         'lucide-react',
-        'next-themes',
-        'react-resizable-panels'
+        'react-resizable-panels',
+        'shiki'
       ],
       description: 'Full IDE layout with file tree, tabbed editor, and async file loading.',
       files: [
         { content, path: 'components/ui/idecn.tsx', type: 'registry:component' },
-        { content: await read('src/_generated/icons.json'), path: 'lib/icons.json', type: 'registry:lib' }
+        { content: await read('src/_generated/icons.json'), path: 'lib/icons.json', type: 'registry:lib' },
+        { content: await read('src/_generated/monokai-lite.json'), path: 'lib/monokai-lite.json', type: 'registry:lib' }
       ],
       name: 'idecn',
       registryDependencies: [],
@@ -36,4 +40,4 @@ await write(
     2
   )
 )
-console.log('Built r/idecn.json (2 files)')
+console.log('Built r/idecn.json (3 files)')
