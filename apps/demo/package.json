@@ -1,0 +1,28 @@
+{
+  "name": "@nicetree/demo",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbopack"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "latest",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "next-themes": "latest",
+    "nicetree": "workspace:*",
+    "nuqs": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "^25.5.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  }
+}
