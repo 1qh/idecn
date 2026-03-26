@@ -243,12 +243,12 @@ const LANG: Record<string, string> = {
           if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
         },
         applyWidths = () => {
-          requestAnimationFrame(() => {
+          setTimeout(() => {
             for (const [panelId, width] of stateRef.current.tabWidths) {
               const panel = event.api.panels.find(p => p.id === panelId)
               if (panel) panel.group.api.setSize({ width })
             }
-          })
+          }, 50)
         }
       stateRef.current.disposables.push(
         event.api.onDidRemovePanel(e => {
