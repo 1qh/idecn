@@ -37,3 +37,19 @@ body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+.dv-dockview {
+  --dv-background-color: hsl(var(--background));
+  --dv-paneview-header-border-color: hsl(var(--border));
+  --dv-tabs-and-actions-container-background-color: hsl(var(--muted));
+  --dv-activegroup-visiblepanel-tab-background-color: hsl(var(--background));
+  --dv-activegroup-hiddenpanel-tab-background-color: hsl(var(--muted));
+  --dv-inactivegroup-visiblepanel-tab-background-color: hsl(var(--muted));
+  --dv-inactivegroup-hiddenpanel-tab-background-color: hsl(var(--muted));
+  --dv-activegroup-visiblepanel-tab-color: hsl(var(--foreground));
+  --dv-activegroup-hiddenpanel-tab-color: hsl(var(--muted-foreground));
+  --dv-inactivegroup-visiblepanel-tab-color: hsl(var(--muted-foreground));
+  --dv-inactivegroup-hiddenpanel-tab-color: hsl(var(--muted-foreground));
+  --dv-tab-divider-color: hsl(var(--border));
+  --dv-separator-border: hsl(var(--border));
+  --dv-group-view-background-color: hsl(var(--background));
+}
