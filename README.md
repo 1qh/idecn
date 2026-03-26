@@ -4,14 +4,6 @@
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 ```
 
-Or just the file tree:
-
-```sh
-bunx shadcn@latest add https://idecn.vercel.app/r/file-tree.json
-```
-
-Or as an npm package:
-
 ```sh
 bun add idecn
 ```
