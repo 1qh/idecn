@@ -60,5 +60,6 @@ const manifest = manifestData as {
   FolderIcon = ({ className, name, open }: { className?: string; name: string; open?: boolean }) => (
     <span className={className} dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} />
   ),
-  getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename))
-export { FileIcon, FolderIcon, getIconSvg }
+  getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
+  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4'
+export { FileIcon, FolderIcon, getIconSvg, ICON_CLASS }

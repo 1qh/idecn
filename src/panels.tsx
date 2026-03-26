@@ -6,8 +6,7 @@ import { X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { cn } from './cn'
-import { FileIcon } from './icon'
-import { ICON_CLASS } from './tree'
+import { FileIcon, ICON_CLASS } from './icon'
 const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)

@@ -4,7 +4,7 @@
 import { Accordion } from '@base-ui/react/accordion'
 import { createContext, use, useMemo, useState } from 'react'
 import { cn } from './cn'
-import { FileIcon, FolderIcon } from './icon'
+import { FileIcon, FolderIcon, ICON_CLASS } from './icon'
 interface TreeContextValue {
   indent: number
   onSelect?: (item: { id: string; name: string; path: string }) => void
@@ -19,7 +19,6 @@ const TreeContext = createContext<TreeContextValue>({
   DepthContext = createContext(0),
   ITEM_CLASS =
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
-  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4',
   useTreeItem = (id: string | undefined, name: string, path: string | undefined) => {
     const { indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
       depth = use(DepthContext),
@@ -123,4 +122,4 @@ const TreeContext = createContext<TreeContextValue>({
       </button>
     )
   }
-export { DepthContext, ICON_CLASS, Tree, TreeContext, TreeFile, TreeFolder }
+export { DepthContext, Tree, TreeContext, TreeFile, TreeFolder }
