@@ -103,18 +103,19 @@ const DEFAULT_REPO = '1qh/idecn',
       [rateLimited, setRateLimited] = useState(false),
       [repoInput, setRepoInput] = useState(DEFAULT_REPO),
       [mounted, setMounted] = useState(false),
+      [ready, setReady] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
       isDark = mounted && resolvedTheme === 'dark',
       persistState = useCallback(() => {
         if (mutable.timer) clearTimeout(mutable.timer)
         mutable.timer = setTimeout(() => {
-          const { api } = mutable,
-            state: AppState = {
-              repo,
-              ...(api ? { layout: api.toJSON() } : {})
-            }
-          saveState(state)
+          const { api } = mutable
+          if (!api) return
+          const layout = api.toJSON() as { panels?: Record<string, { params?: Record<string, unknown> }> }
+          if (layout.panels)
+            for (const panel of Object.values(layout.panels)) if (panel.params) panel.params.content = undefined
+          saveState({ layout, repo })
         }, 300)
       }, [repo])
     useEffect(() => {
@@ -126,8 +127,9 @@ const DEFAULT_REPO = '1qh/idecn',
             setRepo(s.repo)
             setRepoInput(s.repo)
           }
+          setReady(true)
         })
-        .catch(() => undefined)
+        .catch(() => setReady(true))
     }, [])
     useEffect(() => {
       setTreeLoading(true)
@@ -198,6 +200,15 @@ const DEFAULT_REPO = '1qh/idecn',
         if (saved?.layout)
           try {
             event.api.fromJSON(saved.layout as Parameters<DockviewApi['fromJSON']>[0])
+            for (const panel of event.api.panels) {
+              const filePath = panel.id
+              fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
+                .then(async res => (res.ok ? (res.json() as Promise<{ content?: string }>) : null))
+                .then(data => {
+                  if (data?.content) panel.api.updateParameters({ content: atob(data.content) })
+                })
+                .catch(() => undefined)
+            }
           } catch {
             /* Layout restore failed, start fresh */
           }
@@ -250,12 +261,14 @@ const DEFAULT_REPO = '1qh/idecn',
           </ResizablePanel>
           <ResizableHandle className='opacity-0' />
           <ResizablePanel>
-            <DockviewReact
-              className='h-full'
-              components={COMPONENTS}
-              onReady={handleReady}
-              tabComponents={TAB_COMPONENTS}
-            />
+            {ready ? (
+              <DockviewReact
+                className='h-full'
+                components={COMPONENTS}
+                onReady={handleReady}
+                tabComponents={TAB_COMPONENTS}
+              />
+            ) : null}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
