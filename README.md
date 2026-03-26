@@ -86,7 +86,7 @@ interface TreeDataItem {
 
 ## Credit
 
-- [shadcn-tree-view](https://github.com/MrLightful/shadcn-tree-view)
+- [shadcn-tree-view](https://github.com/MrLightful/shadcn-tree-view/tree/41624def)
 - [dockview](https://dockview.dev)
 
 ## License
