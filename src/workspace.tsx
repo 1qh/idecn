@@ -12,12 +12,15 @@ import { TAB_TYPE } from './tab'
 interface WorkspaceProps {
   children?: ReactNode
   className?: string
+  onLayoutChange?: (layout: unknown) => void
   onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
   ref?: React.Ref<WorkspaceRef>
   renderLoading?: (item: TreeDataItem) => ReactNode
 }
 interface WorkspaceRef {
   focusPanel: (id: string) => void
+  getLayout: () => unknown
+  loadLayout: (layout: unknown) => void
   openFile: (item: TreeDataItem) => void
   showPanel: (id: string) => void
 }
@@ -65,7 +68,7 @@ const LANG: Record<string, string> = {
     savedGroups: new Map<string, string>(),
     tabsCache: [] as TabProps[]
   },
-  Workspace = ({ children, className, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
+  Workspace = ({ children, className, onLayoutChange, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
       setMounted(true)
@@ -151,6 +154,12 @@ const LANG: Record<string, string> = {
       ref,
       () => ({
         focusPanel: (id: string) => mutableState.api?.panels.find(p => p.id === id)?.focus(),
+        getLayout: () => mutableState.api?.toJSON(),
+        loadLayout: (layout: unknown) => {
+          const { api } = mutableState
+          if (!api) return
+          api.fromJSON(layout as Parameters<DockviewApi['fromJSON']>[0])
+        },
         openFile,
         showPanel: (id: string) => mutableState.api?.panels.find(p => p.id === id)?.focus()
       }),
@@ -189,6 +198,7 @@ const LANG: Record<string, string> = {
         const tab = mutableState.tabsCache.find(t => getTabId(t) === e.id)
         tab?.onClose?.()
       })
+      if (onLayoutChange) event.api.onDidLayoutChange(() => onLayoutChange(event.api.toJSON()))
     }
     if (!mounted) return null
     return (
