@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @source '../../../src';
 @theme {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-accent: hsl(var(--accent));
@@ -54,4 +56,10 @@ body {
   --dv-group-view-background-color: hsl(var(--background));
   --dv-tabs-container-scrollbar-color: hsl(var(--muted-foreground));
   --dv-tabs-and-actions-container-height: 30px;
+}
+.dv-dockview .monaco-editor,
+.dv-dockview .monaco-editor .margin,
+.dv-dockview .monaco-editor-background,
+.dv-dockview .monaco-editor .overflow-guard {
+  background-color: hsl(var(--background));
 }
