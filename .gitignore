@@ -1,6 +1,7 @@
 node_modules
 bun.lock
 dist
+test-results
 .next
 .turbo
 .cache
