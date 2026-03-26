@@ -14,16 +14,15 @@ import { buildTree } from './github'
 import 'dockview-core/dist/styles/dockview.css'
 const DEFAULT_REPO = '1qh/idecn',
   STORAGE_KEY = 'idecn-state',
-  loadSaved = (): null | { layout?: unknown; repo?: string } => {
+  loadSaved = (): null | { files?: string[]; repo?: string } => {
     try {
       const raw = globalThis.localStorage.getItem(STORAGE_KEY)
-      return raw ? (JSON.parse(raw) as { layout?: unknown; repo?: string }) : null
+      return raw ? (JSON.parse(raw) as { files?: string[]; repo?: string }) : null
     } catch {
       return null
     }
   },
   saved = loadSaved(),
-  debounceTimer = { current: null as null | ReturnType<typeof setTimeout> },
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
       <AlertTriangleIcon className='size-4 shrink-0' />
@@ -89,18 +88,13 @@ const DEFAULT_REPO = '1qh/idecn',
             .catch(() => null),
         [repo]
       ),
-      handleLayoutChange = useCallback(
-        (layout: unknown) => {
-          if (debounceTimer.current) clearTimeout(debounceTimer.current)
-          debounceTimer.current = setTimeout(() => {
-            const l = layout as { panels?: Record<string, { params?: unknown }> }
-            if (l.panels) for (const panel of Object.values(l.panels)) panel.params = undefined
-            try {
-              globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ layout: l, repo }))
-            } catch {
-              /* Quota exceeded */
-            }
-          }, 300)
+      handleFilesChange = useCallback(
+        (files: string[]) => {
+          try {
+            globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ files, repo }))
+          } catch {
+            /* Quota exceeded */
+          }
         },
         [repo]
       ),
@@ -136,8 +130,8 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
-          initialLayout={saved?.layout}
-          onLayoutChange={handleLayoutChange}
+          initialFiles={saved?.files}
+          onFilesChange={handleFilesChange}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
           renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
