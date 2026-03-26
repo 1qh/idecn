@@ -18,6 +18,8 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
       })
       return () => disposable.dispose()
     }, [api])
+    if (!content)
+      return <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading file...</div>
     return (
       <Editor
         language={language}

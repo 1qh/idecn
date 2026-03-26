@@ -21,8 +21,11 @@ const DEMO_TREE = [
   { path: 'vercel.json', type: 'blob' as const },
   { path: 'web', type: 'tree' as const },
   { path: 'web/.gitignore', type: 'blob' as const },
+  { path: 'web/e2e', type: 'tree' as const },
+  { path: 'web/e2e/app.test.ts', type: 'blob' as const },
   { path: 'web/next-env.d.ts', type: 'blob' as const },
   { path: 'web/package.json', type: 'blob' as const },
+  { path: 'web/playwright.config.ts', type: 'blob' as const },
   { path: 'web/postcss.config.mjs', type: 'blob' as const },
   { path: 'web/public', type: 'tree' as const },
   { path: 'web/public/r', type: 'tree' as const },
@@ -43,6 +46,14 @@ const DEMO_TREE = [
   { path: 'web/src/lib', type: 'tree' as const },
   { path: 'web/src/lib/hash-state.ts', type: 'blob' as const },
   { path: 'web/src/lib/utils.ts', type: 'blob' as const },
+  { path: 'web/test-results', type: 'tree' as const },
+  { path: 'web/test-results/.last-run.json', type: 'blob' as const },
+  { path: 'web/test-results/app-idecn-demo-URL-hash-updates-when-opening-a-file', type: 'tree' as const },
+  { path: 'web/test-results/app-idecn-demo-URL-hash-updates-when-opening-a-file/error-context.md', type: 'blob' as const },
+  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo', type: 'tree' as const },
+  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo/error-context.md', type: 'blob' as const },
+  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo-retry1', type: 'tree' as const },
+  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo-retry1/error-context.md', type: 'blob' as const },
   { path: 'web/tsconfig.json', type: 'blob' as const }
 ]
 export { DEMO_TREE }
