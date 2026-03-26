@@ -28,6 +28,9 @@
   "files": [
     "dist"
   ],
+  "workspaces": [
+    "web"
+  ],
   "scripts": {
     "build": "rm -rf dist && bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react && bun scripts/gen-demo-tree.ts && cd web && bun run build",
     "check": "lintmax check",
@@ -43,12 +46,16 @@
     "tailwind-merge": "latest"
   },
   "devDependencies": {
+    "@monaco-editor/react": "latest",
     "@playwright/test": "latest",
     "@types/react": "latest",
     "bun-types": "latest",
+    "dockview-core": "latest",
+    "dockview-react": "latest",
     "lintmax": "latest",
     "material-icon-theme": "latest",
     "next": "latest",
+    "next-themes": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tsdown": "latest",
@@ -57,5 +64,8 @@
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
-  }
+  },
+  "trustedDependencies": [
+    "lintmax"
+  ]
 }
