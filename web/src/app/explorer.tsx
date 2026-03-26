@@ -94,8 +94,8 @@ const DEFAULT_REPO = '1qh/idecn',
         (layout: unknown) => {
           if (debounceTimer.current) clearTimeout(debounceTimer.current)
           debounceTimer.current = setTimeout(() => {
-            const l = layout as { panels?: Record<string, { params?: Record<string, unknown> }> }
-            if (l.panels) for (const panel of Object.values(l.panels)) if (panel.params) panel.params.content = undefined
+            const l = layout as { panels?: Record<string, { params?: unknown }> }
+            if (l.panels) for (const panel of Object.values(l.panels)) panel.params = undefined
             saveState({ layout: l, repo })
           }, 300)
         },

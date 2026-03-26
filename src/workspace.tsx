@@ -73,6 +73,7 @@ const LANG: Record<string, string> = {
   Workspace = ({ children, className, initialLayout, onLayoutChange, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
+      mutableState.initialized = false
       setMounted(true)
     }, [])
     const addTab = useCallback((tab: TabProps) => {
