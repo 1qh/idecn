@@ -15,6 +15,7 @@
     "nuqs": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-resizable-panels": "^4.7.6",
     "tailwind-merge": "latest"
   },
   "devDependencies": {
