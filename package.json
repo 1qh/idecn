@@ -11,7 +11,7 @@
     "shadcn",
     "dockview"
   ],
-  "repository": "1qh/idecn",
+  "repository": { "type": "git", "url": "git+https://github.com/1qh/idecn.git" },
   "license": "MIT",
   "type": "module",
   "exports": {
