@@ -85,7 +85,7 @@ const LANG: Record<string, string> = {
         api.addPanel({
           component: 'custom',
           id: tabId,
-          params: { closable: tab.closable, content: tab.children, icon: tab.icon },
+          params: { className: tab.className, closable: tab.closable, content: tab.children, icon: tab.icon },
           position: api.panels.length > 0 ? position : undefined,
           tabComponent: 'default',
           title: tab.title
