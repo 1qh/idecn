@@ -278,27 +278,41 @@ const monoFont = () =>
       ? ''
       : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
   MONOKAI_RULES = [
+    { foreground: 'F8F8F2', token: 'meta.embedded' },
     { foreground: '88846f', token: 'comment' },
     { foreground: 'E6DB74', token: 'string' },
+    { foreground: 'F92672', token: 'punctuation.definition.template-expression' },
+    { foreground: 'F92672', token: 'punctuation.section.embedded' },
+    { foreground: 'AE81FF', token: 'constant.numeric' },
+    { foreground: 'AE81FF', token: 'constant.language' },
+    { foreground: 'AE81FF', token: 'constant.character' },
+    { foreground: 'AE81FF', token: 'constant.other' },
     { foreground: 'AE81FF', token: 'number' },
     { foreground: 'AE81FF', token: 'constant' },
+    { foreground: 'F8F8F2', token: 'variable' },
     { foreground: 'F92672', token: 'keyword' },
     { foreground: 'F92672', token: 'storage' },
     { fontStyle: 'italic', foreground: '66D9EF', token: 'storage.type' },
     { foreground: 'A6E22E', token: 'entity.name.function' },
-    { foreground: 'A6E22E', token: 'support.function' },
-    { foreground: '66D9EF', token: 'support.type' },
-    { foreground: '66D9EF', token: 'support.class' },
-    { foreground: 'F8F8F2', token: 'variable' },
     { fontStyle: 'italic', foreground: 'FD971F', token: 'variable.parameter' },
+    { foreground: 'FD971F', token: 'variable.language' },
+    { foreground: 'F92672', token: 'entity.name.tag' },
     { foreground: 'F92672', token: 'tag' },
+    { foreground: 'A6E22E', token: 'entity.other.attribute-name' },
     { foreground: 'A6E22E', token: 'attribute.name' },
-    { foreground: 'E6DB74', token: 'attribute.value' },
-    { foreground: 'AE81FF', token: 'type' },
+    { foreground: '66D9EF', token: 'support.function' },
+    { foreground: '66D9EF', token: 'support.constant' },
+    { fontStyle: 'italic', foreground: '66D9EF', token: 'support.type' },
+    { fontStyle: 'italic', foreground: '66D9EF', token: 'support.class' },
+    { foreground: '66D9EF', token: 'type' },
     { fontStyle: 'italic', foreground: '66D9EF', token: 'type.identifier' },
+    { foreground: 'F44747', token: 'invalid' },
     { foreground: 'F92672', token: 'delimiter' },
-    { foreground: 'F8F8F2', token: 'operator' },
-    { foreground: 'A6E22E', token: 'metatag' }
+    { foreground: 'A6E22E', token: 'metatag' },
+    { foreground: 'F92672', token: 'markup.deleted' },
+    { foreground: 'A6E22E', token: 'markup.inserted' },
+    { foreground: 'E6DB74', token: 'markup.changed' },
+    { foreground: 'A6E22E', token: 'markup.heading' }
   ],
   EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
@@ -338,9 +352,10 @@ const monoFont = () =>
       return <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Empty file</div>
     return (
       <Editor
-        beforeMount={monaco => {
-          monaco.editor.defineTheme('monokai-light', { base: 'vs', colors: {}, inherit: true, rules: MONOKAI_RULES })
-          monaco.editor.defineTheme('monokai-dark', { base: 'vs-dark', colors: {}, inherit: true, rules: MONOKAI_RULES })
+        beforeMount={m => {
+          const e = m as { editor: { defineTheme: (name: string, data: Record<string, unknown>) => void } }
+          e.editor.defineTheme('monokai-light', { base: 'vs', colors: {}, inherit: true, rules: MONOKAI_RULES })
+          e.editor.defineTheme('monokai-dark', { base: 'vs-dark', colors: {}, inherit: true, rules: MONOKAI_RULES })
         }}
         language={language}
         options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
