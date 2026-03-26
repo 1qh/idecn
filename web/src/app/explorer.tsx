@@ -7,12 +7,14 @@ import { FileTree, Tab, Workspace } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { loadState, saveState } from '~/lib/hash-state'
 import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree } from './github'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
 const DEFAULT_REPO = '1qh/idecn',
+  debounceTimer = { current: null as null | ReturnType<typeof setTimeout> },
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
       <AlertTriangleIcon className='size-4 shrink-0' />
@@ -29,12 +31,28 @@ const DEFAULT_REPO = '1qh/idecn',
       [rateLimited, setRateLimited] = useState(false),
       [repoInput, setRepoInput] = useState(''),
       [mounted, setMounted] = useState(false),
+      [savedLayout, setSavedLayout] = useState<unknown>(null),
       { resolvedTheme, setTheme } = useTheme(),
       isDark = mounted && resolvedTheme === 'dark',
       workspaceRef = useRef<WorkspaceRef>(null)
     useEffect(() => {
       setMounted(true)
+      loadState()
+        .then(s => {
+          if (s) {
+            setRepo(s.repo)
+            if (s.repo !== DEFAULT_REPO) setRepoInput(s.repo)
+            if (s.layout) setSavedLayout(s.layout)
+          }
+        })
+        .catch(() => undefined)
     }, [])
+    useEffect(() => {
+      if (savedLayout && workspaceRef.current) {
+        workspaceRef.current.loadLayout(savedLayout)
+        setSavedLayout(null)
+      }
+    }, [savedLayout])
     useEffect(() => {
       setTreeLoading(true)
       setRateLimited(false)
@@ -78,6 +96,17 @@ const DEFAULT_REPO = '1qh/idecn',
             .catch(() => null),
         [repo]
       ),
+      handleLayoutChange = useCallback(
+        (layout: unknown) => {
+          if (debounceTimer.current) clearTimeout(debounceTimer.current)
+          debounceTimer.current = setTimeout(() => {
+            const l = layout as { panels?: Record<string, { params?: Record<string, unknown> }> }
+            if (l.panels) for (const panel of Object.values(l.panels)) if (panel.params) panel.params.content = undefined
+            saveState({ layout: l, repo })
+          }, 300)
+        },
+        [repo]
+      ),
       handleSubmit = () => {
         const trimmed = repoInput.trim()
         if (trimmed && trimmed !== repo) setRepo(trimmed)
@@ -110,6 +139,7 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
+          onLayoutChange={handleLayoutChange}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
           renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
