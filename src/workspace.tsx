@@ -167,6 +167,7 @@ const LANG: Record<string, string> = {
           for (const panel of api.panels) {
             const tab = tabMap.get(panel.id)
             if (tab) {
+              if (tab.initialWidth) mutableState.initialWidths.set(panel.id, tab.initialWidth)
               panel.api.updateParameters({
                 closable: tab.closable,
                 content: tab.children,
