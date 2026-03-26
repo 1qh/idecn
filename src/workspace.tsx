@@ -65,6 +65,7 @@ const LANG: Record<string, string> = {
     api: null as DockviewApi | null,
     filePanelIds: new Set<string>(),
     initialWidths: new Map<string, number>(),
+    initialized: false,
     prevIds: new Set<string>(),
     savedGroups: new Map<string, string>(),
     tabsCache: [] as TabProps[]
@@ -239,7 +240,13 @@ const LANG: Record<string, string> = {
         const tab = mutableState.tabsCache.find(t => getTabId(t) === e.id)
         tab?.onClose?.()
       })
-      if (onLayoutChange) event.api.onDidLayoutChange(() => onLayoutChange(event.api.toJSON()))
+      if (onLayoutChange)
+        event.api.onDidLayoutChange(() => {
+          if (mutableState.initialized) onLayoutChange(event.api.toJSON())
+        })
+      requestAnimationFrame(() => {
+        mutableState.initialized = true
+      })
     }
     if (!mounted) return null
     return (
