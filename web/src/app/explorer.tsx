@@ -2,25 +2,17 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { DockviewApi, DockviewReadyEvent } from 'dockview-react'
-import type { TreeDataItem } from 'idecn'
-import { DockviewReact } from 'dockview-react'
-import { FileTree } from 'idecn'
+import type { TreeDataItem, WorkspaceRef } from 'idecn'
+import { FileTree, Tab, Workspace } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useState } from 'react'
-import type { AppState } from '~/lib/hash-state'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
-import { loadState, saveState } from '~/lib/hash-state'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
-import { buildTree, langOf } from './github'
-import { FilePanel, FileTab } from './panels'
+import { buildTree } from './github'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
 const DEFAULT_REPO = '1qh/idecn',
-  COMPONENTS = { file: FilePanel },
-  TAB_COMPONENTS = { file: FileTab },
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
       <AlertTriangleIcon className='size-4 shrink-0' />
@@ -30,11 +22,6 @@ const DEFAULT_REPO = '1qh/idecn',
       </button>
     </div>
   ),
-  mutable = {
-    api: null as DockviewApi | null,
-    saved: null as AppState | null,
-    timer: null as null | ReturnType<typeof setTimeout>
-  },
   Explorer = () => {
     const [repo, setRepo] = useState(DEFAULT_REPO),
       [tree, setTree] = useState<TreeDataItem[]>([]),
@@ -42,32 +29,11 @@ const DEFAULT_REPO = '1qh/idecn',
       [rateLimited, setRateLimited] = useState(false),
       [repoInput, setRepoInput] = useState(''),
       [mounted, setMounted] = useState(false),
-      [ready, setReady] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       isDark = mounted && resolvedTheme === 'dark',
-      persistState = useCallback(() => {
-        if (mutable.timer) clearTimeout(mutable.timer)
-        mutable.timer = setTimeout(() => {
-          const { api } = mutable
-          if (!api) return
-          const layout = api.toJSON() as { panels?: Record<string, { params?: Record<string, unknown> }> }
-          if (layout.panels)
-            for (const panel of Object.values(layout.panels)) if (panel.params) panel.params.content = undefined
-          saveState({ layout, repo })
-        }, 300)
-      }, [repo])
+      workspaceRef = useRef<WorkspaceRef>(null)
     useEffect(() => {
       setMounted(true)
-      loadState()
-        .then(s => {
-          if (s) {
-            mutable.saved = s
-            setRepo(s.repo)
-            if (s.repo !== DEFAULT_REPO) setRepoInput(s.repo)
-          }
-          setReady(true)
-        })
-        .catch(() => setReady(true))
     }, [])
     useEffect(() => {
       setTreeLoading(true)
@@ -98,17 +64,9 @@ const DEFAULT_REPO = '1qh/idecn',
           setTreeLoading(false)
         })
     }, [repo])
-    const openFile = useCallback(
-        (filePath: string) => {
-          const { api } = mutable
-          if (!api) return
-          const existing = api.panels.find(p => p.id === filePath)
-          if (existing) {
-            existing.focus()
-            persistState()
-            return
-          }
-          fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
+    const handleOpenFile = useCallback(
+        async (item: TreeDataItem): Promise<null | string> =>
+          fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
             .then(async res => {
               if (res.status === 403 || res.status === 429) {
                 setRateLimited(true)
@@ -116,53 +74,13 @@ const DEFAULT_REPO = '1qh/idecn',
               }
               return res.json() as Promise<{ content?: string }>
             })
-            .then(data => {
-              if (!data) return
-              api.addPanel({
-                component: 'file',
-                id: filePath,
-                params: { content: data.content ? atob(data.content) : '', language: langOf(filePath) },
-                tabComponent: 'file',
-                title: filePath.split('/').at(-1) ?? filePath
-              })
-              persistState()
-            })
-            .catch(() => undefined)
-        },
-        [repo, persistState]
+            .then(data => (data?.content ? atob(data.content) : null))
+            .catch(() => null),
+        [repo]
       ),
-      handleReady = (event: DockviewReadyEvent) => {
-        mutable.api = event.api
-        const { saved } = mutable
-        if (saved?.layout)
-          try {
-            event.api.fromJSON(saved.layout as Parameters<DockviewApi['fromJSON']>[0])
-            for (const panel of event.api.panels)
-              fetch(`https://api.github.com/repos/${repo}/contents/${panel.id}`)
-                .then(async res => {
-                  if (res.status === 403 || res.status === 429) {
-                    setRateLimited(true)
-                    return null
-                  }
-                  return res.ok ? (res.json() as Promise<{ content?: string }>) : null
-                })
-                .then(data => {
-                  if (data?.content)
-                    panel.api.updateParameters({ content: atob(data.content), language: langOf(panel.id) })
-                })
-                .catch(() => undefined)
-          } catch {
-            /* Layout restore failed */
-          }
-        event.api.onDidLayoutChange(() => persistState())
-      },
       handleSubmit = () => {
         const trimmed = repoInput.trim()
-        if (trimmed && trimmed !== repo) {
-          setRepo(trimmed)
-          mutable.api?.clear()
-          persistState()
-        }
+        if (trimmed && trimmed !== repo) setRepo(trimmed)
       }
     return (
       <div className='flex h-screen flex-col'>
@@ -190,8 +108,12 @@ const DEFAULT_REPO = '1qh/idecn',
           </button>
         </div>
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
-        <ResizablePanelGroup orientation='horizontal'>
-          <ResizablePanel defaultSize='320px' minSize='200px'>
+        <Workspace
+          className='flex-1'
+          onOpenFile={handleOpenFile}
+          ref={workspaceRef}
+          renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
+          <Tab position='left' title='Explorer'>
             <div className='h-full overflow-x-auto overflow-y-auto'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
@@ -199,24 +121,13 @@ const DEFAULT_REPO = '1qh/idecn',
                 <FileTree
                   data={tree}
                   onSelectChange={item => {
-                    if (item && !item.children) openFile(item.path)
+                    if (item && !item.children) workspaceRef.current?.openFile(item)
                   }}
                 />
               )}
             </div>
-          </ResizablePanel>
-          <ResizableHandle className='opacity-0' />
-          <ResizablePanel>
-            {ready ? (
-              <DockviewReact
-                className='h-full'
-                components={COMPONENTS}
-                onReady={handleReady}
-                tabComponents={TAB_COMPONENTS}
-              />
-            ) : null}
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </Tab>
+        </Workspace>
       </div>
     )
   }

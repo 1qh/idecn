@@ -15,7 +15,6 @@
     "next-themes": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "react-resizable-panels": "latest",
     "tailwind-merge": "latest"
   },
   "devDependencies": {
