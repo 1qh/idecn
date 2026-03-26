@@ -273,7 +273,11 @@ const TAB_TYPE = Symbol('idecn-tab'),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Tab = (_props: TabProps): null => null
 Tab._type = TAB_TYPE
-const EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
+const monoFont = () =>
+    typeof document === 'undefined'
+      ? ''
+      : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
+  EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
     useEffect(() => {
@@ -312,7 +316,7 @@ const EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
     return (
       <Editor
         language={language}
-        options={EDITOR_OPTIONS}
+        options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
         theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
         value={content}
       />
@@ -403,8 +407,7 @@ const LANG: Record<string, string> = {
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
-    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .view-lines{font-family:var(--font-mono,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace)}'
+    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}'
   ].join(''),
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
   TAB_COMPONENTS = { default: TabHeader },
