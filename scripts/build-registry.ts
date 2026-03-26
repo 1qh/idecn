@@ -1,6 +1,8 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: build script */
 /** biome-ignore-all lint/performance/noAwaitInLoops: sequential file reads */
-/* eslint-disable no-await-in-loop, no-console */
+/** biome-ignore-all lint/nursery/noContinue: build script */
+/** biome-ignore-all lint/nursery/useNamedCaptureGroup: build script */
+/* eslint-disable no-await-in-loop, no-console, no-continue, prefer-named-capture-group, @typescript-eslint/no-non-null-assertion */
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'

@@ -4,7 +4,7 @@
 'use client'
 import type { TreeDataItem } from 'idecn'
 import { Workspace } from 'idecn'
-import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
+import { AlertTriangle, Moon, Search, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useState } from 'react'
 import type { GitHubTreeItem } from './github'
@@ -24,10 +24,10 @@ const EMPTY_TREE: TreeDataItem[] = [],
   initial = readHash(),
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
-      <AlertTriangleIcon className='size-4 shrink-0' />
+      <AlertTriangle className='size-4 shrink-0' />
       <span>GitHub API rate limit reached. Unauthenticated requests are limited to 60/hour.</span>
       <button className='ml-auto shrink-0 opacity-60 hover:opacity-100' onClick={onDismiss} type='button'>
-        <XIcon className='size-3' />
+        <X className='size-3' />
       </button>
     </div>
   ),
@@ -100,7 +100,7 @@ const EMPTY_TREE: TreeDataItem[] = [],
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
-          <SearchIcon className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent' onClick={handleSubmit} />
+          <Search className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent' onClick={handleSubmit} />
           <input
             autoComplete='off'
             className='flex-1 bg-transparent text-sm outline-none'
@@ -119,7 +119,7 @@ const EMPTY_TREE: TreeDataItem[] = [],
             className='p-1 hover:bg-accent [&_svg]:stroke-1'
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             type='button'>
-            {isDark ? <SunIcon /> : <MoonIcon />}
+            {isDark ? <Sun /> : <Moon />}
           </button>
         </div>
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}

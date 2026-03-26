@@ -1,4 +1,7 @@
 const DEMO_TREE = [
+  { path: '.github', type: 'tree' as const },
+  { path: '.github/workflows', type: 'tree' as const },
+  { path: '.github/workflows/ci.yml', type: 'blob' as const },
   { path: '.gitignore', type: 'blob' as const },
   { path: 'LICENSE', type: 'blob' as const },
   { path: 'README.md', type: 'blob' as const },
@@ -8,6 +11,7 @@ const DEMO_TREE = [
   { path: 'scripts/build-registry.ts', type: 'blob' as const },
   { path: 'scripts/gen-demo-tree.ts', type: 'blob' as const },
   { path: 'scripts/gen-icons.ts', type: 'blob' as const },
+  { path: 'scripts/test-registry.sh', type: 'blob' as const },
   { path: 'src', type: 'tree' as const },
   { path: 'src/_generated', type: 'tree' as const },
   { path: 'src/_generated/icon-svgs.json', type: 'blob' as const },

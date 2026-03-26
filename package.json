@@ -32,7 +32,7 @@
     "web"
   ],
   "scripts": {
-    "build": "rm -rf dist && bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react && bun scripts/gen-demo-tree.ts && cd web && bun run build",
+    "build": "rm -rf dist && bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react && bun scripts/gen-demo-tree.ts && bun scripts/build-registry.ts && cd web && bun run build",
     "check": "lintmax check",
     "clean": "rm -rf node_modules bun.lock dist .cache .next .turbo web/node_modules web/.next",
     "dev": "turbo run dev",
