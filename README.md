@@ -78,7 +78,6 @@ Standalone file tree (also built into Workspace).
 
 ```tsx
 import { FileTree } from 'idecn'
-
 ;<FileTree data={tree} onSelectChange={item => console.log(item?.path)} />
 ```
 
