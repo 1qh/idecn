@@ -2,6 +2,7 @@
 import type { IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ReactNode } from 'react'
 import { Editor } from '@monaco-editor/react'
+import { X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { FileIcon } from './icon'
@@ -54,6 +55,13 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
     <div className='group/tab flex h-full items-center'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
       <span className='mb-px ml-0.5'>{api.title}</span>
+      <X
+        className='ml-1 size-3.5 stroke-[1.5] opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
+        onClick={e => {
+          e.stopPropagation()
+          api.close()
+        }}
+      />
     </div>
   )
 export { CustomPanelInner, FilePanelInner, TabHeaderInner }
