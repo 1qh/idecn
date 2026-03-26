@@ -1,3 +1,5 @@
+<h1 align="center"><a href="https://idecn.vercel.app">idecn.vercel.app</a></h1>
+
 ```sh
 bun add idecn
 ```
