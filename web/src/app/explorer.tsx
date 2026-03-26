@@ -110,11 +110,16 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
-          initialFileWidth={700}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
           renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
-          <Tab closable={false} headerClassName='w-full justify-center' icon={false} position='left' title='Explorer'>
+          <Tab
+            closable={false}
+            headerClassName='w-full justify-center'
+            icon={false}
+            initialWidth={250}
+            position='left'
+            title='Explorer'>
             <div className='h-full overflow-x-auto overflow-y-auto'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>

@@ -12,7 +12,6 @@ import { TAB_TYPE } from './tab'
 interface WorkspaceProps {
   children?: ReactNode
   className?: string
-  initialFileWidth?: number
   onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
   ref?: React.Ref<WorkspaceRef>
   renderLoading?: (item: TreeDataItem) => ReactNode
@@ -65,7 +64,7 @@ const LANG: Record<string, string> = {
     savedGroups: new Map<string, string>(),
     tabsCache: [] as TabProps[]
   },
-  Workspace = ({ children, className, initialFileWidth, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
+  Workspace = ({ children, className, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
       setMounted(true)
@@ -85,6 +84,7 @@ const LANG: Record<string, string> = {
         api.addPanel({
           component: 'custom',
           id: tabId,
+          initialWidth: tab.initialWidth,
           params: { closable: tab.closable, content: tab.children, headerClassName: tab.headerClassName, icon: tab.icon },
           position: api.panels.length > 0 ? position : undefined,
           tabComponent: 'default',
@@ -115,7 +115,6 @@ const LANG: Record<string, string> = {
           api.addPanel({
             component: 'file',
             id: item.path,
-            initialWidth: existingFile ? undefined : initialFileWidth,
             params: { content: '', language: langOf(item.path), loading: loadingNode },
             position,
             tabComponent: 'default',
@@ -140,7 +139,7 @@ const LANG: Record<string, string> = {
                 if (p) api.removePanel(p)
               })
         },
-        [initialFileWidth, onOpenFile, renderLoading]
+        [onOpenFile, renderLoading]
       )
     useImperativeHandle(
       ref,

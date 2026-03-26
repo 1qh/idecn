@@ -6,6 +6,7 @@ interface TabProps {
   headerClassName?: string
   icon?: boolean
   id?: string
+  initialWidth?: number
   onClose?: () => void
   position?: 'bottom' | 'left' | 'right'
   title: string
