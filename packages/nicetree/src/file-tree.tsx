@@ -1,7 +1,8 @@
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
+/* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop */
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from './cn'
 import { FileIcon, FolderIcon } from './icon'
 interface TreeCtx {
@@ -18,39 +19,57 @@ interface TreeNode {
 const INDENT_PX = 16,
   ROW =
     'flex w-full items-center gap-1.5 py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
+  Collapsible = ({ children, open }: { children: React.ReactNode; open: boolean }) => {
+    const ref = useRef<HTMLDivElement>(null),
+      [height, setHeight] = useState(open ? undefined : 0)
+    useEffect(() => {
+      const el = ref.current
+      if (!el) return
+      if (open) {
+        setHeight(el.scrollHeight)
+        const id = setTimeout(() => setHeight(undefined), 150)
+        return () => clearTimeout(id)
+      }
+      setHeight(el.scrollHeight)
+      requestAnimationFrame(() => setHeight(0))
+    }, [open])
+    return (
+      <div
+        className='overflow-hidden transition-[height] duration-150 ease-out'
+        ref={ref}
+        style={{ height: height === undefined ? 'auto' : `${String(height)}px` }}>
+        {children}
+      </div>
+    )
+  },
   renderNodes = (nodes: TreeNode[], depth: number, ctx: TreeCtx): React.ReactNode[] => {
     const result: React.ReactNode[] = []
-    for (const node of nodes)
+    for (const node of nodes) {
+      const pl = `${String(depth * INDENT_PX + 8)}px`
       if (node.children) {
-        const isOpen = ctx.expanded.has(node.path),
-          paddingLeft = `${String(depth * INDENT_PX + 8)}px`
+        const isOpen = ctx.expanded.has(node.path)
         result.push(
           <div key={node.path}>
-            <button className={ROW} onClick={() => ctx.toggle(node.path)} style={{ paddingLeft }} type='button'>
+            <button className={ROW} onClick={() => ctx.toggle(node.path)} style={{ paddingLeft: pl }} type='button'>
               <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} open={isOpen} />
               <span className='truncate'>{node.name}</span>
             </button>
-            <div
-              className='grid transition-[grid-template-rows] duration-150 ease-out'
-              style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
-              <div className='overflow-hidden'>{renderNodes(node.children, depth + 1, ctx)}</div>
-            </div>
+            <Collapsible open={isOpen}>{renderNodes(node.children, depth + 1, ctx)}</Collapsible>
           </div>
         )
-      } else {
-        const paddingLeft = `${String(depth * INDENT_PX + 8)}px`
+      } else
         result.push(
           <button
             className={cn(ROW, ctx.sel === node.path && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]')}
             key={node.path}
             onClick={() => ctx.handleSelect(node.path)}
-            style={{ paddingLeft }}
+            style={{ paddingLeft: pl }}
             type='button'>
             <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} />
             <span className='truncate'>{node.name}</span>
           </button>
         )
-      }
+    }
     return result
   },
   FileTree = ({
