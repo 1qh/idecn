@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { X } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from './cn'
 import { FileIcon } from './icon'
 const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
@@ -55,9 +55,13 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
   TabHeaderInner = ({ api, params }: IDockviewPanelHeaderProps) => {
     const p = params as undefined | { closable?: boolean; headerClassName?: string; icon?: boolean },
       showIcon = p?.icon !== false,
-      closable = p?.closable !== false
+      closable = p?.closable !== false,
+      ref = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+      if (p?.headerClassName && ref.current?.parentElement) ref.current.parentElement.style.flex = '1'
+    }, [p?.headerClassName])
     return (
-      <div className={cn('group/tab flex h-full items-center', p?.headerClassName)}>
+      <div className={cn('group/tab flex h-full items-center', p?.headerClassName)} ref={ref}>
         {showIcon ? <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} /> : null}
         <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (
