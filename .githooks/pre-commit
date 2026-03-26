@@ -1,0 +1,2 @@
+#!/bin/bash
+bun clean && bun i && bun fix

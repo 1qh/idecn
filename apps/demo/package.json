@@ -8,6 +8,8 @@
   "dependencies": {
     "@monaco-editor/react": "latest",
     "clsx": "latest",
+    "dockview-core": "latest",
+    "dockview-react": "latest",
     "lucide-react": "latest",
     "next": "latest",
     "next-themes": "latest",
@@ -15,12 +17,12 @@
     "nuqs": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "react-resizable-panels": "^4.7.6",
+    "react-resizable-panels": "latest",
     "tailwind-merge": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
-    "@types/node": "^25.5.0",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "tailwindcss": "latest",

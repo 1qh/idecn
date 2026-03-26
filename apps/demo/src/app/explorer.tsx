@@ -2,14 +2,18 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
+import type { DockviewReadyEvent, IDockviewPanelProps } from 'dockview-react'
 import type { TreeDataItem } from 'nicetree'
 import { Editor } from '@monaco-editor/react'
+import { DockviewReact } from 'dockview-react'
 import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
+// oxlint-disable-next-line import/no-unassigned-import
+import 'dockview-core/dist/styles/dockview.css'
 interface GitHubTreeItem {
   mode: string
   path: string
@@ -39,42 +43,43 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     }
     return root
   },
-  langOf = (p: string): string => {
-    const ext = p.split('.').at(-1) ?? '',
-      map: Record<string, string> = {
-        css: 'css',
-        go: 'go',
-        html: 'html',
-        js: 'javascript',
-        json: 'json',
-        jsx: 'javascript',
-        md: 'markdown',
-        mjs: 'javascript',
-        py: 'python',
-        rs: 'rust',
-        sh: 'shell',
-        sql: 'sql',
-        toml: 'toml',
-        ts: 'typescript',
-        tsx: 'typescript',
-        yaml: 'yaml',
-        yml: 'yaml'
-      }
-    return map[ext] ?? 'plaintext'
+  LANG_MAP: Record<string, string> = {
+    css: 'css',
+    go: 'go',
+    html: 'html',
+    js: 'javascript',
+    json: 'json',
+    jsx: 'javascript',
+    md: 'markdown',
+    mjs: 'javascript',
+    py: 'python',
+    rs: 'rust',
+    sh: 'shell',
+    sql: 'sql',
+    toml: 'toml',
+    ts: 'typescript',
+    tsx: 'typescript',
+    yaml: 'yaml',
+    yml: 'yaml'
   },
+  langOf = (p: string): string => LANG_MAP[p.split('.').at(-1) ?? ''] ?? 'plaintext',
   EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
+  FilePanel = ({ params }: IDockviewPanelProps<{ content: string; language: string; theme: string }>) => (
+    <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
+  ),
+  COMPONENTS = { file: FilePanel },
   Explorer = () => {
     const [repo, setRepo] = useQueryState('repo', parseAsString.withDefault(DEFAULT_REPO)),
       [path, setPath] = useQueryState('path', parseAsString.withDefault('')),
       [tree, setTree] = useState<TreeDataItem[]>([]),
-      [content, setContent] = useState(''),
-      [loading, setLoading] = useState(false),
       [treeLoading, setTreeLoading] = useState(false),
       [repoInput, setRepoInput] = useState(repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
-      isDark = mounted && resolvedTheme === 'dark'
+      isDark = mounted && resolvedTheme === 'dark',
+      dockviewRef = useRef<DockviewReadyEvent | null>(null),
+      components = COMPONENTS
     useEffect(() => {
       setMounted(true)
     }, [])
@@ -91,28 +96,46 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           setTreeLoading(false)
         })
     }, [repo])
+    const openFile = useCallback(
+      (filePath: string) => {
+        setPath(filePath)
+        const api = dockviewRef.current?.api
+        if (!api) return
+        const existing = api.panels.find(p => p.id === filePath)
+        if (existing) {
+          existing.focus()
+          return
+        }
+        fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
+          .then(async res => res.json() as Promise<{ content?: string }>)
+          .then(data => {
+            const content = data.content ? atob(data.content) : ''
+            api.addPanel({
+              component: 'file',
+              id: filePath,
+              params: { content, language: langOf(filePath), theme: editorTheme },
+              title: filePath.split('/').at(-1) ?? filePath
+            })
+          })
+          .catch(() => undefined)
+      },
+      [repo, editorTheme, setPath]
+    )
     useEffect(() => {
-      if (!path) return
-      setLoading(true)
-      fetch(`https://api.github.com/repos/${repo}/contents/${path}`)
-        .then(async res => res.json() as Promise<{ content?: string }>)
-        .then(data => {
-          setContent(data.content ? atob(data.content) : '')
-          setLoading(false)
-        })
-        .catch(() => {
-          setContent('')
-          setLoading(false)
-        })
-    }, [path, repo])
-    const handleSubmit = () => {
-      const trimmed = repoInput.trim()
-      if (trimmed && trimmed !== repo) {
-        setRepo(trimmed)
-        setPath('')
-        setContent('')
+      if (path && dockviewRef.current) openFile(path)
+    }, [path, openFile])
+    const handleReady = (event: DockviewReadyEvent) => {
+        dockviewRef.current = event
+        if (path) openFile(path)
+      },
+      handleSubmit = () => {
+        const trimmed = repoInput.trim()
+        if (trimmed && trimmed !== repo) {
+          setRepo(trimmed)
+          setPath('')
+          dockviewRef.current?.api.clear()
+        }
       }
-    }
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center gap-2 border-b border-border px-3 py-1.5'>
@@ -144,9 +167,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
               ) : (
                 <FileTree
                   data={tree}
-                  initialSelectedItemId={path || undefined}
                   onSelectChange={item => {
-                    if (item && !item.children) setPath(item.path)
+                    if (item && !item.children) openFile(item.path)
                   }}
                 />
               )}
@@ -154,13 +176,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </ResizablePanel>
           <ResizableHandle className='opacity-0' />
           <ResizablePanel>
-            {loading ? (
-              <div className='flex h-full items-center justify-center text-muted-foreground'>Loading file...</div>
-            ) : path ? (
-              <Editor language={langOf(path)} options={EDITOR_OPTIONS} theme={editorTheme} value={content} />
-            ) : (
-              <div className='flex h-full items-center justify-center text-muted-foreground'>Select a file to view</div>
-            )}
+            <DockviewReact className='h-full' components={components} onReady={handleReady} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
