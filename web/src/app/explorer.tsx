@@ -2,16 +2,17 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
+import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { TreeDataItem } from 'idecn'
 import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
 import { FileIcon, FileTree } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { parseAsString, useQueryState } from 'nuqs'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { AppState } from '~/lib/hash-state'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
+import { loadState, saveState } from '~/lib/hash-state'
 import { DEMO_TREE } from './demo-tree'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
@@ -90,22 +91,43 @@ const DEFAULT_REPO = '1qh/idecn',
       </button>
     </div>
   ),
+  mutable = {
+    api: null as DockviewApi | null,
+    saved: null as AppState | null,
+    timer: null as null | ReturnType<typeof setTimeout>
+  },
   Explorer = () => {
-    const [repo, setRepo] = useQueryState('repo', parseAsString.withDefault(DEFAULT_REPO)),
-      [path, setPath] = useQueryState('path', parseAsString.withDefault('')),
+    const [repo, setRepo] = useState(DEFAULT_REPO),
       [tree, setTree] = useState<TreeDataItem[]>([]),
       [treeLoading, setTreeLoading] = useState(true),
       [rateLimited, setRateLimited] = useState(false),
-      [repoInput, setRepoInput] = useState(repo),
+      [repoInput, setRepoInput] = useState(DEFAULT_REPO),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
       isDark = mounted && resolvedTheme === 'dark',
-      dockviewRef = useRef<DockviewReadyEvent | null>(null),
-      components = COMPONENTS,
-      tabComponents = TAB_COMPONENTS
+      persistState = useCallback(() => {
+        if (mutable.timer) clearTimeout(mutable.timer)
+        mutable.timer = setTimeout(() => {
+          const { api } = mutable,
+            state: AppState = {
+              repo,
+              ...(api ? { layout: api.toJSON() } : {})
+            }
+          saveState(state)
+        }, 300)
+      }, [repo])
     useEffect(() => {
       setMounted(true)
+      loadState()
+        .then(s => {
+          if (s) {
+            mutable.saved = s
+            setRepo(s.repo)
+            setRepoInput(s.repo)
+          }
+        })
+        .catch(() => undefined)
     }, [])
     useEffect(() => {
       setTreeLoading(true)
@@ -137,51 +159,56 @@ const DEFAULT_REPO = '1qh/idecn',
         })
     }, [repo])
     const openFile = useCallback(
-      (filePath: string) => {
-        setPath(filePath)
-        const api = dockviewRef.current?.api
-        if (!api) return
-        const existing = api.panels.find(p => p.id === filePath)
-        if (existing) {
-          existing.focus()
-          return
-        }
-        fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
-          .then(async res => {
-            if (res.status === 403 || res.status === 429) {
-              setRateLimited(true)
-              return null
-            }
-            return res.json() as Promise<{ content?: string }>
-          })
-          .then(data => {
-            if (!data) return
-            const content = data.content ? atob(data.content) : ''
-            api.addPanel({
-              component: 'file',
-              id: filePath,
-              params: { content, language: langOf(filePath), theme: editorTheme },
-              tabComponent: 'file',
-              title: filePath.split('/').at(-1) ?? filePath
+        (filePath: string) => {
+          const { api } = mutable
+          if (!api) return
+          const existing = api.panels.find(p => p.id === filePath)
+          if (existing) {
+            existing.focus()
+            persistState()
+            return
+          }
+          fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
+            .then(async res => {
+              if (res.status === 403 || res.status === 429) {
+                setRateLimited(true)
+                return null
+              }
+              return res.json() as Promise<{ content?: string }>
             })
-          })
-          .catch(() => undefined)
-      },
-      [repo, editorTheme, setPath]
-    )
-    useEffect(() => {
-      if (path && dockviewRef.current) openFile(path)
-    }, [path, openFile])
-    const handleReady = (event: DockviewReadyEvent) => {
-        dockviewRef.current = event
-        if (path) openFile(path)
+            .then(data => {
+              if (!data) return
+              const content = data.content ? atob(data.content) : ''
+              api.addPanel({
+                component: 'file',
+                id: filePath,
+                params: { content, language: langOf(filePath), theme: editorTheme },
+                tabComponent: 'file',
+                title: filePath.split('/').at(-1) ?? filePath
+              })
+              persistState()
+            })
+            .catch(() => undefined)
+        },
+        [repo, editorTheme, persistState]
+      ),
+      handleReady = (event: DockviewReadyEvent) => {
+        mutable.api = event.api
+        const { saved } = mutable
+        if (saved?.layout)
+          try {
+            event.api.fromJSON(saved.layout as Parameters<DockviewApi['fromJSON']>[0])
+          } catch {
+            /* Layout restore failed, start fresh */
+          }
+        event.api.onDidLayoutChange(() => persistState())
       },
       handleSubmit = () => {
         const trimmed = repoInput.trim()
         if (trimmed && trimmed !== repo) {
           setRepo(trimmed)
-          setPath('')
-          dockviewRef.current?.api.clear()
+          mutable.api?.clear()
+          persistState()
         }
       }
     return (
@@ -225,9 +252,9 @@ const DEFAULT_REPO = '1qh/idecn',
           <ResizablePanel>
             <DockviewReact
               className='h-full'
-              components={components}
+              components={COMPONENTS}
               onReady={handleReady}
-              tabComponents={tabComponents}
+              tabComponents={TAB_COMPONENTS}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
