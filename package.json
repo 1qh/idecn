@@ -11,7 +11,10 @@
     "shadcn",
     "dockview"
   ],
-  "repository": { "type": "git", "url": "git+https://github.com/1qh/idecn.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1qh/idecn.git"
+  },
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -40,6 +43,7 @@
     "tailwind-merge": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "latest",
     "@types/react": "latest",
     "bun-types": "latest",
     "lintmax": "latest",

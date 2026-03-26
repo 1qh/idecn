@@ -6,3 +6,4 @@ test-results
 .turbo
 .cache
 .vercel
+next-env.d.ts
