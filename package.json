@@ -43,6 +43,7 @@
   "dependencies": {
     "@base-ui/react": "latest",
     "clsx": "latest",
+    "react-resizable-panels": "latest",
     "tailwind-merge": "latest"
   },
   "devDependencies": {

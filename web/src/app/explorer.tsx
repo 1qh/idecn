@@ -130,7 +130,7 @@ const DEFAULT_REPO = '1qh/idecn',
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
           renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
-          <Tab closable={false} icon={false} initialWidth={250} position='left' title='Explorer'>
+          <Tab closable={false} defaultSize='250px' icon={false} position='left' title='Explorer'>
             <div className='h-full overflow-x-auto overflow-y-auto'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>

@@ -5,9 +5,9 @@ import type { DockviewApi, DockviewReadyEvent } from 'dockview-react'
 import type { ReactNode } from 'react'
 import { DockviewReact } from 'dockview-react'
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 import type { TreeDataItem } from './file-tree'
 import type { TabProps } from './tab'
-import { cn } from './cn'
 import { CustomPanelInner, FilePanelInner, TabHeaderInner } from './panels'
 import { TAB_TYPE } from './tab'
 interface WorkspaceProps {
@@ -43,11 +43,6 @@ const LANG: Record<string, string> = {
     yml: 'yaml'
   },
   langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext',
-  POSITIONS: Record<string, { direction: 'above' | 'below' | 'left' | 'right' }> = {
-    bottom: { direction: 'below' },
-    left: { direction: 'left' },
-    right: { direction: 'right' }
-  },
   RESET_CSS = [
     '.dv-reset{',
     '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
@@ -94,9 +89,8 @@ const LANG: Record<string, string> = {
         api: null as DockviewApi | null,
         disposables: [] as { dispose: () => void }[],
         fileIds: new Set<string>(),
-        prevTabIds: new Set<string>(),
+        prevDockTabIds: new Set<string>(),
         ready: false,
-        tabWidths: new Map<string, number>(),
         tabs: [] as TabProps[]
       }),
       onFilesChangeRef = useRef(onFilesChange),
@@ -115,15 +109,18 @@ const LANG: Record<string, string> = {
           api: null,
           disposables: [],
           fileIds: new Set(),
-          prevTabIds: new Set(),
+          prevDockTabIds: new Set(),
           ready: false,
-          tabWidths: new Map(),
           tabs: []
         }
       }
     }, [])
-    const tabs = useMemo(() => extractTabs(children), [children]),
-      addTab = useCallback((tab: TabProps) => {
+    const allTabs = useMemo(() => extractTabs(children), [children]),
+      leftTabs = useMemo(() => allTabs.filter(t => t.position === 'left'), [allTabs]),
+      rightTabs = useMemo(() => allTabs.filter(t => t.position === 'right'), [allTabs]),
+      bottomTabs = useMemo(() => allTabs.filter(t => t.position === 'bottom'), [allTabs]),
+      dockTabs = useMemo(() => allTabs.filter(t => !t.position), [allTabs]),
+      addDockTab = useCallback((tab: TabProps) => {
         const { api } = stateRef.current
         if (!api) return
         const tabId = getTabId(tab),
@@ -132,22 +129,13 @@ const LANG: Record<string, string> = {
           existing.api.updateParameters({ content: tab.children })
           return
         }
-        if (tab.initialWidth) stateRef.current.tabWidths.set(tabId, tab.initialWidth)
         api.addPanel({
           component: 'custom',
           id: tabId,
           params: { closable: tab.closable, content: tab.children, headerClassName: tab.headerClassName, icon: tab.icon },
-          position: api.panels.length > 0 ? POSITIONS[tab.position ?? ''] : undefined,
           tabComponent: 'default',
           title: tab.title
         })
-        if (tab.initialWidth) {
-          const panel = api.panels.find(p => p.id === tabId)
-          if (panel) {
-            panel.group.api.setConstraints({ minimumWidth: tab.initialWidth })
-            ;(panel.group as unknown as { _priority: string })._priority = 'low'
-          }
-        }
       }, []),
       openFile = useCallback((item: TreeDataItem) => {
         const { api } = stateRef.current,
@@ -165,11 +153,7 @@ const LANG: Record<string, string> = {
             <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
           ),
           existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
-          position = existingFile
-            ? { direction: 'within' as const, referenceGroup: existingFile.group.id }
-            : api.panels.length > 0
-              ? { direction: 'right' as const }
-              : undefined
+          position = existingFile ? { direction: 'within' as const, referenceGroup: existingFile.group.id } : undefined
         stateRef.current.fileIds.add(item.path)
         api.addPanel({
           component: 'file',
@@ -179,11 +163,6 @@ const LANG: Record<string, string> = {
           tabComponent: 'default',
           title: item.name
         })
-        if (!existingFile)
-          for (const [panelId, width] of stateRef.current.tabWidths) {
-            const panel = api.panels.find(p => p.id === panelId)
-            if (panel) panel.group.api.setSize({ width })
-          }
         const result = onOpen(item)
         if (result === null) return
         if (typeof result === 'string')
@@ -191,11 +170,11 @@ const LANG: Record<string, string> = {
         else {
           const panelPath = item.path
           result
-            .then(content => {
+            .then(fileContent => {
               const p = api.panels.find(x => x.id === panelPath)
               if (!p) return
-              if (content === null) api.removePanel(p)
-              else p.api.updateParameters({ content, loading: undefined })
+              if (fileContent === null) api.removePanel(p)
+              else p.api.updateParameters({ content: fileContent, loading: undefined })
             })
             .catch(() => {
               const p = api.panels.find(x => x.id === panelPath)
@@ -214,70 +193,89 @@ const LANG: Record<string, string> = {
     useEffect(() => {
       const { api } = stateRef.current
       if (!api) return
-      const currentIds = new Set(tabs.map(getTabId))
-      for (const id of stateRef.current.prevTabIds)
+      const currentIds = new Set(dockTabs.map(getTabId))
+      for (const id of stateRef.current.prevDockTabIds)
         if (!currentIds.has(id)) {
           const panel = api.panels.find(p => p.id === id)
           if (panel) api.removePanel(panel)
         }
-      for (const tab of tabs) {
+      for (const tab of dockTabs) {
         const tabId = getTabId(tab)
-        if (stateRef.current.prevTabIds.has(tabId))
+        if (stateRef.current.prevDockTabIds.has(tabId))
           api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
-        else addTab(tab)
+        else addDockTab(tab)
       }
-      stateRef.current.prevTabIds = currentIds
-      stateRef.current.tabs = tabs
-    }, [addTab, tabs])
+      stateRef.current.prevDockTabIds = currentIds
+      stateRef.current.tabs = allTabs
+    }, [addDockTab, allTabs, dockTabs])
     const handleReady = (event: DockviewReadyEvent) => {
-      stateRef.current.api = event.api
-      for (const tab of tabs) addTab(tab)
-      stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
-      stateRef.current.tabs = tabs
-      if (initialFiles)
-        for (const path of initialFiles) {
-          const name = path.split('/').at(-1) ?? path
-          openFile({ id: path, name, path })
-        }
-      const notifyFiles = () => {
+        stateRef.current.api = event.api
+        for (const tab of dockTabs) addDockTab(tab)
+        stateRef.current.prevDockTabIds = new Set(dockTabs.map(getTabId))
+        stateRef.current.tabs = allTabs
+        if (initialFiles)
+          for (const path of initialFiles) {
+            const name = path.split('/').at(-1) ?? path
+            openFile({ id: path, name, path })
+          }
+        const notifyFiles = () => {
           if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
-        },
-        applyWidths = () => {
-          setTimeout(() => {
-            for (const [panelId, width] of stateRef.current.tabWidths) {
-              const panel = event.api.panels.find(p => p.id === panelId)
-              if (panel) panel.group.api.setSize({ width })
-            }
-          }, 50)
         }
-      stateRef.current.disposables.push(
-        event.api.onDidRemovePanel(e => {
-          stateRef.current.fileIds.delete(e.id)
-          const tab = stateRef.current.tabs.find(t => getTabId(t) === e.id)
-          tab?.onClose?.()
-          notifyFiles()
-          applyWidths()
-        }),
-        event.api.onDidAddPanel(() => {
-          notifyFiles()
-          applyWidths()
+        stateRef.current.disposables.push(
+          event.api.onDidRemovePanel(e => {
+            stateRef.current.fileIds.delete(e.id)
+            const tab = stateRef.current.tabs.find(t => getTabId(t) === e.id)
+            tab?.onClose?.()
+            notifyFiles()
+          }),
+          event.api.onDidAddPanel(() => notifyFiles())
+        )
+        requestAnimationFrame(() => {
+          stateRef.current.ready = true
         })
+      },
+      hasSides = leftTabs.length > 0 || rightTabs.length > 0,
+      hasBottom = bottomTabs.length > 0,
+      dockview = (
+        <DockviewReact className='dv-reset' components={COMPONENTS} onReady={handleReady} tabComponents={TAB_COMPONENTS} />
       )
-      requestAnimationFrame(() => {
-        stateRef.current.ready = true
-      })
-    }
     if (!mounted) return null
+    let content: ReactNode = dockview
+    if (hasBottom)
+      content = (
+        <Group className='h-full' orientation='vertical'>
+          <Panel>{content}</Panel>
+          {bottomTabs.map(tab => (
+            <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 10}>
+              <Separator className='opacity-0' />
+              {tab.children}
+            </Panel>
+          ))}
+        </Group>
+      )
+    if (hasSides)
+      content = (
+        <Group className='h-full' orientation='horizontal'>
+          {leftTabs.map(tab => (
+            <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 5}>
+              {tab.children}
+              <Separator className='opacity-0' />
+            </Panel>
+          ))}
+          <Panel minSize={20}>{content}</Panel>
+          {rightTabs.map(tab => (
+            <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 5}>
+              <Separator className='opacity-0' />
+              {tab.children}
+            </Panel>
+          ))}
+        </Group>
+      )
     return (
-      <>
+      <div className={className}>
         <style>{RESET_CSS}</style>
-        <DockviewReact
-          className={cn('dv-reset', className)}
-          components={COMPONENTS}
-          onReady={handleReady}
-          tabComponents={TAB_COMPONENTS}
-        />
-      </>
+        {content}
+      </div>
     )
   }
 export type { WorkspaceProps, WorkspaceRef }
