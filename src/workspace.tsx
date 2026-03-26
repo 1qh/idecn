@@ -158,12 +158,45 @@ const LANG: Record<string, string> = {
         loadLayout: (layout: unknown) => {
           const { api } = mutableState
           if (!api) return
-          api.fromJSON(layout as Parameters<DockviewApi['fromJSON']>[0])
+          try {
+            api.fromJSON(layout as Parameters<DockviewApi['fromJSON']>[0])
+          } catch {
+            return
+          }
+          const tabs = extractTabs(children),
+            tabMap = new Map(tabs.map(t => [getTabId(t), t]))
+          for (const panel of api.panels) {
+            const tab = tabMap.get(panel.id)
+            if (tab) {
+              panel.api.updateParameters({
+                closable: tab.closable,
+                content: tab.children,
+                headerClassName: tab.headerClassName,
+                icon: tab.icon
+              })
+              mutableState.prevIds.add(panel.id)
+            } else {
+              mutableState.filePanelIds.add(panel.id)
+              if (onOpenFile) {
+                const item: TreeDataItem = { id: panel.id, name: panel.title ?? panel.id, path: panel.id },
+                  result = onOpenFile(item)
+                if (result !== null && typeof result !== 'string')
+                  result
+                    .then(content => {
+                      if (content === null) api.removePanel(panel)
+                      else panel.api.updateParameters({ content, loading: undefined })
+                    })
+                    .catch(() => api.removePanel(panel))
+                else if (typeof result === 'string') panel.api.updateParameters({ content: result, loading: undefined })
+              }
+            }
+          }
+          mutableState.tabsCache = tabs
         },
         openFile,
         showPanel: (id: string) => mutableState.api?.panels.find(p => p.id === id)?.focus()
       }),
-      [openFile]
+      [children, onOpenFile, openFile]
     )
     useEffect(() => {
       const { api } = mutableState
