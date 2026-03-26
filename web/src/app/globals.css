@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@source '../../../../packages/idecn/src';
+@source '../../../packages/idecn/src';
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
