@@ -72,8 +72,8 @@ const TreeContext = createContext<TreeContextValue>({
         <Accordion.Item value={itemId}>
           <Accordion.Trigger
             className={cn(
-              'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-[var(--idecn-hover,hsl(var(--accent)))]',
-              isSelected && 'bg-[var(--idecn-selected,hsl(var(--accent)))]',
+              'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
+              isSelected && 'bg-accent',
               disabled && 'pointer-events-none opacity-50',
               className
             )}
@@ -113,8 +113,8 @@ const TreeContext = createContext<TreeContextValue>({
     return (
       <button
         className={cn(
-          'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-[var(--idecn-hover,hsl(var(--accent)))]',
-          isSelected && 'bg-[var(--idecn-selected,hsl(var(--accent)))]',
+          'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
+          isSelected && 'bg-accent',
           disabled && 'pointer-events-none opacity-50',
           className
         )}
