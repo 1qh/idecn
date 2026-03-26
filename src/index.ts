@@ -1,4 +1,8 @@
 export type { FileTreeProps, TreeDataItem } from './file-tree'
 export { FileTree, findPath } from './file-tree'
 export { FileIcon, FolderIcon, getIconSvg } from './icon'
+export type { TabProps } from './tab'
+export { Tab } from './tab'
 export { Tree, TreeFile, TreeFolder } from './tree'
+export type { WorkspaceProps, WorkspaceRef } from './workspace'
+export { Workspace } from './workspace'
