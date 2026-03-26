@@ -26,9 +26,9 @@ import {
 } from 'react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { twMerge } from 'tailwind-merge'
-import svgData from './_generated/icon-svgs.json' with { type: 'json' }
-import manifestData from './_generated/manifest.json' with { type: 'json' }
+import iconsData from './_generated/icons.json' with { type: 'json' }
 const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
+  { manifest: manifestData, svgs: svgData } = iconsData,
   manifest = manifestData as {
     file: string
     fileExtensions: Record<string, string>
