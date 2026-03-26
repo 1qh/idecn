@@ -137,8 +137,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </button>
         </div>
         <ResizablePanelGroup orientation='horizontal'>
-          <ResizablePanel defaultSize={25} minSize={15}>
-            <div className='h-full overflow-x-auto overflow-y-auto border-r border-border'>
+          <ResizablePanel defaultSize={25} minSize={10}>
+            <div className='h-full overflow-x-auto overflow-y-auto'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
               ) : (
@@ -152,7 +152,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
               )}
             </div>
           </ResizablePanel>
-          <ResizableHandle />
+          <ResizableHandle className='opacity-0' />
           <ResizablePanel>
             {loading ? (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Loading file...</div>

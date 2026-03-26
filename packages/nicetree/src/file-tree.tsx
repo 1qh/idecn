@@ -41,7 +41,7 @@ const INDENT_PX = 16,
             }}
             style={{ paddingLeft: pl }}>
             <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={item.name} open={open.includes(item.id)} />
-            <span className='truncate'>{item.name}</span>
+            <span>{item.name}</span>
             {item.actions ? (
               <span className={cn('ml-auto hidden group-hover:block', isSelected && 'block')}>{item.actions}</span>
             ) : null}
@@ -73,7 +73,7 @@ const INDENT_PX = 16,
         style={{ paddingLeft: pl }}
         type='button'>
         <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={item.name} />
-        <span className='truncate'>{item.name}</span>
+        <span>{item.name}</span>
         {item.actions ? (
           <span className={cn('ml-auto hidden group-hover:block', isSelected && 'block')}>{item.actions}</span>
         ) : null}
@@ -118,7 +118,9 @@ const FileTree = ({ className, data, initialSelectedItemId, onSelectChange }: Tr
     ctx: TreeCtx = { handleSelect, selectedId }
   return (
     <nav aria-label='File tree' className={cn('select-none overflow-auto text-[13px]', className)}>
-      <TreeItems ctx={ctx} depth={0} items={items} />
+      <div className='min-w-max'>
+        <TreeItems ctx={ctx} depth={0} items={items} />
+      </div>
     </nav>
   )
 }
