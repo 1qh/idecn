@@ -4,9 +4,10 @@ import type { ReactNode } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { X } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from './cn'
 import { FileIcon } from './icon'
+import { ICON_CLASS } from './tree'
 const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
@@ -55,16 +56,12 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
   TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
     const p = params as undefined | { closable?: boolean; headerClassName?: string; icon?: boolean },
       showIcon = p?.icon !== false,
-      closable = p?.closable !== false,
-      ref = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-      if (!(p?.headerClassName && ref.current)) return
-      const tab = ref.current.closest<HTMLElement>('.dv-tab')
-      if (tab) tab.style.flex = '1'
-    }, [p?.headerClassName])
+      closable = p?.closable !== false
     return (
-      <div className={cn('group/tab flex h-full items-center', p?.headerClassName)} ref={ref}>
-        {showIcon ? <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} /> : null}
+      <div
+        className={cn('group/tab flex h-full items-center', p?.headerClassName)}
+        data-fill={p?.headerClassName ? '' : undefined}>
+        {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
         <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (
           <X

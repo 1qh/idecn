@@ -9,3 +9,5 @@ jobs:
       - run: bun install
       - run: bun run check
       - run: bun run build
+      - run: bun run dev &
+      - run: sleep 3 && bun run test:registry
