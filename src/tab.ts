@@ -3,10 +3,11 @@ import type { ReactNode } from 'react'
 interface TabProps {
   children: ReactNode
   closable?: boolean
+  defaultSize?: number | string
   headerClassName?: string
   icon?: boolean
   id?: string
-  initialWidth?: number
+  minSize?: number
   onClose?: () => void
   position?: 'bottom' | 'left' | 'right'
   title: string

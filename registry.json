@@ -16,6 +16,7 @@
         "dockview-react",
         "lucide-react",
         "next-themes",
+        "react-resizable-panels",
         "tailwind-merge"
       ],
       "files": [
