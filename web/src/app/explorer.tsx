@@ -7,13 +7,22 @@ import { FileTree, Tab, Workspace } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { loadState, saveState } from '~/lib/hash-state'
 import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree } from './github'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
 const DEFAULT_REPO = '1qh/idecn',
+  STORAGE_KEY = 'idecn-state',
+  loadSaved = (): null | { layout?: unknown; repo?: string } => {
+    try {
+      const raw = globalThis.localStorage.getItem(STORAGE_KEY)
+      return raw ? (JSON.parse(raw) as { layout?: unknown; repo?: string }) : null
+    } catch {
+      return null
+    }
+  },
+  saved = loadSaved(),
   debounceTimer = { current: null as null | ReturnType<typeof setTimeout> },
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
@@ -25,27 +34,17 @@ const DEFAULT_REPO = '1qh/idecn',
     </div>
   ),
   Explorer = () => {
-    const [repo, setRepo] = useState(DEFAULT_REPO),
+    const [repo, setRepo] = useState(saved?.repo ?? DEFAULT_REPO),
       [tree, setTree] = useState<TreeDataItem[]>([]),
       [treeLoading, setTreeLoading] = useState(true),
       [rateLimited, setRateLimited] = useState(false),
-      [repoInput, setRepoInput] = useState(''),
-      [ready, setReady] = useState(false),
-      [savedLayout, setSavedLayout] = useState<unknown>(undefined),
+      [repoInput, setRepoInput] = useState(saved?.repo && saved.repo !== DEFAULT_REPO ? saved.repo : ''),
+      [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
-      isDark = ready && resolvedTheme === 'dark',
+      isDark = mounted && resolvedTheme === 'dark',
       workspaceRef = useRef<WorkspaceRef>(null)
     useEffect(() => {
-      loadState()
-        .then(s => {
-          if (s) {
-            setRepo(s.repo)
-            if (s.repo !== DEFAULT_REPO) setRepoInput(s.repo)
-            if (s.layout) setSavedLayout(s.layout)
-          }
-          setReady(true)
-        })
-        .catch(() => setReady(true))
+      setMounted(true)
     }, [])
     useEffect(() => {
       setTreeLoading(true)
@@ -96,7 +95,11 @@ const DEFAULT_REPO = '1qh/idecn',
           debounceTimer.current = setTimeout(() => {
             const l = layout as { panels?: Record<string, { params?: unknown }> }
             if (l.panels) for (const panel of Object.values(l.panels)) panel.params = undefined
-            saveState({ layout: l, repo })
+            try {
+              globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ layout: l, repo }))
+            } catch {
+              /* Quota exceeded */
+            }
           }, 300)
         },
         [repo]
@@ -105,7 +108,6 @@ const DEFAULT_REPO = '1qh/idecn',
         const trimmed = repoInput.trim()
         if (trimmed && trimmed !== repo) setRepo(trimmed)
       }
-    if (!ready) return null
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
@@ -134,7 +136,7 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
-          initialLayout={savedLayout}
+          initialLayout={saved?.layout}
           onLayoutChange={handleLayoutChange}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}

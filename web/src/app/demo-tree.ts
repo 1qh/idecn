@@ -44,7 +44,6 @@ const DEMO_TREE = [
   { path: 'web/src/app/layout.tsx', type: 'blob' as const },
   { path: 'web/src/app/page.tsx', type: 'blob' as const },
   { path: 'web/src/lib', type: 'tree' as const },
-  { path: 'web/src/lib/hash-state.ts', type: 'blob' as const },
   { path: 'web/src/lib/utils.ts', type: 'blob' as const },
   { path: 'web/tsconfig.json', type: 'blob' as const }
 ]
