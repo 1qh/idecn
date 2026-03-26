@@ -8,7 +8,7 @@
     "build": "bun run --filter '*' build",
     "check": "lintmax check",
     "clean": "rm -rf node_modules bun.lock dist .cache .next .turbo packages/*/node_modules apps/*/node_modules packages/*/dist apps/*/dist apps/*/.next",
-    "dev": "bun run --filter '@nicetree/demo' dev",
+    "dev": "bun run --filter '@idecn/demo' dev",
     "fix": "lintmax fix && bun run build"
   },
   "devDependencies": {

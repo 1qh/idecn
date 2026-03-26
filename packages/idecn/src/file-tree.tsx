@@ -23,7 +23,7 @@ interface TreeDataItem {
 }
 const INDENT_PX = 16,
   ROW =
-    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
+    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-[var(--idecn-hover,hsl(var(--accent)))]',
   PANEL =
     'overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0',
   TreeFolder = ({ ctx, depth, item }: { ctx: TreeCtx; depth: number; item: TreeDataItem }) => {
@@ -34,7 +34,7 @@ const INDENT_PX = 16,
       <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
         <Accordion.Item value={item.id}>
           <Accordion.Trigger
-            className={cn(ROW, isSelected && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]', item.className)}
+            className={cn(ROW, isSelected && 'bg-[var(--idecn-selected,hsl(var(--accent)))]', item.className)}
             onClick={() => {
               ctx.handleSelect(item)
               item.onClick?.()
@@ -60,7 +60,7 @@ const INDENT_PX = 16,
       <button
         className={cn(
           ROW,
-          isSelected && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]',
+          isSelected && 'bg-[var(--idecn-selected,hsl(var(--accent)))]',
           item.disabled && 'pointer-events-none opacity-50',
           item.className
         )}

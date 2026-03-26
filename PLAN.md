@@ -1,6 +1,6 @@
-# nicetree
+# idecn
 
-VS Code-style file tree component for React, published to npm as `nicetree`.
+VS Code-style file tree component for React, published to npm as `idecn`.
 
 ## Credit
 
@@ -11,7 +11,7 @@ Rebuilt from [shadcn-tree-view](https://github.com/MrLightful/shadcn-tree-view) 
 Monorepo with bun workspaces:
 
 ```
-packages/nicetree/     - component library, published to npm
+packages/idecn/     - component library, published to npm
 apps/demo/             - Next.js demo app, deployed to Vercel
 ```
 

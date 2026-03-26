@@ -1,5 +1,5 @@
 {
-  "name": "@nicetree/demo",
+  "name": "@idecn/demo",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -10,10 +10,10 @@
     "clsx": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
+    "idecn": "workspace:*",
     "lucide-react": "latest",
     "next": "latest",
     "next-themes": "latest",
-    "nicetree": "workspace:*",
     "nuqs": "latest",
     "react": "latest",
     "react-dom": "latest",

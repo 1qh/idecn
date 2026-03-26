@@ -1,4 +1,4 @@
-# nicetree
+# idecn
 
 VS Code-style file tree component for React with [material-icon-theme](https://github.com/material-extensions/vscode-material-icon-theme) icons.
 
@@ -7,14 +7,14 @@ Built on top of [shadcn-tree-view](https://github.com/MrLightful/shadcn-tree-vie
 ## Install
 
 ```sh
-bun add nicetree
+bun add idecn
 ```
 
 ## Usage
 
 ```tsx
-import { FileTree } from 'nicetree'
-import type { TreeNode } from 'nicetree'
+import { FileTree } from 'idecn'
+import type { TreeNode } from 'idecn'
 
 const tree: TreeNode[] = [
   {
@@ -59,14 +59,14 @@ Presence of `children` makes a node a folder. Icons are determined automatically
 
 The component uses CSS variables with shadcn defaults:
 
-- `--nicetree-hover` (default: `hsl(var(--accent))`)
-- `--nicetree-selected` (default: `hsl(var(--accent))`)
+- `--idecn-hover` (default: `hsl(var(--accent))`)
+- `--idecn-selected` (default: `hsl(var(--accent))`)
 
 Works with `next-themes` dark mode out of the box.
 
 ## Demo
 
-[Live demo](https://nicetree.vercel.app) — browse any GitHub repo with a VS Code-like interface.
+[Live demo](https://idecn.vercel.app) — browse any GitHub repo with a VS Code-like interface.
 
 ## License
 
