@@ -169,13 +169,17 @@ const DEFAULT_REPO = '1qh/idecn',
         <div className='flex items-center'>
           <SearchIcon className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent' onClick={handleSubmit} />
           <input
+            autoComplete='off'
             className='flex-1 bg-transparent text-sm outline-none'
+            data-1p-ignore
+            data-bwignore
+            data-lpignore='true'
             onChange={e => setRepoInput(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') handleSubmit()
             }}
             placeholder={`${DEFAULT_REPO} · Enter github username/repo`}
-            type='text'
+            type='search'
             value={repoInput}
           />
           <button

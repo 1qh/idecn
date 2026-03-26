@@ -48,12 +48,6 @@ const DEMO_TREE = [
   { path: 'web/src/lib/utils.ts', type: 'blob' as const },
   { path: 'web/test-results', type: 'tree' as const },
   { path: 'web/test-results/.last-run.json', type: 'blob' as const },
-  { path: 'web/test-results/app-idecn-demo-URL-hash-updates-when-opening-a-file', type: 'tree' as const },
-  { path: 'web/test-results/app-idecn-demo-URL-hash-updates-when-opening-a-file/error-context.md', type: 'blob' as const },
-  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo', type: 'tree' as const },
-  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo/error-context.md', type: 'blob' as const },
-  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo-retry1', type: 'tree' as const },
-  { path: 'web/test-results/app-idecn-demo-search-input-changes-repo-retry1/error-context.md', type: 'blob' as const },
   { path: 'web/tsconfig.json', type: 'blob' as const }
 ]
 export { DEMO_TREE }
