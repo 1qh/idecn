@@ -143,7 +143,10 @@ const LANG: Record<string, string> = {
         })
         if (tab.initialWidth) {
           const panel = api.panels.find(p => p.id === tabId)
-          if (panel) panel.group.api.setConstraints({ minimumWidth: tab.initialWidth })
+          if (panel) {
+            panel.group.api.setConstraints({ minimumWidth: tab.initialWidth })
+            ;(panel.group as unknown as { _priority: string })._priority = 'low'
+          }
         }
       }, []),
       openFile = useCallback((item: TreeDataItem) => {
