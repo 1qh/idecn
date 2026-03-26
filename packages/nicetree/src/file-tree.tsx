@@ -23,7 +23,7 @@ interface TreeDataItem {
 }
 const INDENT_PX = 16,
   ROW =
-    'group flex w-full items-center gap-2 py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer whitespace-nowrap hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
+    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer whitespace-nowrap hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
   PANEL =
     'overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0',
   TreeFolder = ({ ctx, depth, item }: { ctx: TreeCtx; depth: number; item: TreeDataItem }) => {
