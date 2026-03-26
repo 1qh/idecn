@@ -3,13 +3,10 @@ import type { ReactNode } from 'react'
 interface TabProps {
   children: ReactNode
   closable?: boolean
-  defaultSize?: number | string
   headerClassName?: string
   icon?: boolean
   id?: string
-  minSize?: number
   onClose?: () => void
-  position?: 'bottom' | 'left' | 'right'
   title: string
 }
 const TAB_TYPE = Symbol('idecn-tab'),

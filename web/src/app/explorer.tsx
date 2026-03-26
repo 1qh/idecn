@@ -2,17 +2,18 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { TreeDataItem, WorkspaceRef } from 'idecn'
-import { FileTree, Tab, Workspace } from 'idecn'
+import type { TreeDataItem } from 'idecn'
+import { Workspace } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree } from './github'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
-const DEFAULT_REPO = '1qh/idecn',
+const EMPTY_TREE: TreeDataItem[] = [],
+  DEFAULT_REPO = '1qh/idecn',
   readHash = (): { files: string[]; repo: string } => {
     if (!('location' in globalThis)) return { files: [], repo: DEFAULT_REPO }
     const hash = globalThis.location.hash.slice(1)
@@ -38,8 +39,7 @@ const DEFAULT_REPO = '1qh/idecn',
       [repoInput, setRepoInput] = useState(initial.repo === DEFAULT_REPO ? '' : initial.repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
-      isDark = mounted && resolvedTheme === 'dark',
-      workspaceRef = useRef<WorkspaceRef>(null)
+      isDark = mounted && resolvedTheme === 'dark'
     useEffect(() => {
       setMounted(true)
     }, [])
@@ -128,23 +128,9 @@ const DEFAULT_REPO = '1qh/idecn',
           initialFiles={initial.files}
           onFilesChange={handleFilesChange}
           onOpenFile={handleOpenFile}
-          ref={workspaceRef}
-          renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}>
-          <Tab closable={false} defaultSize='250px' icon={false} position='left' title='Explorer'>
-            <div className='h-full overflow-x-auto overflow-y-auto'>
-              {treeLoading ? (
-                <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
-              ) : (
-                <FileTree
-                  data={tree}
-                  onSelectChange={item => {
-                    if (item && !item.children) workspaceRef.current?.openFile(item)
-                  }}
-                />
-              )}
-            </div>
-          </Tab>
-        </Workspace>
+          renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}
+          tree={treeLoading ? EMPTY_TREE : tree}
+        />
       </div>
     )
   }
