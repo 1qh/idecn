@@ -177,6 +177,7 @@ const LANG: Record<string, string> = {
               mutableState.prevIds.add(panel.id)
             } else {
               mutableState.filePanelIds.add(panel.id)
+              const lang = langOf(panel.id)
               if (onOpenFile) {
                 const item: TreeDataItem = { id: panel.id, name: panel.title ?? panel.id, path: panel.id },
                   result = onOpenFile(item)
@@ -184,10 +185,11 @@ const LANG: Record<string, string> = {
                   result
                     .then(content => {
                       if (content === null) api.removePanel(panel)
-                      else panel.api.updateParameters({ content, loading: undefined })
+                      else panel.api.updateParameters({ content, language: lang, loading: undefined })
                     })
                     .catch(() => api.removePanel(panel))
-                else if (typeof result === 'string') panel.api.updateParameters({ content: result, loading: undefined })
+                else if (typeof result === 'string')
+                  panel.api.updateParameters({ content: result, language: lang, loading: undefined })
               }
             }
           }
