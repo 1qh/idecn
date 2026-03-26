@@ -17,6 +17,21 @@ const TreeContext = createContext<TreeContextValue>({
     setSelectedId: () => undefined
   }),
   DepthContext = createContext(0),
+  ITEM_CLASS =
+    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
+  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4',
+  useTreeItem = (id: string | undefined, name: string, path: string | undefined) => {
+    const { indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
+      depth = use(DepthContext),
+      itemId = id ?? path ?? name,
+      isSelected = selectedId === itemId,
+      pl = `${String(depth * indent + 8)}px`,
+      select = () => {
+        setSelectedId(itemId)
+        onSelect?.({ id: itemId, name, path: path ?? name })
+      }
+    return { depth, iconClass: ICON_CLASS, isSelected, itemId, pl, select }
+  },
   Tree = ({
     children,
     className,
@@ -60,29 +75,17 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
-      depth = use(DepthContext),
-      itemId = id ?? path ?? name,
-      isSelected = selectedId === itemId,
+    const { depth, iconClass, isSelected, itemId, pl, select } = useTreeItem(id, name, path),
       [open, setOpen] = useState(defaultOpen ? [itemId] : []),
-      isOpen = open.includes(itemId),
-      pl = `${String(depth * indent + 8)}px`
+      isOpen = open.includes(itemId)
     return (
       <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
         <Accordion.Item value={itemId}>
           <Accordion.Trigger
-            className={cn(
-              'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
-              isSelected && 'bg-accent',
-              disabled && 'pointer-events-none opacity-50',
-              className
-            )}
-            onClick={() => {
-              setSelectedId(itemId)
-              onSelect?.({ id: itemId, name, path: path ?? name })
-            }}
+            className={cn(ITEM_CLASS, isSelected && 'bg-accent', disabled && 'pointer-events-none opacity-50', className)}
+            onClick={select}
             style={{ paddingLeft: pl }}>
-            <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={name} open={isOpen} />
+            <FolderIcon className={iconClass} name={name} open={isOpen} />
             <span>{name}</span>
           </Accordion.Trigger>
           <Accordion.Panel className='overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
@@ -105,31 +108,19 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
-      depth = use(DepthContext),
-      itemId = id ?? path ?? name,
-      isSelected = selectedId === itemId,
-      pl = `${String(depth * indent + 8)}px`
+    const { iconClass, isSelected, pl, select } = useTreeItem(id, name, path)
     return (
       <button
-        className={cn(
-          'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
-          isSelected && 'bg-accent',
-          disabled && 'pointer-events-none opacity-50',
-          className
-        )}
+        className={cn(ITEM_CLASS, isSelected && 'bg-accent', disabled && 'pointer-events-none opacity-50', className)}
         onClick={() => {
-          if (!disabled) {
-            setSelectedId(itemId)
-            onSelect?.({ id: itemId, name, path: path ?? name })
-          }
+          if (!disabled) select()
         }}
         style={{ paddingLeft: pl }}
         type='button'
         {...props}>
-        <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={name} />
+        <FileIcon className={iconClass} name={name} />
         <span>{name}</span>
       </button>
     )
   }
-export { DepthContext, Tree, TreeContext, TreeFile, TreeFolder }
+export { DepthContext, ICON_CLASS, Tree, TreeContext, TreeFile, TreeFolder }

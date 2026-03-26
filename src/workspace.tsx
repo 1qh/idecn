@@ -73,6 +73,7 @@ const LANG: Record<string, string> = {
     '.dv-reset .dv-tabs-container{gap:0}',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
+    '.dv-reset .dv-tab:has([data-fill]){flex:1}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}'
   ].join(''),
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
@@ -102,9 +103,9 @@ const LANG: Record<string, string> = {
         api: null as DockviewApi | null,
         disposables: [] as { dispose: () => void }[],
         fileIds: new Set<string>(),
+        onCloseMap: new Map<string, () => void>(),
         prevTabIds: new Set<string>(),
-        ready: false,
-        tabs: [] as TabProps[]
+        ready: false
       }),
       onFilesChangeRef = useRef(onFilesChange),
       onOpenFileRef = useRef(onOpenFile),
@@ -122,9 +123,9 @@ const LANG: Record<string, string> = {
           api: null,
           disposables: [],
           fileIds: new Set(),
+          onCloseMap: new Map(),
           prevTabIds: new Set(),
-          ready: false,
-          tabs: []
+          ready: false
         }
       }
     }, [])
@@ -215,13 +216,14 @@ const LANG: Record<string, string> = {
         else addTab(tab)
       }
       stateRef.current.prevTabIds = currentIds
-      stateRef.current.tabs = tabs
+      stateRef.current.onCloseMap.clear()
+      for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
     }, [addTab, tabs])
     const handleReady = (event: DockviewReadyEvent) => {
       stateRef.current.api = event.api
       for (const tab of tabs) addTab(tab)
       stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
-      stateRef.current.tabs = tabs
+      for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
       if (initialFiles)
         for (const path of initialFiles) {
           const name = path.split('/').at(-1) ?? path
@@ -233,8 +235,8 @@ const LANG: Record<string, string> = {
       stateRef.current.disposables.push(
         event.api.onDidRemovePanel(e => {
           stateRef.current.fileIds.delete(e.id)
-          const tab = stateRef.current.tabs.find(t => getTabId(t) === e.id)
-          tab?.onClose?.()
+          stateRef.current.onCloseMap.get(e.id)?.()
+          stateRef.current.onCloseMap.delete(e.id)
           notifyFiles()
         }),
         event.api.onDidAddPanel(() => notifyFiles())
