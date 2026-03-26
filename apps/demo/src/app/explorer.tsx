@@ -68,11 +68,11 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
   ),
   FileTab = ({ api }: IDockviewPanelHeaderProps) => (
-    <div className='flex h-full items-center gap-1.5 px-2'>
+    <div className='group/tab flex h-full items-center gap-1.5 px-1.5 pb-px'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
       <span>{api.title}</span>
       <button
-        className='ml-1 rounded p-0.5 opacity-60 hover:opacity-100 hover:bg-accent'
+        className='ml-0.5 rounded p-0.5 opacity-0 hover:bg-accent group-hover/tab:opacity-60'
         onClick={e => {
           e.stopPropagation()
           api.close()
