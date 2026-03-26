@@ -40,7 +40,7 @@ body {
 .dv-dockview {
   --dv-background-color: hsl(var(--background));
   --dv-paneview-header-border-color: hsl(var(--border));
-  --dv-tabs-and-actions-container-background-color: hsl(var(--muted));
+  --dv-tabs-and-actions-container-background-color: hsl(var(--background));
   --dv-activegroup-visiblepanel-tab-background-color: hsl(var(--background));
   --dv-activegroup-hiddenpanel-tab-background-color: hsl(var(--muted));
   --dv-inactivegroup-visiblepanel-tab-background-color: hsl(var(--muted));
