@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd web && bun run build",
+  "buildCommand": "bun scripts/build-registry.ts && cd web && bun run build",
   "framework": "nextjs",
   "installCommand": "bun install && cd web && bun install",
   "outputDirectory": "web/.next"
