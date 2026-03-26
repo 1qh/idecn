@@ -10,7 +10,6 @@ let content = await read('src/idecn.tsx')
 content = content
   .replaceAll("from './_generated/icon-svgs.json'", "from '@/lib/icon-svgs.json'")
   .replaceAll("from './_generated/manifest.json'", "from '@/lib/icon-manifest.json'")
-  .replaceAll("from './cn'", "from '@/lib/utils'")
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
