@@ -4,46 +4,54 @@
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 ```
 
-or
-
 ```sh
 bun add idecn
 ```
 
 ## Workspace
 
-Full IDE layout with file tree sidebar, tabbed editor panels, and async file loading.
+IDE layout with built-in file tree sidebar, tabbed editor panels, and async file loading.
 
 ```tsx
-import { FileTree, Tab, Workspace } from 'idecn'
-import type { WorkspaceRef } from 'idecn'
-
-const ref = useRef<WorkspaceRef>(null)
-
 <Workspace
-  onOpenFile={(item) => fetch(`/api/files/${item.path}`).then(r => r.text())}
-  ref={ref}>
-  <Tab closable={false} icon={false} initialWidth={250} position="left" title="Explorer">
-    <FileTree
-      data={tree}
-      onSelectChange={item => {
-        if (item && !item.children) ref.current?.openFile(item)
-      }}
-    />
+  tree={tree}
+  onOpenFile={item => fetch(`/api/files/${item.path}`).then(r => r.text())}
+/>
+```
+
+Full customization:
+
+```tsx
+<Workspace
+  tree={tree}
+  sidebarSize="300px"
+  initialFiles={['src/index.ts']}
+  onFilesChange={files => saveToUrl(files)}
+  onOpenFile={async item => {
+    const res = await fetch(`/api/files/${item.path}`)
+    return res.ok ? res.text() : null
+  }}
+  renderLoading={item => <Spinner label={item.name} />}
+  ref={ref}
+>
+  <Tab title="Settings">
+    <SettingsPanel />
   </Tab>
 </Workspace>
 ```
 
 ### Workspace props
 
-| Prop            | Type                                                                | Description                   |
-| --------------- | ------------------------------------------------------------------- | ----------------------------- |
-| `onOpenFile`    | `(item: TreeDataItem) => string \| null \| Promise<string \| null>` | Fetch file content            |
-| `initialFiles`  | `string[]`                                                          | File paths to open on mount   |
-| `onFilesChange` | `(files: string[]) => void`                                         | Called when open files change |
-| `renderLoading` | `(item: TreeDataItem) => ReactNode`                                 | Custom loading state per file |
-| `ref`           | `Ref<WorkspaceRef>`                                                 | Imperative handle             |
-| `className`     | `string`                                                            | CSS class for the container   |
+| Prop            | Type                                                                | Description                           |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------- |
+| `tree`          | `TreeDataItem[]`                                                    | File tree data                        |
+| `onOpenFile`    | `(item: TreeDataItem) => string \| null \| Promise<string \| null>` | Fetch file content                    |
+| `sidebarSize`   | `string \| number`                                                  | Sidebar default size (e.g. `'250px'`) |
+| `initialFiles`  | `string[]`                                                          | File paths to open on mount           |
+| `onFilesChange` | `(files: string[]) => void`                                         | Called when open files change         |
+| `renderLoading` | `(item: TreeDataItem) => ReactNode`                                 | Custom loading state per file         |
+| `ref`           | `Ref<WorkspaceRef>`                                                 | Imperative handle                     |
+| `className`     | `string`                                                            | CSS class for the container           |
 
 ### WorkspaceRef
 
@@ -54,44 +62,25 @@ const ref = useRef<WorkspaceRef>(null)
 
 ### Tab props
 
-| Prop              | Type                            | Default  | Description               |
-| ----------------- | ------------------------------- | -------- | ------------------------- |
-| `title`           | `string`                        | required | Tab title                 |
-| `position`        | `'left' \| 'right' \| 'bottom'` | —        | Initial panel position    |
-| `closable`        | `boolean`                       | `true`   | Show close button         |
-| `icon`            | `boolean`                       | `true`   | Show file icon            |
-| `headerClassName` | `string`                        | —        | CSS class for tab header  |
-| `initialWidth`    | `number`                        | —        | Initial panel width in px |
-| `onClose`         | `() => void`                    | —        | Called when tab is closed |
+Extra tabs inside dockview (non-positioned). File tree sidebar is built in.
+
+| Prop              | Type         | Default  | Description               |
+| ----------------- | ------------ | -------- | ------------------------- |
+| `title`           | `string`     | required | Tab title                 |
+| `closable`        | `boolean`    | `true`   | Show close button         |
+| `icon`            | `boolean`    | `true`   | Show file icon            |
+| `headerClassName` | `string`     | —        | CSS class for tab header  |
+| `onClose`         | `() => void` | —        | Called when tab is closed |
 
 ## FileTree
 
+Standalone file tree (also built into Workspace).
+
 ```tsx
 import { FileTree } from 'idecn'
-import type { TreeDataItem } from 'idecn'
 
-const tree: TreeDataItem[] = [
-  {
-    id: 'src',
-    name: 'src',
-    path: 'src',
-    children: [
-      { id: 'src/index.ts', name: 'index.ts', path: 'src/index.ts' },
-      { id: 'src/utils.ts', name: 'utils.ts', path: 'src/utils.ts' }
-    ]
-  },
-  { id: 'package.json', name: 'package.json', path: 'package.json' }
-]
-
-<FileTree data={tree} onSelectChange={item => console.log(item?.path)} />
+;<FileTree data={tree} onSelectChange={item => console.log(item?.path)} />
 ```
-
-| Prop                    | Type                                        | Description                   |
-| ----------------------- | ------------------------------------------- | ----------------------------- |
-| `data`                  | `TreeDataItem \| TreeDataItem[]`            | Tree data                     |
-| `onSelectChange`        | `(item: TreeDataItem \| undefined) => void` | Called when a file is clicked |
-| `initialSelectedItemId` | `string`                                    | Pre-selected item ID          |
-| `className`             | `string`                                    | Additional CSS classes        |
 
 ```ts
 interface TreeDataItem {
@@ -99,26 +88,7 @@ interface TreeDataItem {
   name: string
   path: string
   children?: TreeDataItem[]
-  disabled?: boolean
-  className?: string
-  actions?: ReactNode
-  onClick?: () => void
 }
-```
-
-## Primitives
-
-```tsx
-import { Tree, TreeFolder, TreeFile } from 'idecn'
-;<Tree>
-  <TreeFolder name="src" defaultOpen>
-    <TreeFile name="index.ts" path="src/index.ts" />
-    <TreeFolder name="components">
-      <TreeFile name="button.tsx" path="src/components/button.tsx" />
-    </TreeFolder>
-  </TreeFolder>
-  <TreeFile name="package.json" path="package.json" />
-</Tree>
 ```
 
 ## Icons
