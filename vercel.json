@@ -1,6 +1,6 @@
 {
-  "buildCommand": "bun scripts/build-registry.ts && cd web && bun run build",
+  "buildCommand": "bun run build",
   "framework": "nextjs",
-  "installCommand": "bun install && cd web && bun install",
+  "installCommand": "bun install",
   "outputDirectory": "web/.next"
 }
