@@ -72,7 +72,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
       <span>{api.title}</span>
       <button
-        className='ml-1 rounded p-0.5 opacity-0 hover:bg-accent group-hover:opacity-100'
+        className='ml-1 rounded p-0.5 opacity-60 hover:opacity-100 hover:bg-accent'
         onClick={e => {
           e.stopPropagation()
           api.close()
