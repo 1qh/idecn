@@ -59,6 +59,7 @@ const LANG: Record<string, string> = {
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
   mutableState = {
     api: null as DockviewApi | null,
+    filePanelIds: new Set<string>(),
     prevIds: new Set<string>(),
     savedGroups: new Map<string, string>(),
     tabsCache: [] as TabProps[]
@@ -99,14 +100,22 @@ const LANG: Record<string, string> = {
             return
           }
           const loadingNode = renderLoading ? (
-            renderLoading(item)
-          ) : (
-            <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
-          )
+              renderLoading(item)
+            ) : (
+              <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
+            ),
+            existingFile = api.panels.find(p => mutableState.filePanelIds.has(p.id)),
+            position = existingFile
+              ? { direction: 'within' as const, referenceGroup: existingFile.group.id }
+              : api.panels.length > 0
+                ? { direction: 'right' as const }
+                : undefined
+          mutableState.filePanelIds.add(item.path)
           api.addPanel({
             component: 'file',
             id: item.path,
             params: { content: '', language: langOf(item.path), loading: loadingNode },
+            position,
             tabComponent: 'default',
             title: item.name
           })
@@ -169,6 +178,7 @@ const LANG: Record<string, string> = {
       mutableState.prevIds = new Set(tabs.map(getTabId))
       mutableState.tabsCache = tabs
       event.api.onDidRemovePanel(e => {
+        mutableState.filePanelIds.delete(e.id)
         const tab = mutableState.tabsCache.find(t => getTabId(t) === e.id)
         tab?.onClose?.()
       })
