@@ -52,4 +52,12 @@ body {
   --dv-tab-divider-color: hsl(var(--border));
   --dv-separator-border: hsl(var(--border));
   --dv-group-view-background-color: hsl(var(--background));
+  --dv-tabs-container-scrollbar-color: hsl(var(--muted-foreground));
+}
+.dv-dockview .tab {
+  height: 30px;
+  font-size: 13px;
+}
+.dv-dockview .tabs-and-actions-container {
+  height: 30px;
 }
