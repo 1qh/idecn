@@ -5,6 +5,7 @@ import { Editor } from '@monaco-editor/react'
 import { X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { cn } from './cn'
 import { FileIcon } from './icon'
 const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
   CustomPanelInner = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
@@ -52,11 +53,11 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
     )
   },
   TabHeaderInner = ({ api, params }: IDockviewPanelHeaderProps) => {
-    const p = params as undefined | { closable?: boolean; icon?: boolean },
+    const p = params as undefined | { className?: string; closable?: boolean; icon?: boolean },
       showIcon = p?.icon !== false,
       closable = p?.closable !== false
     return (
-      <div className='group/tab flex h-full items-center'>
+      <div className={cn('group/tab flex h-full items-center', p?.className)}>
         {showIcon ? <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} /> : null}
         <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (

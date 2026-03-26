@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react'
 interface TabProps {
   children: ReactNode
+  className?: string
   closable?: boolean
   icon?: boolean
   id?: string
