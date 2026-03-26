@@ -29,35 +29,6 @@
         { "path": "src/_generated/icon-svgs.json", "type": "registry:lib", "target": "lib/icon-svgs.json" },
         { "path": "src/_generated/manifest.json", "type": "registry:lib", "target": "lib/icon-manifest.json" }
       ]
-    },
-    {
-      "name": "file-tree",
-      "type": "registry:component",
-      "title": "File Tree",
-      "description": "File tree with material icons and expand/collapse animation.",
-      "dependencies": ["@base-ui/react", "clsx", "tailwind-merge"],
-      "files": [
-        { "path": "src/tree.tsx", "type": "registry:component", "target": "components/ui/tree.tsx" },
-        { "path": "src/file-tree.tsx", "type": "registry:component", "target": "components/ui/file-tree.tsx" },
-        { "path": "src/icon.tsx", "type": "registry:component", "target": "components/ui/tree-icon.tsx" },
-        { "path": "src/cn.ts", "type": "registry:lib", "target": "lib/cn.ts" },
-        { "path": "src/_generated/icon-svgs.json", "type": "registry:lib", "target": "lib/icon-svgs.json" },
-        { "path": "src/_generated/manifest.json", "type": "registry:lib", "target": "lib/icon-manifest.json" }
-      ]
-    },
-    {
-      "name": "tree",
-      "type": "registry:component",
-      "title": "Tree Primitives",
-      "description": "Composable tree primitives: Tree, TreeFolder, TreeFile with material icons.",
-      "dependencies": ["@base-ui/react", "clsx", "tailwind-merge"],
-      "files": [
-        { "path": "src/tree.tsx", "type": "registry:component", "target": "components/ui/tree.tsx" },
-        { "path": "src/icon.tsx", "type": "registry:component", "target": "components/ui/tree-icon.tsx" },
-        { "path": "src/cn.ts", "type": "registry:lib", "target": "lib/cn.ts" },
-        { "path": "src/_generated/icon-svgs.json", "type": "registry:lib", "target": "lib/icon-svgs.json" },
-        { "path": "src/_generated/manifest.json", "type": "registry:lib", "target": "lib/icon-manifest.json" }
-      ]
     }
   ]
 }
