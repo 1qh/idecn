@@ -59,46 +59,41 @@ const LANG: Record<string, string> = {
     return tabs
   },
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
-  mutableState = {
+  state = {
     api: null as DockviewApi | null,
-    filePanelIds: new Set<string>(),
-    initialWidths: new Map<string, number>(),
-    initialized: false,
-    prevIds: new Set<string>(),
-    savedGroups: new Map<string, string>(),
-    tabsCache: [] as TabProps[]
+    fileIds: new Set<string>(),
+    prevTabIds: new Set<string>(),
+    ready: false,
+    tabWidths: new Map<string, number>(),
+    tabs: [] as TabProps[]
   },
   Workspace = ({ children, className, initialFiles, onFilesChange, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
-      mutableState.initialized = false
+      state.ready = false
       setMounted(true)
     }, [])
     const addTab = useCallback((tab: TabProps) => {
-        const { api } = mutableState
+        const { api } = state
         if (!api) return
         const tabId = getTabId(tab)
         if (api.panels.some(p => p.id === tabId)) {
           api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
           return
         }
-        const savedGroup = mutableState.savedGroups.get(tabId),
-          position = savedGroup
-            ? { direction: 'within' as const, referenceGroup: savedGroup }
-            : POSITIONS[tab.position ?? '']
-        if (tab.initialWidth) mutableState.initialWidths.set(tabId, tab.initialWidth)
+        if (tab.initialWidth) state.tabWidths.set(tabId, tab.initialWidth)
         api.addPanel({
           component: 'custom',
           id: tabId,
           params: { closable: tab.closable, content: tab.children, headerClassName: tab.headerClassName, icon: tab.icon },
-          position: api.panels.length > 0 ? position : undefined,
+          position: api.panels.length > 0 ? POSITIONS[tab.position ?? ''] : undefined,
           tabComponent: 'default',
           title: tab.title
         })
       }, []),
       openFile = useCallback(
         (item: TreeDataItem) => {
-          const { api } = mutableState
+          const { api } = state
           if (!(api && onOpenFile)) return
           const existing = api.panels.find(p => p.id === item.path)
           if (existing) {
@@ -110,13 +105,13 @@ const LANG: Record<string, string> = {
             ) : (
               <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
             ),
-            existingFile = api.panels.find(p => mutableState.filePanelIds.has(p.id)),
+            existingFile = api.panels.find(p => state.fileIds.has(p.id)),
             position = existingFile
               ? { direction: 'within' as const, referenceGroup: existingFile.group.id }
               : api.panels.length > 0
                 ? { direction: 'right' as const }
                 : undefined
-          mutableState.filePanelIds.add(item.path)
+          state.fileIds.add(item.path)
           api.addPanel({
             component: 'file',
             id: item.path,
@@ -126,7 +121,7 @@ const LANG: Record<string, string> = {
             title: item.name
           })
           if (!existingFile)
-            for (const [panelId, width] of mutableState.initialWidths) {
+            for (const [panelId, width] of state.tabWidths) {
               const panel = api.panels.find(p => p.id === panelId)
               if (panel) panel.group.api.setSize({ width })
             }
@@ -150,63 +145,60 @@ const LANG: Record<string, string> = {
               })
         },
         [onOpenFile, renderLoading]
-      )
+      ),
+      notifyFiles = () => {
+        if (state.ready && onFilesChange) onFilesChange([...state.fileIds])
+      }
     useImperativeHandle(
       ref,
       () => ({
-        focusPanel: (id: string) => mutableState.api?.panels.find(p => p.id === id)?.focus(),
+        focusPanel: (id: string) => state.api?.panels.find(p => p.id === id)?.focus(),
         openFile,
-        showPanel: (id: string) => mutableState.api?.panels.find(p => p.id === id)?.focus()
+        showPanel: (id: string) => state.api?.panels.find(p => p.id === id)?.focus()
       }),
       [openFile]
     )
     useEffect(() => {
-      const { api } = mutableState
+      const { api } = state
       if (!api) return
       const currentTabs = extractTabs(children),
         currentIds = new Set(currentTabs.map(getTabId))
-      for (const id of mutableState.prevIds)
+      for (const id of state.prevTabIds)
         if (!currentIds.has(id)) {
           const panel = api.panels.find(p => p.id === id)
-          if (panel) {
-            mutableState.savedGroups.set(id, panel.group.id)
-            api.removePanel(panel)
-          }
+          if (panel) api.removePanel(panel)
         }
       for (const tab of currentTabs) {
         const tabId = getTabId(tab)
-        if (mutableState.prevIds.has(tabId))
+        if (state.prevTabIds.has(tabId))
           api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
         else addTab(tab)
       }
-      mutableState.prevIds = currentIds
-      mutableState.tabsCache = currentTabs
+      state.prevTabIds = currentIds
+      state.tabs = currentTabs
     })
-    const notifyFiles = () => {
-        if (mutableState.initialized && onFilesChange) onFilesChange([...mutableState.filePanelIds])
-      },
-      handleReady = (event: DockviewReadyEvent) => {
-        mutableState.api = event.api
-        const tabs = extractTabs(children)
-        for (const tab of tabs) addTab(tab)
-        mutableState.prevIds = new Set(tabs.map(getTabId))
-        mutableState.tabsCache = tabs
-        if (initialFiles)
-          for (const path of initialFiles) {
-            const name = path.split('/').at(-1) ?? path
-            openFile({ id: path, name, path })
-          }
-        event.api.onDidRemovePanel(e => {
-          mutableState.filePanelIds.delete(e.id)
-          const tab = mutableState.tabsCache.find(t => getTabId(t) === e.id)
-          tab?.onClose?.()
-          notifyFiles()
-        })
-        event.api.onDidAddPanel(() => notifyFiles())
-        requestAnimationFrame(() => {
-          mutableState.initialized = true
-        })
-      }
+    const handleReady = (event: DockviewReadyEvent) => {
+      state.api = event.api
+      const tabs = extractTabs(children)
+      for (const tab of tabs) addTab(tab)
+      state.prevTabIds = new Set(tabs.map(getTabId))
+      state.tabs = tabs
+      if (initialFiles)
+        for (const path of initialFiles) {
+          const name = path.split('/').at(-1) ?? path
+          openFile({ id: path, name, path })
+        }
+      event.api.onDidRemovePanel(e => {
+        state.fileIds.delete(e.id)
+        const tab = state.tabs.find(t => getTabId(t) === e.id)
+        tab?.onClose?.()
+        notifyFiles()
+      })
+      event.api.onDidAddPanel(() => notifyFiles())
+      requestAnimationFrame(() => {
+        state.ready = true
+      })
+    }
     if (!mounted) return null
     return (
       <DockviewReact className={className} components={COMPONENTS} onReady={handleReady} tabComponents={TAB_COMPONENTS} />

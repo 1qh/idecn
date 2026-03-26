@@ -1,15 +1,15 @@
 {
   "name": "idecn",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
-  "description": "IDE-like UI components for React with material-icon-theme icons",
+  "description": "IDE-like workspace and file tree components for React with material icons",
   "keywords": [
     "react",
     "file-tree",
-    "ide",
+    "workspace",
     "material-icons",
     "shadcn",
-    "dockview"
+    "ide"
   ],
   "repository": {
     "type": "git",
