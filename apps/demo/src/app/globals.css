@@ -41,10 +41,10 @@ body {
   --dv-background-color: hsl(var(--background));
   --dv-paneview-header-border-color: hsl(var(--border));
   --dv-tabs-and-actions-container-background-color: hsl(var(--background));
-  --dv-activegroup-visiblepanel-tab-background-color: hsl(var(--background));
-  --dv-activegroup-hiddenpanel-tab-background-color: hsl(var(--muted));
+  --dv-activegroup-visiblepanel-tab-background-color: hsl(var(--muted));
+  --dv-activegroup-hiddenpanel-tab-background-color: hsl(var(--background));
   --dv-inactivegroup-visiblepanel-tab-background-color: hsl(var(--muted));
-  --dv-inactivegroup-hiddenpanel-tab-background-color: hsl(var(--muted));
+  --dv-inactivegroup-hiddenpanel-tab-background-color: hsl(var(--background));
   --dv-activegroup-visiblepanel-tab-color: hsl(var(--foreground));
   --dv-activegroup-hiddenpanel-tab-color: hsl(var(--muted-foreground));
   --dv-inactivegroup-visiblepanel-tab-color: hsl(var(--muted-foreground));
