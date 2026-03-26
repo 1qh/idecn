@@ -9,7 +9,7 @@ import { useTheme } from 'next-themes'
 import { FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useEffect, useMemo, useState } from 'react'
-import { Group, Panel, Separator } from 'react-resizable-panels'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
 interface GitHubTreeItem {
   mode: string
   path: string
@@ -136,8 +136,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             {isDark ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
           </button>
         </div>
-        <Group orientation='horizontal'>
-          <Panel defaultSize={20} minSize={10}>
+        <ResizablePanelGroup orientation='horizontal'>
+          <ResizablePanel defaultSize={20} minSize={10}>
             <div className='h-full overflow-x-auto overflow-y-auto border-r border-border'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
@@ -151,9 +151,9 @@ const DEFAULT_REPO = 'openclaw/openclaw',
                 />
               )}
             </div>
-          </Panel>
-          <Separator className='w-px bg-border hover:w-1 hover:bg-accent transition-all' />
-          <Panel>
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel>
             {loading ? (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Loading file...</div>
             ) : path ? (
@@ -161,8 +161,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             ) : (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Select a file to view</div>
             )}
-          </Panel>
-        </Group>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     )
   }
