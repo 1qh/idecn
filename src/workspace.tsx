@@ -240,11 +240,14 @@ const LANG: Record<string, string> = {
         mutableState.filePanelIds.delete(e.id)
         const tab = mutableState.tabsCache.find(t => getTabId(t) === e.id)
         tab?.onClose?.()
+        if (mutableState.initialized && onLayoutChange) onLayoutChange(event.api.toJSON())
       })
-      if (onLayoutChange)
-        event.api.onDidLayoutChange(() => {
-          if (mutableState.initialized) onLayoutChange(event.api.toJSON())
-        })
+      event.api.onDidAddPanel(() => {
+        if (mutableState.initialized && onLayoutChange) onLayoutChange(event.api.toJSON())
+      })
+      event.api.onDidActivePanelChange(() => {
+        if (mutableState.initialized && onLayoutChange) onLayoutChange(event.api.toJSON())
+      })
       requestAnimationFrame(() => {
         mutableState.initialized = true
       })
