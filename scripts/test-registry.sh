@@ -29,8 +29,9 @@ cp "$IDECN/web/src/app/layout.tsx" app/layout.tsx
 cp "$IDECN/web/src/app/globals.css" app/globals.css
 
 echo "→ Patching imports"
-sed -i '' "s|from 'idecn'|from '@/components/ui/idecn'|g" app/explorer.tsx app/github.ts
-sed -i '' "s|from '~/lib/utils'|from '@/lib/utils'|g" app/layout.tsx
+sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g" app/explorer.tsx app/github.ts
+sed -i.bak "s|from '~/lib/utils'|from '@/lib/utils'|g" app/layout.tsx
+rm -f app/*.bak
 
 echo "→ Building"
 if bun run build 2>&1 | tail -5; then
