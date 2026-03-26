@@ -1,10 +1,10 @@
-/* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unnecessary-use-callback */
+/* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children */
 'use client'
 import type { DockviewApi, DockviewReadyEvent } from 'dockview-react'
 import type { ReactNode } from 'react'
 import { DockviewReact } from 'dockview-react'
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useState } from 'react'
+import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import type { TreeDataItem } from './file-tree'
 import type { TabProps } from './tab'
 import { CustomPanelInner, FilePanelInner, TabHeaderInner } from './panels'
@@ -21,7 +21,6 @@ interface WorkspaceProps {
 interface WorkspaceRef {
   focusPanel: (id: string) => void
   openFile: (item: TreeDataItem) => void
-  showPanel: (id: string) => void
 }
 const LANG: Record<string, string> = {
     css: 'css',
@@ -59,29 +58,51 @@ const LANG: Record<string, string> = {
     return tabs
   },
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
-  state = {
-    api: null as DockviewApi | null,
-    fileIds: new Set<string>(),
-    prevTabIds: new Set<string>(),
-    ready: false,
-    tabWidths: new Map<string, number>(),
-    tabs: [] as TabProps[]
-  },
   Workspace = ({ children, className, initialFiles, onFilesChange, onOpenFile, ref, renderLoading }: WorkspaceProps) => {
-    const [mounted, setMounted] = useState(false)
+    const [mounted, setMounted] = useState(false),
+      stateRef = useRef({
+        api: null as DockviewApi | null,
+        disposables: [] as { dispose: () => void }[],
+        fileIds: new Set<string>(),
+        prevTabIds: new Set<string>(),
+        ready: false,
+        tabWidths: new Map<string, number>(),
+        tabs: [] as TabProps[]
+      }),
+      onFilesChangeRef = useRef(onFilesChange),
+      onOpenFileRef = useRef(onOpenFile),
+      renderLoadingRef = useRef(renderLoading)
     useEffect(() => {
-      state.ready = false
+      onFilesChangeRef.current = onFilesChange
+      onOpenFileRef.current = onOpenFile
+      renderLoadingRef.current = renderLoading
+    })
+    useEffect(() => {
       setMounted(true)
+      return () => {
+        for (const d of stateRef.current.disposables) d.dispose()
+        stateRef.current = {
+          api: null,
+          disposables: [],
+          fileIds: new Set(),
+          prevTabIds: new Set(),
+          ready: false,
+          tabWidths: new Map(),
+          tabs: []
+        }
+      }
     }, [])
-    const addTab = useCallback((tab: TabProps) => {
-        const { api } = state
+    const tabs = useMemo(() => extractTabs(children), [children]),
+      addTab = useCallback((tab: TabProps) => {
+        const { api } = stateRef.current
         if (!api) return
-        const tabId = getTabId(tab)
-        if (api.panels.some(p => p.id === tabId)) {
-          api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
+        const tabId = getTabId(tab),
+          existing = api.panels.find(p => p.id === tabId)
+        if (existing) {
+          existing.api.updateParameters({ content: tab.children })
           return
         }
-        if (tab.initialWidth) state.tabWidths.set(tabId, tab.initialWidth)
+        if (tab.initialWidth) stateRef.current.tabWidths.set(tabId, tab.initialWidth)
         api.addPanel({
           component: 'custom',
           id: tabId,
@@ -91,112 +112,110 @@ const LANG: Record<string, string> = {
           title: tab.title
         })
       }, []),
-      openFile = useCallback(
-        (item: TreeDataItem) => {
-          const { api } = state
-          if (!(api && onOpenFile)) return
-          const existing = api.panels.find(p => p.id === item.path)
-          if (existing) {
-            existing.focus()
-            return
+      openFile = useCallback((item: TreeDataItem) => {
+        const { api } = stateRef.current,
+          onOpen = onOpenFileRef.current
+        if (!(api && onOpen)) return
+        const existing = api.panels.find(p => p.id === item.path)
+        if (existing) {
+          existing.focus()
+          return
+        }
+        const loading = renderLoadingRef.current,
+          loadingNode = loading ? (
+            loading(item)
+          ) : (
+            <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
+          ),
+          existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
+          position = existingFile
+            ? { direction: 'within' as const, referenceGroup: existingFile.group.id }
+            : api.panels.length > 0
+              ? { direction: 'right' as const }
+              : undefined
+        stateRef.current.fileIds.add(item.path)
+        api.addPanel({
+          component: 'file',
+          id: item.path,
+          params: { content: '', language: langOf(item.path), loading: loadingNode },
+          position,
+          tabComponent: 'default',
+          title: item.name
+        })
+        if (!existingFile)
+          for (const [panelId, width] of stateRef.current.tabWidths) {
+            const panel = api.panels.find(p => p.id === panelId)
+            if (panel) panel.group.api.setSize({ width })
           }
-          const loadingNode = renderLoading ? (
-              renderLoading(item)
-            ) : (
-              <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
-            ),
-            existingFile = api.panels.find(p => state.fileIds.has(p.id)),
-            position = existingFile
-              ? { direction: 'within' as const, referenceGroup: existingFile.group.id }
-              : api.panels.length > 0
-                ? { direction: 'right' as const }
-                : undefined
-          state.fileIds.add(item.path)
-          api.addPanel({
-            component: 'file',
-            id: item.path,
-            params: { content: '', language: langOf(item.path), loading: loadingNode },
-            position,
-            tabComponent: 'default',
-            title: item.name
-          })
-          if (!existingFile)
-            for (const [panelId, width] of state.tabWidths) {
-              const panel = api.panels.find(p => p.id === panelId)
-              if (panel) panel.group.api.setSize({ width })
-            }
-          const result = onOpenFile(item)
-          if (result === null) return
-          if (typeof result === 'string')
-            api.panels.find(p => p.id === item.path)?.api.updateParameters({ content: result, loading: undefined })
-          else
-            result
-              .then(content => {
-                if (content === null) {
-                  const p = api.panels.find(x => x.id === item.path)
-                  if (p) api.removePanel(p)
-                  return
-                }
-                api.panels.find(p => p.id === item.path)?.api.updateParameters({ content, loading: undefined })
-              })
-              .catch(() => {
-                const p = api.panels.find(x => x.id === item.path)
-                if (p) api.removePanel(p)
-              })
-        },
-        [onOpenFile, renderLoading]
-      ),
-      notifyFiles = () => {
-        if (state.ready && onFilesChange) onFilesChange([...state.fileIds])
-      }
+        const result = onOpen(item)
+        if (result === null) return
+        if (typeof result === 'string')
+          api.panels.find(p => p.id === item.path)?.api.updateParameters({ content: result, loading: undefined })
+        else {
+          const panelPath = item.path
+          result
+            .then(content => {
+              const p = api.panels.find(x => x.id === panelPath)
+              if (!p) return
+              if (content === null) api.removePanel(p)
+              else p.api.updateParameters({ content, loading: undefined })
+            })
+            .catch(() => {
+              const p = api.panels.find(x => x.id === panelPath)
+              if (p) api.removePanel(p)
+            })
+        }
+      }, [])
     useImperativeHandle(
       ref,
       () => ({
-        focusPanel: (id: string) => state.api?.panels.find(p => p.id === id)?.focus(),
-        openFile,
-        showPanel: (id: string) => state.api?.panels.find(p => p.id === id)?.focus()
+        focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
+        openFile
       }),
       [openFile]
     )
     useEffect(() => {
-      const { api } = state
+      const { api } = stateRef.current
       if (!api) return
-      const currentTabs = extractTabs(children),
-        currentIds = new Set(currentTabs.map(getTabId))
-      for (const id of state.prevTabIds)
+      const currentIds = new Set(tabs.map(getTabId))
+      for (const id of stateRef.current.prevTabIds)
         if (!currentIds.has(id)) {
           const panel = api.panels.find(p => p.id === id)
           if (panel) api.removePanel(panel)
         }
-      for (const tab of currentTabs) {
+      for (const tab of tabs) {
         const tabId = getTabId(tab)
-        if (state.prevTabIds.has(tabId))
+        if (stateRef.current.prevTabIds.has(tabId))
           api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
         else addTab(tab)
       }
-      state.prevTabIds = currentIds
-      state.tabs = currentTabs
-    })
+      stateRef.current.prevTabIds = currentIds
+      stateRef.current.tabs = tabs
+    }, [addTab, tabs])
     const handleReady = (event: DockviewReadyEvent) => {
-      state.api = event.api
-      const tabs = extractTabs(children)
+      stateRef.current.api = event.api
       for (const tab of tabs) addTab(tab)
-      state.prevTabIds = new Set(tabs.map(getTabId))
-      state.tabs = tabs
+      stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
+      stateRef.current.tabs = tabs
       if (initialFiles)
         for (const path of initialFiles) {
           const name = path.split('/').at(-1) ?? path
           openFile({ id: path, name, path })
         }
-      event.api.onDidRemovePanel(e => {
-        state.fileIds.delete(e.id)
-        const tab = state.tabs.find(t => getTabId(t) === e.id)
-        tab?.onClose?.()
-        notifyFiles()
-      })
-      event.api.onDidAddPanel(() => notifyFiles())
+      const notifyFiles = () => {
+        if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
+      }
+      stateRef.current.disposables.push(
+        event.api.onDidRemovePanel(e => {
+          stateRef.current.fileIds.delete(e.id)
+          const tab = stateRef.current.tabs.find(t => getTabId(t) === e.id)
+          tab?.onClose?.()
+          notifyFiles()
+        }),
+        event.api.onDidAddPanel(() => notifyFiles())
+      )
       requestAnimationFrame(() => {
-        state.ready = true
+        stateRef.current.ready = true
       })
     }
     if (!mounted) return null
