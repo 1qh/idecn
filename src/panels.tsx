@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { cn } from './cn'
 import { FileIcon } from './icon'
 const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
-  CustomPanelInner = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
+  ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
@@ -21,7 +21,7 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
     }, [api])
     return <div className='h-full overflow-auto'>{content}</div>
   },
-  FilePanelInner = ({ api, params }: IDockviewPanelProps<{ content: string; language: string; loading?: ReactNode }>) => {
+  FilePanel = ({ api, params }: IDockviewPanelProps<{ content: string; language: string; loading?: ReactNode }>) => {
     const { resolvedTheme } = useTheme(),
       [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
@@ -52,7 +52,7 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
       />
     )
   },
-  TabHeaderInner = ({ api, params }: IDockviewPanelHeaderProps) => {
+  TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
     const p = params as undefined | { closable?: boolean; headerClassName?: string; icon?: boolean },
       showIcon = p?.icon !== false,
       closable = p?.closable !== false,
@@ -78,4 +78,4 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
       </div>
     )
   }
-export { CustomPanelInner, FilePanelInner, TabHeaderInner }
+export { ContentPanel, FilePanel, TabHeader }

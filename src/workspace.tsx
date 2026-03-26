@@ -9,7 +9,7 @@ import { Group, Panel, Separator } from 'react-resizable-panels'
 import type { TreeDataItem } from './file-tree'
 import type { TabProps } from './tab'
 import { FileTree } from './file-tree'
-import { CustomPanelInner, FilePanelInner, TabHeaderInner } from './panels'
+import { ContentPanel, FilePanel, TabHeader } from './panels'
 import { TAB_TYPE } from './tab'
 interface WorkspaceProps {
   children?: ReactNode
@@ -75,8 +75,8 @@ const LANG: Record<string, string> = {
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}'
   ].join(''),
-  COMPONENTS = { custom: CustomPanelInner, file: FilePanelInner },
-  TAB_COMPONENTS = { default: TabHeaderInner },
+  COMPONENTS = { custom: ContentPanel, file: FilePanel },
+  TAB_COMPONENTS = { default: TabHeader },
   extractTabs = (children: ReactNode): TabProps[] => {
     const tabs: TabProps[] = []
     Children.forEach(children, child => {
