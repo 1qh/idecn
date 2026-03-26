@@ -1,6 +1,6 @@
 {
-  "buildCommand": "bun run --filter '@idecn/web' build",
+  "buildCommand": "cd web && bun run build",
   "framework": "nextjs",
-  "installCommand": "bun install",
+  "installCommand": "bun install && cd web && bun install",
   "outputDirectory": "web/.next"
 }
