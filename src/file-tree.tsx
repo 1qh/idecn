@@ -61,10 +61,7 @@ interface FileTreeProps {
 const FileTree = ({ className, data, initialSelectedItemId, onSelectChange }: FileTreeProps) => {
   const items = Array.isArray(data) ? data : [data]
   return (
-    <Tree
-      className={className}
-      onSelect={item => onSelectChange?.(item as TreeDataItem)}
-      selectedId={initialSelectedItemId}>
+    <Tree className={className} selectedId={initialSelectedItemId}>
       <div className='min-w-max'>{renderItems(items, onSelectChange)}</div>
     </Tree>
   )
