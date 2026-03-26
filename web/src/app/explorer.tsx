@@ -2,92 +2,23 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
+import type { DockviewApi, DockviewReadyEvent } from 'dockview-react'
 import type { TreeDataItem } from 'idecn'
-import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
-import { FileIcon, FileTree } from 'idecn'
+import { FileTree } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useState } from 'react'
 import type { AppState } from '~/lib/hash-state'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
 import { loadState, saveState } from '~/lib/hash-state'
+import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
+import { buildTree, langOf } from './github'
+import { FilePanel, FileTab } from './panels'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
-interface GitHubTreeItem {
-  path: string
-  type: 'blob' | 'tree'
-}
 const DEFAULT_REPO = '1qh/idecn',
-  buildTree = (items: GitHubTreeItem[]): TreeDataItem[] => {
-    const root: TreeDataItem[] = [],
-      dirs = new Map<string, TreeDataItem>(),
-      sorted = [...items].toSorted((a, b) => {
-        if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
-        return a.path.localeCompare(b.path)
-      })
-    for (const item of sorted) {
-      const parts = item.path.split('/'),
-        name = parts.at(-1) ?? item.path,
-        node: TreeDataItem = { id: item.path, name, path: item.path }
-      if (item.type === 'tree') {
-        node.children = []
-        dirs.set(item.path, node)
-      }
-      if (parts.length === 1) root.push(node)
-      else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
-    }
-    return root
-  },
-  LANG_MAP: Record<string, string> = {
-    css: 'css',
-    go: 'go',
-    html: 'html',
-    js: 'javascript',
-    json: 'json',
-    jsx: 'javascript',
-    md: 'markdown',
-    mjs: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    sh: 'shell',
-    sql: 'sql',
-    toml: 'toml',
-    ts: 'typescript',
-    tsx: 'typescript',
-    yaml: 'yaml',
-    yml: 'yaml'
-  },
-  langOf = (p: string): string => LANG_MAP[p.split('.').at(-1) ?? ''] ?? 'plaintext',
-  EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
-  FilePanel = ({ params }: IDockviewPanelProps<{ content: string; language: string }>) => {
-    const { resolvedTheme } = useTheme()
-    return (
-      <Editor
-        language={params.language}
-        options={EDITOR_OPTIONS}
-        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-        value={params.content}
-      />
-    )
-  },
-  FileTab = ({ api }: IDockviewPanelHeaderProps) => (
-    <div className='group/tab flex h-full items-center'>
-      <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
-      <span className='mb-px ml-0.5'>{api.title}</span>
-      <button
-        className='opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
-        onClick={e => {
-          e.stopPropagation()
-          api.close()
-        }}
-        type='button'>
-        <XIcon className='stroke-1 size-4' />
-      </button>
-    </div>
-  ),
   COMPONENTS = { file: FilePanel },
   TAB_COMPONENTS = { file: FileTab },
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
@@ -187,11 +118,10 @@ const DEFAULT_REPO = '1qh/idecn',
             })
             .then(data => {
               if (!data) return
-              const content = data.content ? atob(data.content) : ''
               api.addPanel({
                 component: 'file',
                 id: filePath,
-                params: { content, language: langOf(filePath) },
+                params: { content: data.content ? atob(data.content) : '', language: langOf(filePath) },
                 tabComponent: 'file',
                 title: filePath.split('/').at(-1) ?? filePath
               })
@@ -217,7 +147,7 @@ const DEFAULT_REPO = '1qh/idecn',
                 .catch(() => undefined)
             }
           } catch {
-            /* Layout restore failed, start fresh */
+            /* Layout restore failed */
           }
         event.api.onDidLayoutChange(() => persistState())
       },

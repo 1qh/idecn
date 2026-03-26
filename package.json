@@ -2,6 +2,17 @@
   "name": "idecn",
   "version": "0.0.1",
   "private": false,
+  "description": "IDE-like UI components for React with material-icon-theme icons",
+  "keywords": [
+    "react",
+    "file-tree",
+    "ide",
+    "material-icons",
+    "shadcn",
+    "dockview"
+  ],
+  "repository": "1qh/idecn",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
