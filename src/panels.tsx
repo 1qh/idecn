@@ -58,7 +58,9 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
       closable = p?.closable !== false,
       ref = useRef<HTMLDivElement>(null)
     useEffect(() => {
-      if (p?.headerClassName && ref.current?.parentElement) ref.current.parentElement.style.flex = '1'
+      if (!(p?.headerClassName && ref.current)) return
+      const tab = ref.current.closest<HTMLElement>('.dv-tab')
+      if (tab) tab.style.flex = '1'
     }, [p?.headerClassName])
     return (
       <div className={cn('group/tab flex h-full items-center', p?.headerClassName)} ref={ref}>

@@ -60,6 +60,7 @@ const LANG: Record<string, string> = {
   mutableState = {
     api: null as DockviewApi | null,
     filePanelIds: new Set<string>(),
+    initialWidths: new Map<string, number>(),
     prevIds: new Set<string>(),
     savedGroups: new Map<string, string>(),
     tabsCache: [] as TabProps[]
@@ -81,10 +82,10 @@ const LANG: Record<string, string> = {
           position = savedGroup
             ? { direction: 'within' as const, referenceGroup: savedGroup }
             : POSITIONS[tab.position ?? '']
+        if (tab.initialWidth) mutableState.initialWidths.set(tabId, tab.initialWidth)
         api.addPanel({
           component: 'custom',
           id: tabId,
-          initialWidth: tab.initialWidth,
           params: { closable: tab.closable, content: tab.children, headerClassName: tab.headerClassName, icon: tab.icon },
           position: api.panels.length > 0 ? position : undefined,
           tabComponent: 'default',
@@ -120,6 +121,11 @@ const LANG: Record<string, string> = {
             tabComponent: 'default',
             title: item.name
           })
+          if (!existingFile)
+            for (const [panelId, width] of mutableState.initialWidths) {
+              const panel = api.panels.find(p => p.id === panelId)
+              if (panel) panel.group.api.setSize({ width })
+            }
           const result = onOpenFile(item)
           if (result === null) return
           if (typeof result === 'string')
