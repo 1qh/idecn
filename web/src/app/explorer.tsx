@@ -9,7 +9,7 @@ import { DockviewReact } from 'dockview-react'
 import { FileIcon, FileTree } from 'idecn'
 import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { AppState } from '~/lib/hash-state'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
 import { loadState, saveState } from '~/lib/hash-state'
@@ -62,9 +62,17 @@ const DEFAULT_REPO = '1qh/idecn',
   },
   langOf = (p: string): string => LANG_MAP[p.split('.').at(-1) ?? ''] ?? 'plaintext',
   EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
-  FilePanel = ({ params }: IDockviewPanelProps<{ content: string; language: string; theme: string }>) => (
-    <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
-  ),
+  FilePanel = ({ params }: IDockviewPanelProps<{ content: string; language: string }>) => {
+    const { resolvedTheme } = useTheme()
+    return (
+      <Editor
+        language={params.language}
+        options={EDITOR_OPTIONS}
+        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+        value={params.content}
+      />
+    )
+  },
   FileTab = ({ api }: IDockviewPanelHeaderProps) => (
     <div className='group/tab flex h-full items-center'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
@@ -105,7 +113,6 @@ const DEFAULT_REPO = '1qh/idecn',
       [mounted, setMounted] = useState(false),
       [ready, setReady] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
-      editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
       isDark = mounted && resolvedTheme === 'dark',
       persistState = useCallback(() => {
         if (mutable.timer) clearTimeout(mutable.timer)
@@ -184,7 +191,7 @@ const DEFAULT_REPO = '1qh/idecn',
               api.addPanel({
                 component: 'file',
                 id: filePath,
-                params: { content, language: langOf(filePath), theme: editorTheme },
+                params: { content, language: langOf(filePath) },
                 tabComponent: 'file',
                 title: filePath.split('/').at(-1) ?? filePath
               })
@@ -192,7 +199,7 @@ const DEFAULT_REPO = '1qh/idecn',
             })
             .catch(() => undefined)
         },
-        [repo, editorTheme, persistState]
+        [repo, persistState]
       ),
       handleReady = (event: DockviewReadyEvent) => {
         mutable.api = event.api

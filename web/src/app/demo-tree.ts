@@ -1,6 +1,5 @@
 const DEMO_TREE = [
   { path: '.gitignore', type: 'blob' as const },
-  { path: 'PLAN.md', type: 'blob' as const },
   { path: 'README.md', type: 'blob' as const },
   { path: 'package.json', type: 'blob' as const },
   { path: 'registry.json', type: 'blob' as const },
@@ -32,12 +31,14 @@ const DEMO_TREE = [
   { path: 'web/src/app', type: 'tree' as const },
   { path: 'web/src/app/demo-tree.ts', type: 'blob' as const },
   { path: 'web/src/app/explorer.tsx', type: 'blob' as const },
+  { path: 'web/src/app/fonts.ts', type: 'blob' as const },
   { path: 'web/src/app/globals.css', type: 'blob' as const },
   { path: 'web/src/app/layout.tsx', type: 'blob' as const },
   { path: 'web/src/app/page.tsx', type: 'blob' as const },
   { path: 'web/src/components', type: 'tree' as const },
   { path: 'web/src/components/resizable.tsx', type: 'blob' as const },
   { path: 'web/src/lib', type: 'tree' as const },
+  { path: 'web/src/lib/hash-state.ts', type: 'blob' as const },
   { path: 'web/src/lib/utils.ts', type: 'blob' as const },
   { path: 'web/tsconfig.json', type: 'blob' as const }
 ]
