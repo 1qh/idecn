@@ -2,6 +2,12 @@
 import { useState } from 'react'
 import { cn } from './cn'
 import { FileIcon, FolderIcon } from './icon'
+interface TreeCtx {
+  expanded: Set<string>
+  handleSelect: (path: string) => void
+  sel: null | string
+  toggle: (path: string) => void
+}
 interface TreeNode {
   children?: TreeNode[]
   name: string
@@ -24,6 +30,33 @@ const PADDINGS = [
   pad = (depth: number) => PADDINGS[Math.min(depth, PADDINGS.length - 1)],
   ROW =
     'flex w-full items-center gap-1.5 py-0.5 pr-2 text-left text-sm hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
+  renderNodes = (nodes: TreeNode[], depth: number, ctx: TreeCtx): React.ReactNode[] => {
+    const result: React.ReactNode[] = []
+    for (const node of nodes)
+      if (node.children) {
+        const isOpen = ctx.expanded.has(node.path)
+        result.push(
+          <div key={node.path}>
+            <button className={cn(ROW, pad(depth))} onClick={() => ctx.toggle(node.path)} type='button'>
+              <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' open={isOpen} />
+              <span className='truncate font-medium'>{node.name}</span>
+            </button>
+            {isOpen ? renderNodes(node.children, depth + 1, ctx) : null}
+          </div>
+        )
+      } else
+        result.push(
+          <button
+            className={cn(ROW, pad(depth), ctx.sel === node.path && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]')}
+            key={node.path}
+            onClick={() => ctx.handleSelect(node.path)}
+            type='button'>
+            <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} />
+            <span className='truncate'>{node.name}</span>
+          </button>
+        )
+    return result
+  },
   FileTree = ({
     className,
     nodes,
@@ -55,35 +88,10 @@ const PADDINGS = [
           return next
         })
       },
-      handleSelect = onSelect ?? (() => undefined),
-      sel = selected ?? null,
-      renderNode = (node: TreeNode, depth: number): React.ReactNode => {
-        if (node.children) {
-          const isOpen = expanded.has(node.path)
-          return (
-            <div key={node.path}>
-              <button className={cn(ROW, pad(depth))} onClick={() => toggle(node.path)} type='button'>
-                <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' open={isOpen} />
-                <span className='truncate font-medium'>{node.name}</span>
-              </button>
-              {isOpen ? node.children.map(async child => renderNode(child, depth + 1)) : null}
-            </div>
-          )
-        }
-        return (
-          <button
-            className={cn(ROW, pad(depth), sel === node.path && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]')}
-            key={node.path}
-            onClick={() => handleSelect(node.path)}
-            type='button'>
-            <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} />
-            <span className='truncate'>{node.name}</span>
-          </button>
-        )
-      }
+      ctx: TreeCtx = { expanded, handleSelect: onSelect ?? (() => undefined), sel: selected ?? null, toggle }
     return (
       <nav aria-label='File tree' className={cn('select-none overflow-auto text-sm', className)}>
-        {nodes.map(async node => renderNode(node, 0))}
+        {renderNodes(nodes, 0, ctx)}
       </nav>
     )
   }

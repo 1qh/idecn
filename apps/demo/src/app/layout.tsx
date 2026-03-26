@@ -7,7 +7,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
   <html lang='en' suppressHydrationWarning>
     <body className='min-h-screen antialiased'>
       <NuqsAdapter>
-        <ThemeProvider attribute='class' defaultTheme='dark'>
+        <ThemeProvider attribute='class' defaultTheme='dark' disableTransitionOnChange enableSystem={false}>
           {children}
         </ThemeProvider>
       </NuqsAdapter>

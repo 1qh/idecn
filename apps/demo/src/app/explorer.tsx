@@ -72,7 +72,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       [repoInput, setRepoInput] = useState(repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
-      editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme])
+      editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
+      isDark = mounted && resolvedTheme === 'dark'
     useEffect(() => {
       setMounted(true)
     }, [])
@@ -111,7 +112,6 @@ const DEFAULT_REPO = 'openclaw/openclaw',
         setContent('')
       }
     }
-    if (!mounted) return null
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center gap-2 border-b border-border px-3 py-1.5'>
@@ -130,9 +130,9 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </button>
           <button
             className='rounded p-1 hover:bg-accent'
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
             type='button'>
-            {resolvedTheme === 'dark' ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
+            {isDark ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
           </button>
         </div>
         <div className='flex flex-1 overflow-hidden'>
