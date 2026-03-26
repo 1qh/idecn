@@ -1,96 +1,150 @@
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
+/* eslint-disable @typescript-eslint/no-use-before-define */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop */
 'use client'
-import { Collapsible } from '@base-ui/react/collapsible'
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { Accordion } from '@base-ui/react/accordion'
+import { useMemo, useState } from 'react'
 import { cn } from './cn'
 import { FileIcon, FolderIcon } from './icon'
 interface TreeCtx {
-  expanded: Set<string>
-  handleSelect: (path: string) => void
-  sel: null | string
-  toggle: (path: string) => void
+  expanded: string[]
+  handleSelect: (item: TreeDataItem) => void
+  selectedId: null | string
 }
-interface TreeNode {
-  children?: TreeNode[]
+interface TreeDataItem {
+  actions?: ReactNode
+  children?: TreeDataItem[]
+  className?: string
+  disabled?: boolean
+  icon?: React.ComponentType<{ className?: string }>
+  id: string
   name: string
+  onClick?: () => void
+  openIcon?: React.ComponentType<{ className?: string }>
   path: string
+  selectedIcon?: React.ComponentType<{ className?: string }>
 }
 const INDENT_PX = 16,
   ROW =
     'flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer whitespace-nowrap hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
   PANEL =
-    'overflow-hidden h-[var(--collapsible-panel-height)] transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0',
-  renderNodes = (nodes: TreeNode[], depth: number, ctx: TreeCtx): React.ReactNode[] => {
-    const result: React.ReactNode[] = []
-    for (const node of nodes) {
-      const pl = `${String(depth * INDENT_PX + 8)}px`
-      if (node.children) {
-        const isOpen = ctx.expanded.has(node.path)
-        result.push(
-          <Collapsible.Root key={node.path} open={isOpen}>
-            <button className={ROW} onClick={() => ctx.toggle(node.path)} style={{ paddingLeft: pl }} type='button'>
-              <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} open={isOpen} />
-              <span className='truncate'>{node.name}</span>
-            </button>
-            <Collapsible.Panel className={PANEL}>{renderNodes(node.children, depth + 1, ctx)}</Collapsible.Panel>
-          </Collapsible.Root>
-        )
-      } else
-        result.push(
-          <button
-            className={cn(ROW, ctx.sel === node.path && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]')}
-            key={node.path}
-            onClick={() => ctx.handleSelect(node.path)}
-            style={{ paddingLeft: pl }}
-            type='button'>
-            <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} />
-            <span className='truncate'>{node.name}</span>
-          </button>
-        )
-    }
-    return result
-  },
-  FileTree = ({
-    className,
-    defaultExpanded = false,
-    nodes,
-    onSelect,
-    selected
-  }: {
-    className?: string
-    defaultExpanded?: boolean
-    nodes: TreeNode[]
-    onSelect?: (path: string) => void
-    selected?: null | string
-  }) => {
-    const [expanded, setExpanded] = useState<Set<string>>(() => {
-        if (!defaultExpanded) return new Set<string>()
-        const set = new Set<string>(),
-          walk = (items: TreeNode[]) => {
-            for (const item of items)
-              if (item.children) {
-                set.add(item.path)
-                walk(item.children)
-              }
-          }
-        walk(nodes)
-        return set
-      }),
-      toggle = (path: string) => {
-        setExpanded(prev => {
-          const next = new Set(prev)
-          if (next.has(path)) next.delete(path)
-          else next.add(path)
-          return next
-        })
-      },
-      ctx: TreeCtx = { expanded, handleSelect: onSelect ?? (() => undefined), sel: selected ?? null, toggle }
+    'overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0',
+  TreeLeaf = ({ ctx, depth, item }: { ctx: TreeCtx; depth: number; item: TreeDataItem }) => {
+    const pl = `${String(depth * INDENT_PX + 8)}px`,
+      isSelected = ctx.selectedId === item.id
     return (
-      <nav aria-label='File tree' className={cn('select-none overflow-auto text-[13px]', className)}>
-        {renderNodes(nodes, 0, ctx)}
-      </nav>
+      <button
+        className={cn(
+          ROW,
+          isSelected && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]',
+          item.disabled && 'pointer-events-none opacity-50',
+          item.className
+        )}
+        onClick={() => {
+          if (!item.disabled) {
+            ctx.handleSelect(item)
+            item.onClick?.()
+          }
+        }}
+        style={{ paddingLeft: pl }}
+        type='button'>
+        <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={item.name} />
+        <span className='truncate'>{item.name}</span>
+        {item.actions ? (
+          <span className={cn('ml-auto hidden group-hover:block', isSelected && 'block')}>{item.actions}</span>
+        ) : null}
+      </button>
     )
+  },
+  TreeFolder = ({ ctx, depth, item }: { ctx: TreeCtx; depth: number; item: TreeDataItem }) => {
+    const pl = `${String(depth * INDENT_PX + 8)}px`,
+      isOpen = ctx.expanded.includes(item.id),
+      isSelected = ctx.selectedId === item.id
+    return (
+      <Accordion.Item className={item.className} value={item.id}>
+        <Accordion.Trigger
+          className={cn(ROW, isSelected && 'bg-[var(--nicetree-selected,hsl(var(--accent)))]')}
+          onClick={() => {
+            ctx.handleSelect(item)
+            item.onClick?.()
+          }}
+          style={{ paddingLeft: pl }}>
+          <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={item.name} open={isOpen} />
+          <span className='truncate'>{item.name}</span>
+          {item.actions ? (
+            <span className={cn('ml-auto hidden group-hover:block', isSelected && 'block')}>{item.actions}</span>
+          ) : null}
+        </Accordion.Trigger>
+        <Accordion.Panel className={PANEL}>
+          {item.children ? <TreeItems ctx={ctx} depth={depth + 1} items={item.children} /> : null}
+        </Accordion.Panel>
+      </Accordion.Item>
+    )
+  },
+  TreeItems = ({ ctx, depth, items }: { ctx: TreeCtx; depth: number; items: TreeDataItem[] }) => {
+    const nodes: ReactNode[] = []
+    for (const item of items)
+      nodes.push(
+        item.children ? (
+          <TreeFolder ctx={ctx} depth={depth} item={item} key={item.id} />
+        ) : (
+          <TreeLeaf ctx={ctx} depth={depth} item={item} key={item.id} />
+        )
+      )
+    return nodes
+  },
+  findPath = (list: TreeDataItem[], targetId: string): string[] => {
+    for (const item of list) {
+      if (item.id === targetId) return [item.id]
+      if (item.children) {
+        const sub = findPath(item.children, targetId)
+        if (sub.length > 0) return [item.id, ...sub]
+      }
+    }
+    return []
   }
-export type { TreeNode }
+interface TreeProps {
+  className?: string
+  data: TreeDataItem | TreeDataItem[]
+  expandAll?: boolean
+  initialSelectedItemId?: string
+  onSelectChange?: (item: TreeDataItem | undefined) => void
+}
+const FileTree = ({ className, data, expandAll, initialSelectedItemId, onSelectChange }: TreeProps) => {
+  const items = useMemo(() => (Array.isArray(data) ? data : [data]), [data]),
+    allPaths = (): string[] => {
+      const paths: string[] = [],
+        walk = (list: TreeDataItem[]) => {
+          for (const item of list)
+            if (item.children) {
+              paths.push(item.id)
+              walk(item.children)
+            }
+        }
+      walk(items)
+      return paths
+    },
+    initialExpanded = (): string[] => {
+      if (expandAll) return allPaths()
+      if (initialSelectedItemId) return findPath(items, initialSelectedItemId)
+      return []
+    },
+    [expanded, setExpanded] = useState<string[]>(initialExpanded),
+    [selectedId, setSelectedId] = useState(initialSelectedItemId ?? null),
+    handleSelect = (item: TreeDataItem) => {
+      setSelectedId(item.id)
+      onSelectChange?.(item)
+    },
+    ctx: TreeCtx = { expanded, handleSelect, selectedId }
+  return (
+    <Accordion.Root
+      className={cn('select-none overflow-auto text-[13px]', className)}
+      onValueChange={v => setExpanded(v as string[])}
+      value={expanded}>
+      <TreeItems ctx={ctx} depth={0} items={items} />
+    </Accordion.Root>
+  )
+}
+export type { TreeDataItem, TreeProps }
 export { FileTree }

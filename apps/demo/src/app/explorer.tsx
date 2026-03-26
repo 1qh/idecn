@@ -2,7 +2,7 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { TreeNode } from 'nicetree'
+import type { TreeDataItem } from 'nicetree'
 import { Editor } from '@monaco-editor/react'
 import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -19,9 +19,9 @@ interface GitHubTreeItem {
   url: string
 }
 const DEFAULT_REPO = 'openclaw/openclaw',
-  buildTree = (items: GitHubTreeItem[]): TreeNode[] => {
-    const root: TreeNode[] = [],
-      dirs = new Map<string, TreeNode>(),
+  buildTree = (items: GitHubTreeItem[]): TreeDataItem[] => {
+    const root: TreeDataItem[] = [],
+      dirs = new Map<string, TreeDataItem>(),
       sorted = [...items].toSorted((a, b) => {
         if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
         return a.path.localeCompare(b.path)
@@ -29,7 +29,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     for (const item of sorted) {
       const parts = item.path.split('/'),
         name = parts.at(-1) ?? item.path,
-        node: TreeNode = { name, path: item.path }
+        node: TreeDataItem = { id: item.path, name, path: item.path }
       if (item.type === 'tree') {
         node.children = []
         dirs.set(item.path, node)
@@ -66,7 +66,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
   Explorer = () => {
     const [repo, setRepo] = useQueryState('repo', parseAsString.withDefault(DEFAULT_REPO)),
       [path, setPath] = useQueryState('path', parseAsString.withDefault('')),
-      [tree, setTree] = useState<TreeNode[]>([]),
+      [tree, setTree] = useState<TreeDataItem[]>([]),
       [content, setContent] = useState(''),
       [loading, setLoading] = useState(false),
       [treeLoading, setTreeLoading] = useState(false),
@@ -143,11 +143,11 @@ const DEFAULT_REPO = 'openclaw/openclaw',
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
               ) : (
                 <FileTree
-                  nodes={tree}
-                  onSelect={p => {
-                    setPath(p)
+                  data={tree}
+                  initialSelectedItemId={path || undefined}
+                  onSelectChange={item => {
+                    if (item && !item.children) setPath(item.path)
                   }}
-                  selected={path || null}
                 />
               )}
             </div>
