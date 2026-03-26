@@ -216,46 +216,36 @@ interface TreeDataItem {
   path: string
 }
 const renderItems = (items: TreeDataItem[], onItemClick?: (item: TreeDataItem) => void): ReactNode[] => {
-    const nodes: ReactNode[] = []
-    for (const item of items)
-      nodes.push(
-        item.children ? (
-          <TreeFolder
-            className={item.className}
-            disabled={item.disabled}
-            id={item.id}
-            key={item.id}
-            name={item.name}
-            path={item.path}>
-            {renderItems(item.children, onItemClick)}
-          </TreeFolder>
-        ) : (
-          <TreeFile
-            className={item.className}
-            disabled={item.disabled}
-            id={item.id}
-            key={item.id}
-            name={item.name}
-            onClick={() => {
-              item.onClick?.()
-              onItemClick?.(item)
-            }}
-            path={item.path}
-          />
-        )
+  const nodes: ReactNode[] = []
+  for (const item of items)
+    nodes.push(
+      item.children ? (
+        <TreeFolder
+          className={item.className}
+          disabled={item.disabled}
+          id={item.id}
+          key={item.id}
+          name={item.name}
+          path={item.path}>
+          {renderItems(item.children, onItemClick)}
+        </TreeFolder>
+      ) : (
+        <TreeFile
+          className={item.className}
+          disabled={item.disabled}
+          id={item.id}
+          key={item.id}
+          name={item.name}
+          onClick={() => {
+            item.onClick?.()
+            onItemClick?.(item)
+          }}
+          path={item.path}
+        />
       )
-    return nodes
-  },
-  findPath = (list: TreeDataItem[], targetId: string): string[] => {
-    for (const item of list) {
-      if (item.id === targetId) return [item.id]
-      if (item.children) {
-        const sub = findPath(item.children, targetId)
-        if (sub.length > 0) return [item.id, ...sub]
-      }
-    }
-    return []
-  }
+    )
+  return nodes
+}
 interface FileTreeProps {
   className?: string
   data: TreeDataItem | TreeDataItem[]
@@ -504,18 +494,17 @@ const LANG: Record<string, string> = {
           existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
           position = existingFile ? { direction: 'within' as const, referenceGroup: existingFile.group.id } : undefined
         stateRef.current.fileIds.add(item.path)
-        api.addPanel({
-          component: 'file',
-          id: item.path,
-          params: { content: '', language: langOf(item.path), loading: loadingNode },
-          position,
-          tabComponent: 'default',
-          title: item.name
-        })
-        const result = onOpen(item)
+        const added = api.addPanel({
+            component: 'file',
+            id: item.path,
+            params: { content: '', language: langOf(item.path), loading: loadingNode },
+            position,
+            tabComponent: 'default',
+            title: item.name
+          }),
+          result = onOpen(item)
         if (result === null) return
-        if (typeof result === 'string')
-          api.panels.find(p => p.id === item.path)?.api.updateParameters({ content: result, loading: undefined })
+        if (typeof result === 'string') added.api.updateParameters({ content: result, loading: undefined })
         else {
           const panelPath = item.path
           result
@@ -613,4 +602,4 @@ const LANG: Record<string, string> = {
     )
   }
 export type { FileTreeProps, TabProps, TreeDataItem, WorkspaceProps, WorkspaceRef }
-export { FileIcon, FileTree, findPath, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }
+export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }

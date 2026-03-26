@@ -18,7 +18,6 @@ const DEMO_TREE = [
   { path: 'src/idecn.tsx', type: 'blob' as const },
   { path: 'src/index.ts', type: 'blob' as const },
   { path: 'tsconfig.json', type: 'blob' as const },
-  { path: 'turbo.json', type: 'blob' as const },
   { path: 'vercel.json', type: 'blob' as const },
   { path: 'web', type: 'tree' as const },
   { path: 'web/.gitignore', type: 'blob' as const },
