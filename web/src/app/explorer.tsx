@@ -30,13 +30,12 @@ const DEFAULT_REPO = '1qh/idecn',
       [treeLoading, setTreeLoading] = useState(true),
       [rateLimited, setRateLimited] = useState(false),
       [repoInput, setRepoInput] = useState(''),
-      [mounted, setMounted] = useState(false),
-      [savedLayout, setSavedLayout] = useState<unknown>(null),
+      [ready, setReady] = useState(false),
+      [savedLayout, setSavedLayout] = useState<unknown>(undefined),
       { resolvedTheme, setTheme } = useTheme(),
-      isDark = mounted && resolvedTheme === 'dark',
+      isDark = ready && resolvedTheme === 'dark',
       workspaceRef = useRef<WorkspaceRef>(null)
     useEffect(() => {
-      setMounted(true)
       loadState()
         .then(s => {
           if (s) {
@@ -44,15 +43,10 @@ const DEFAULT_REPO = '1qh/idecn',
             if (s.repo !== DEFAULT_REPO) setRepoInput(s.repo)
             if (s.layout) setSavedLayout(s.layout)
           }
+          setReady(true)
         })
-        .catch(() => undefined)
+        .catch(() => setReady(true))
     }, [])
-    useEffect(() => {
-      if (savedLayout && workspaceRef.current) {
-        workspaceRef.current.loadLayout(savedLayout)
-        setSavedLayout(null)
-      }
-    }, [savedLayout])
     useEffect(() => {
       setTreeLoading(true)
       setRateLimited(false)
@@ -111,6 +105,7 @@ const DEFAULT_REPO = '1qh/idecn',
         const trimmed = repoInput.trim()
         if (trimmed && trimmed !== repo) setRepo(trimmed)
       }
+    if (!ready) return null
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
@@ -139,6 +134,7 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
+          initialLayout={savedLayout}
           onLayoutChange={handleLayoutChange}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
