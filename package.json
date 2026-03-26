@@ -26,13 +26,13 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react && bun scripts/gen-demo-tree.ts && cd web && bun run build",
+    "build": "rm -rf dist && bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react && bun scripts/gen-demo-tree.ts && cd web && bun run build",
     "check": "lintmax check",
     "clean": "rm -rf node_modules bun.lock dist .cache .next .turbo web/node_modules web/.next",
     "dev": "cd web && bun run dev",
     "fix": "lintmax fix && bun run build",
     "gen": "bun scripts/gen-icons.ts && bun scripts/gen-demo-tree.ts && bun scripts/build-registry.ts",
-    "prepublishOnly": "tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react"
+    "prepublishOnly": "bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react"
   },
   "dependencies": {
     "@base-ui/react": "latest",
