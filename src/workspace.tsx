@@ -74,6 +74,7 @@ const LANG: Record<string, string> = {
     '.dv-reset .dv-tab{padding:0;background:transparent}',
     '.dv-reset .dv-tabs-container{gap:0}',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
+    '.dv-reset .dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}'
   ].join(''),
   COMPONENTS = { custom: CustomPanelInner, file: FilePanelInner },
