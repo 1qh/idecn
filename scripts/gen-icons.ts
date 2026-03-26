@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, no-console */
+/** biome-ignore-all lint/style/noNonNullAssertion: build script accessing manifest */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-non-null-assertion, no-console */
 import { generateManifest } from 'material-icon-theme'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -8,15 +9,16 @@ const manifest = generateManifest(),
     '../node_modules/.bun/material-icon-theme@5.32.0/node_modules/material-icon-theme/icons'
   ),
   usedIcons = new Set<string>([
-    manifest.file as string,
-    manifest.folder as string,
-    manifest.folderExpanded as string,
-    manifest.rootFolder as string,
-    manifest.rootFolderExpanded as string,
-    ...Object.values(manifest.folderNames as Record<string, string>),
-    ...Object.values(manifest.folderNamesExpanded as Record<string, string>),
-    ...Object.values(manifest.fileExtensions as Record<string, string>),
-    ...Object.values(manifest.fileNames as Record<string, string>)
+    manifest.file!,
+    manifest.folder!,
+    manifest.folderExpanded!,
+    manifest.rootFolder!,
+    manifest.rootFolderExpanded!,
+    ...Object.values(manifest.folderNames!),
+    ...Object.values(manifest.folderNamesExpanded!),
+    ...Object.values(manifest.fileExtensions!),
+    ...Object.values(manifest.fileNames!),
+    ...Object.values(manifest.languageIds!)
   ]),
   svgMap: Record<string, string> = {}
 for (const name of usedIcons)
@@ -37,7 +39,8 @@ writeFileSync(
     folder: manifest.folder,
     folderExpanded: manifest.folderExpanded,
     folderNames: manifest.folderNames,
-    folderNamesExpanded: manifest.folderNamesExpanded
+    folderNamesExpanded: manifest.folderNamesExpanded,
+    languageIds: manifest.languageIds
   })
 )
 console.log(

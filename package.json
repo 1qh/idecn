@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "lintmax": "latest",
+    "material-icon-theme": "^5.32.0",
     "typescript": "latest"
   }
 }

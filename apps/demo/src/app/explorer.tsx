@@ -2,13 +2,13 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { DockviewReadyEvent, IDockviewPanelProps } from 'dockview-react'
+import type { DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { TreeDataItem } from 'nicetree'
 import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
 import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { FileTree } from 'nicetree'
+import { FileIcon, FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
@@ -67,7 +67,14 @@ const DEFAULT_REPO = 'openclaw/openclaw',
   FilePanel = ({ params }: IDockviewPanelProps<{ content: string; language: string; theme: string }>) => (
     <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
   ),
+  FileTab = ({ api }: IDockviewPanelHeaderProps) => (
+    <div className='flex items-center gap-1.5 px-2'>
+      <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
+      <span>{api.title}</span>
+    </div>
+  ),
   COMPONENTS = { file: FilePanel },
+  TAB_COMPONENTS = { file: FileTab },
   Explorer = () => {
     const [repo, setRepo] = useQueryState('repo', parseAsString.withDefault(DEFAULT_REPO)),
       [path, setPath] = useQueryState('path', parseAsString.withDefault('')),
@@ -79,7 +86,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme]),
       isDark = mounted && resolvedTheme === 'dark',
       dockviewRef = useRef<DockviewReadyEvent | null>(null),
-      components = COMPONENTS
+      components = COMPONENTS,
+      tabComponents = TAB_COMPONENTS
     useEffect(() => {
       setMounted(true)
     }, [])
@@ -114,6 +122,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
               component: 'file',
               id: filePath,
               params: { content, language: langOf(filePath), theme: editorTheme },
+              tabComponent: 'file',
               title: filePath.split('/').at(-1) ?? filePath
             })
           })
@@ -176,7 +185,12 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </ResizablePanel>
           <ResizableHandle className='opacity-0' />
           <ResizablePanel>
-            <DockviewReact className='h-full' components={components} onReady={handleReady} />
+            <DockviewReact
+              className='h-full'
+              components={components}
+              onReady={handleReady}
+              tabComponents={tabComponents}
+            />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
