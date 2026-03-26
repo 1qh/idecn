@@ -191,6 +191,12 @@ const LANG: Record<string, string> = {
             }
           }
           mutableState.tabsCache = tabs
+          requestAnimationFrame(() => {
+            for (const [panelId, width] of mutableState.initialWidths) {
+              const panel = api.panels.find(p => p.id === panelId)
+              if (panel) panel.group.api.setSize({ width })
+            }
+          })
         },
         [children, onOpenFile]
       )
