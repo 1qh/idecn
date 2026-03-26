@@ -6,7 +6,7 @@ import type { DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps
 import type { TreeDataItem } from 'nicetree'
 import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
-import { MoonIcon, SunIcon, XIcon } from 'lucide-react'
+import { MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { FileIcon, FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -68,17 +68,17 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
   ),
   FileTab = ({ api }: IDockviewPanelHeaderProps) => (
-    <div className='group/tab flex h-full items-center gap-1.5 px-1.5 pb-px'>
+    <div className='group/tab flex h-full items-center'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
-      <span>{api.title}</span>
+      <span className='mb-px ml-0.5'>{api.title}</span>
       <button
-        className='ml-0.5 rounded p-0.5 opacity-0 hover:bg-accent group-hover/tab:opacity-60'
+        className='opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
         onClick={e => {
           e.stopPropagation()
           api.close()
         }}
         type='button'>
-        <XIcon className='size-3' />
+        <XIcon className='stroke-1 size-4' />
       </button>
     </div>
   ),
@@ -156,9 +156,10 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       }
     return (
       <div className='flex h-screen flex-col'>
-        <div className='flex items-center gap-2 border-b border-border px-3 py-1.5'>
+        <div className='flex items-center'>
+          <SearchIcon className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent' onClick={handleSubmit} />
           <input
-            className='flex-1 bg-transparent px-2 py-1 text-sm outline-none'
+            className='flex-1 bg-transparent text-sm outline-none'
             onChange={e => setRepoInput(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') handleSubmit()
@@ -167,14 +168,11 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             type='text'
             value={repoInput}
           />
-          <button className='rounded bg-accent px-3 py-1 text-sm hover:bg-accent/80' onClick={handleSubmit} type='button'>
-            Go
-          </button>
           <button
-            className='rounded p-1 hover:bg-accent'
+            className='p-1 hover:bg-accent [&_svg]:stroke-1'
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             type='button'>
-            {isDark ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
+            {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
         </div>
         <ResizablePanelGroup orientation='horizontal'>
