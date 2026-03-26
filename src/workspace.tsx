@@ -141,6 +141,10 @@ const LANG: Record<string, string> = {
           tabComponent: 'default',
           title: tab.title
         })
+        if (tab.initialWidth) {
+          const panel = api.panels.find(p => p.id === tabId)
+          if (panel) panel.group.api.setConstraints({ maximumWidth: tab.initialWidth, minimumWidth: tab.initialWidth })
+        }
       }, []),
       openFile = useCallback((item: TreeDataItem) => {
         const { api } = stateRef.current,
