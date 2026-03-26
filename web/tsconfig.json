@@ -11,7 +11,8 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "idecn": ["../src/index.ts"]
     },
     "plugins": [
       {
