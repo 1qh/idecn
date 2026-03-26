@@ -4,6 +4,8 @@
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 ```
 
+or
+
 ```sh
 bun add idecn
 ```

@@ -7,6 +7,7 @@ import { DockviewReact } from 'dockview-react'
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import type { TreeDataItem } from './file-tree'
 import type { TabProps } from './tab'
+import { cn } from './cn'
 import { CustomPanelInner, FilePanelInner, TabHeaderInner } from './panels'
 import { TAB_TYPE } from './tab'
 interface WorkspaceProps {
@@ -47,6 +48,8 @@ const LANG: Record<string, string> = {
     left: { direction: 'left' },
     right: { direction: 'right' }
   },
+  RESET_CSS =
+    '.dv-reset{--dv-activegroup-visiblepanel-tab-background-color:transparent;--dv-activegroup-visiblepanel-tab-color:inherit;--dv-activegroup-hiddenpanel-tab-background-color:transparent;--dv-activegroup-hiddenpanel-tab-color:inherit;--dv-inactivegroup-visiblepanel-tab-background-color:transparent;--dv-inactivegroup-visiblepanel-tab-color:inherit;--dv-inactivegroup-hiddenpanel-tab-background-color:transparent;--dv-inactivegroup-hiddenpanel-tab-color:inherit;--dv-tabs-and-actions-container-background-color:transparent;--dv-tabs-and-actions-container-height:36px;--dv-group-view-background-color:transparent;--dv-separator-border:transparent;--dv-tab-divider-color:transparent;--dv-drag-over-background-color:transparent;--dv-drag-over-border-color:transparent;--dv-tab-margin:0;--dv-border-radius:0;--dv-active-sash-color:transparent;--dv-sash-color:transparent}.dv-reset .dv-tab{padding:0;background:transparent}.dv-reset .dv-tabs-container{gap:0}',
   COMPONENTS = { custom: CustomPanelInner, file: FilePanelInner },
   TAB_COMPONENTS = { default: TabHeaderInner },
   extractTabs = (children: ReactNode): TabProps[] => {
@@ -220,7 +223,15 @@ const LANG: Record<string, string> = {
     }
     if (!mounted) return null
     return (
-      <DockviewReact className={className} components={COMPONENTS} onReady={handleReady} tabComponents={TAB_COMPONENTS} />
+      <>
+        <style>{RESET_CSS}</style>
+        <DockviewReact
+          className={cn('dv-reset', className)}
+          components={COMPONENTS}
+          onReady={handleReady}
+          tabComponents={TAB_COMPONENTS}
+        />
+      </>
     )
   }
 export type { WorkspaceProps, WorkspaceRef }

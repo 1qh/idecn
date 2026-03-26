@@ -68,7 +68,7 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
         <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (
           <X
-            className='ml-1 size-3.5 stroke-[1.5] opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
+            className='size-3.5 stroke-[1.5] opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
             onClick={e => {
               e.stopPropagation()
               api.close()
