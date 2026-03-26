@@ -1,4 +1,4 @@
-<h3 align="center"><a href="https://idecn.vercel.app">Try the live demo →</a></h3>
+<h3 align="center"><a href="https://idecn.vercel.app">Try the live demo</a></h3>
 
 ```sh
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
