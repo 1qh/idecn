@@ -40,7 +40,7 @@ const DEFAULT_REPO = '1qh/idecn',
       [tree, setTree] = useState<TreeDataItem[]>([]),
       [treeLoading, setTreeLoading] = useState(true),
       [rateLimited, setRateLimited] = useState(false),
-      [repoInput, setRepoInput] = useState(DEFAULT_REPO),
+      [repoInput, setRepoInput] = useState(''),
       [mounted, setMounted] = useState(false),
       [ready, setReady] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
@@ -63,7 +63,7 @@ const DEFAULT_REPO = '1qh/idecn',
           if (s) {
             mutable.saved = s
             setRepo(s.repo)
-            setRepoInput(s.repo)
+            if (s.repo !== DEFAULT_REPO) setRepoInput(s.repo)
           }
           setReady(true)
         })
@@ -139,7 +139,13 @@ const DEFAULT_REPO = '1qh/idecn',
             event.api.fromJSON(saved.layout as Parameters<DockviewApi['fromJSON']>[0])
             for (const panel of event.api.panels)
               fetch(`https://api.github.com/repos/${repo}/contents/${panel.id}`)
-                .then(async res => (res.ok ? (res.json() as Promise<{ content?: string }>) : null))
+                .then(async res => {
+                  if (res.status === 403 || res.status === 429) {
+                    setRateLimited(true)
+                    return null
+                  }
+                  return res.ok ? (res.json() as Promise<{ content?: string }>) : null
+                })
                 .then(data => {
                   if (data?.content)
                     panel.api.updateParameters({ content: atob(data.content), language: langOf(panel.id) })
@@ -168,7 +174,7 @@ const DEFAULT_REPO = '1qh/idecn',
             onKeyDown={e => {
               if (e.key === 'Enter') handleSubmit()
             }}
-            placeholder='owner/repo'
+            placeholder={`${DEFAULT_REPO} · Enter github username/repo`}
             type='text'
             value={repoInput}
           />
