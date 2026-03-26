@@ -26,7 +26,6 @@ const DEMO_TREE = [
   { path: 'web/.gitignore', type: 'blob' as const },
   { path: 'web/e2e', type: 'tree' as const },
   { path: 'web/e2e/app.test.ts', type: 'blob' as const },
-  { path: 'web/next-env.d.ts', type: 'blob' as const },
   { path: 'web/package.json', type: 'blob' as const },
   { path: 'web/playwright.config.ts', type: 'blob' as const },
   { path: 'web/postcss.config.mjs', type: 'blob' as const },
