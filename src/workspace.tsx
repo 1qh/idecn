@@ -248,7 +248,10 @@ const LANG: Record<string, string> = {
           {bottomTabs.map(tab => (
             <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 10}>
               <Separator className='opacity-0' />
-              {tab.children}
+              <div className='flex h-full flex-col'>
+                <div className={tab.headerClassName}>{tab.title}</div>
+                <div className='min-h-0 flex-1'>{tab.children}</div>
+              </div>
             </Panel>
           ))}
         </Group>
@@ -258,7 +261,10 @@ const LANG: Record<string, string> = {
         <Group className='h-full' orientation='horizontal'>
           {leftTabs.map(tab => (
             <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 5}>
-              {tab.children}
+              <div className='flex h-full flex-col'>
+                <div className={tab.headerClassName}>{tab.title}</div>
+                <div className='min-h-0 flex-1 overflow-auto'>{tab.children}</div>
+              </div>
               <Separator className='opacity-0' />
             </Panel>
           ))}
@@ -266,7 +272,10 @@ const LANG: Record<string, string> = {
           {rightTabs.map(tab => (
             <Panel defaultSize={tab.defaultSize} key={getTabId(tab)} minSize={tab.minSize ?? 5}>
               <Separator className='opacity-0' />
-              {tab.children}
+              <div className='flex h-full flex-col'>
+                <div className={tab.headerClassName}>{tab.title}</div>
+                <div className='min-h-0 flex-1 overflow-auto'>{tab.children}</div>
+              </div>
             </Panel>
           ))}
         </Group>
