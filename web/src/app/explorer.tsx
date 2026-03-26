@@ -13,16 +13,14 @@ import { buildTree } from './github'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
 const DEFAULT_REPO = '1qh/idecn',
-  STORAGE_KEY = 'idecn-state',
-  loadSaved = (): null | { files?: string[]; repo?: string } => {
-    try {
-      const raw = globalThis.localStorage.getItem(STORAGE_KEY)
-      return raw ? (JSON.parse(raw) as { files?: string[]; repo?: string }) : null
-    } catch {
-      return null
-    }
+  readHash = (): { files: string[]; repo: string } => {
+    if (!('location' in globalThis)) return { files: [], repo: DEFAULT_REPO }
+    const hash = globalThis.location.hash.slice(1)
+    if (!hash) return { files: [], repo: DEFAULT_REPO }
+    const [repo, ...files] = hash.split(',')
+    return { files: files.filter(Boolean), repo: repo || DEFAULT_REPO }
   },
-  saved = loadSaved(),
+  initial = readHash(),
   RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
     <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
       <AlertTriangleIcon className='size-4 shrink-0' />
@@ -33,11 +31,11 @@ const DEFAULT_REPO = '1qh/idecn',
     </div>
   ),
   Explorer = () => {
-    const [repo, setRepo] = useState(saved?.repo ?? DEFAULT_REPO),
+    const [repo, setRepo] = useState(initial.repo),
       [tree, setTree] = useState<TreeDataItem[]>([]),
       [treeLoading, setTreeLoading] = useState(true),
       [rateLimited, setRateLimited] = useState(false),
-      [repoInput, setRepoInput] = useState(saved?.repo && saved.repo !== DEFAULT_REPO ? saved.repo : ''),
+      [repoInput, setRepoInput] = useState(initial.repo === DEFAULT_REPO ? '' : initial.repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       isDark = mounted && resolvedTheme === 'dark',
@@ -90,11 +88,8 @@ const DEFAULT_REPO = '1qh/idecn',
       ),
       handleFilesChange = useCallback(
         (files: string[]) => {
-          try {
-            globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify({ files, repo }))
-          } catch {
-            /* Quota exceeded */
-          }
+          const hash = [repo, ...files].join(',')
+          globalThis.history.replaceState(null, '', files.length > 0 ? `#${hash}` : globalThis.location.pathname)
         },
         [repo]
       ),
@@ -130,7 +125,7 @@ const DEFAULT_REPO = '1qh/idecn',
         {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <Workspace
           className='flex-1'
-          initialFiles={saved?.files}
+          initialFiles={initial.files}
           onFilesChange={handleFilesChange}
           onOpenFile={handleOpenFile}
           ref={workspaceRef}
