@@ -277,6 +277,29 @@ const monoFont = () =>
     typeof document === 'undefined'
       ? ''
       : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
+  MONOKAI_RULES = [
+    { foreground: '88846f', token: 'comment' },
+    { foreground: 'E6DB74', token: 'string' },
+    { foreground: 'AE81FF', token: 'number' },
+    { foreground: 'AE81FF', token: 'constant' },
+    { foreground: 'F92672', token: 'keyword' },
+    { foreground: 'F92672', token: 'storage' },
+    { fontStyle: 'italic', foreground: '66D9EF', token: 'storage.type' },
+    { foreground: 'A6E22E', token: 'entity.name.function' },
+    { foreground: 'A6E22E', token: 'support.function' },
+    { foreground: '66D9EF', token: 'support.type' },
+    { foreground: '66D9EF', token: 'support.class' },
+    { foreground: 'F8F8F2', token: 'variable' },
+    { fontStyle: 'italic', foreground: 'FD971F', token: 'variable.parameter' },
+    { foreground: 'F92672', token: 'tag' },
+    { foreground: 'A6E22E', token: 'attribute.name' },
+    { foreground: 'E6DB74', token: 'attribute.value' },
+    { foreground: 'AE81FF', token: 'type' },
+    { fontStyle: 'italic', foreground: '66D9EF', token: 'type.identifier' },
+    { foreground: 'F92672', token: 'delimiter' },
+    { foreground: 'F8F8F2', token: 'operator' },
+    { foreground: 'A6E22E', token: 'metatag' }
+  ],
   EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
@@ -315,9 +338,13 @@ const monoFont = () =>
       return <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Empty file</div>
     return (
       <Editor
+        beforeMount={monaco => {
+          monaco.editor.defineTheme('monokai-light', { base: 'vs', colors: {}, inherit: true, rules: MONOKAI_RULES })
+          monaco.editor.defineTheme('monokai-dark', { base: 'vs-dark', colors: {}, inherit: true, rules: MONOKAI_RULES })
+        }}
         language={language}
         options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
-        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+        theme={resolvedTheme === 'dark' ? 'monokai-dark' : 'monokai-light'}
         value={content}
       />
     )
