@@ -68,7 +68,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     <Editor language={params.language} options={EDITOR_OPTIONS} theme={params.theme} value={params.content} />
   ),
   FileTab = ({ api }: IDockviewPanelHeaderProps) => (
-    <div className='flex items-center gap-1.5 px-2'>
+    <div className='flex h-full items-center gap-1.5 px-2'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
       <span>{api.title}</span>
       <button
