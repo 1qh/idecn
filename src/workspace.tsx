@@ -237,16 +237,26 @@ const LANG: Record<string, string> = {
           openFile({ id: path, name, path })
         }
       const notifyFiles = () => {
-        if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
-      }
+          if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
+        },
+        applyWidths = () => {
+          for (const [panelId, width] of stateRef.current.tabWidths) {
+            const panel = event.api.panels.find(p => p.id === panelId)
+            if (panel) panel.group.api.setSize({ width })
+          }
+        }
       stateRef.current.disposables.push(
         event.api.onDidRemovePanel(e => {
           stateRef.current.fileIds.delete(e.id)
           const tab = stateRef.current.tabs.find(t => getTabId(t) === e.id)
           tab?.onClose?.()
           notifyFiles()
+          applyWidths()
         }),
-        event.api.onDidAddPanel(() => notifyFiles())
+        event.api.onDidAddPanel(() => {
+          notifyFiles()
+          applyWidths()
+        })
       )
       requestAnimationFrame(() => {
         stateRef.current.ready = true
