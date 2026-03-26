@@ -8,7 +8,7 @@ import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 interface GitHubTreeItem {
   mode: string
   path: string
@@ -70,7 +70,12 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       [loading, setLoading] = useState(false),
       [treeLoading, setTreeLoading] = useState(false),
       [repoInput, setRepoInput] = useState(repo),
-      { theme, setTheme } = useTheme()
+      [mounted, setMounted] = useState(false),
+      { resolvedTheme, setTheme } = useTheme(),
+      editorTheme = useMemo(() => (resolvedTheme === 'dark' ? 'vs-dark' : 'light'), [resolvedTheme])
+    useEffect(() => {
+      setMounted(true)
+    }, [])
     useEffect(() => {
       setTreeLoading(true)
       fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
@@ -106,6 +111,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
         setContent('')
       }
     }
+    if (!mounted) return null
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center gap-2 border-b border-border px-3 py-1.5'>
@@ -124,9 +130,9 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </button>
           <button
             className='rounded p-1 hover:bg-accent'
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             type='button'>
-            {theme === 'dark' ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
+            {resolvedTheme === 'dark' ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
           </button>
         </div>
         <div className='flex flex-1 overflow-hidden'>
@@ -147,12 +153,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             {loading ? (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Loading file...</div>
             ) : path ? (
-              <Editor
-                language={langOf(path)}
-                options={EDITOR_OPTIONS}
-                theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                value={content}
-              />
+              <Editor language={langOf(path)} options={EDITOR_OPTIONS} theme={editorTheme} value={content} />
             ) : (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Select a file to view</div>
             )}
