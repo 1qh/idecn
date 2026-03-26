@@ -137,26 +137,14 @@ const DEFAULT_REPO = '1qh/idecn',
         if (saved?.layout)
           try {
             event.api.fromJSON(saved.layout as Parameters<DockviewApi['fromJSON']>[0])
-            for (const panel of event.api.panels) {
-              const filePath = panel.id,
-                { group } = panel,
-                { title } = panel
-              fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
+            for (const panel of event.api.panels)
+              fetch(`https://api.github.com/repos/${repo}/contents/${panel.id}`)
                 .then(async res => (res.ok ? (res.json() as Promise<{ content?: string }>) : null))
                 .then(data => {
-                  if (!data?.content) return
-                  event.api.removePanel(panel)
-                  event.api.addPanel({
-                    component: 'file',
-                    id: filePath,
-                    params: { content: atob(data.content), language: langOf(filePath) },
-                    position: { referenceGroup: group },
-                    tabComponent: 'file',
-                    title: title ?? filePath.split('/').at(-1) ?? filePath
-                  })
+                  if (data?.content)
+                    panel.api.updateParameters({ content: atob(data.content), language: langOf(panel.id) })
                 })
                 .catch(() => undefined)
-            }
           } catch {
             /* Layout restore failed */
           }
