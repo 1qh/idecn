@@ -1,13 +1,19 @@
 <h3 align="center"><a href="https://idecn.vercel.app">Try the live demo →</a></h3>
 
 ```sh
-bun add idecn
+bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 ```
 
-Or add just the file tree via shadcn CLI:
+Or just the file tree:
 
 ```sh
 bunx shadcn@latest add https://idecn.vercel.app/r/file-tree.json
+```
+
+Or as an npm package:
+
+```sh
+bun add idecn
 ```
 
 ## Workspace
@@ -95,22 +101,22 @@ const tree: TreeDataItem[] = [
 
 ```ts
 interface TreeDataItem {
-  id: string;
-  name: string;
-  path: string;
-  children?: TreeDataItem[];
-  disabled?: boolean;
-  className?: string;
-  actions?: ReactNode;
-  onClick?: () => void;
+  id: string
+  name: string
+  path: string
+  children?: TreeDataItem[]
+  disabled?: boolean
+  className?: string
+  actions?: ReactNode
+  onClick?: () => void
 }
 ```
 
 ## Primitives
 
 ```tsx
-import { Tree, TreeFolder, TreeFile } from "idecn";
-<Tree>
+import { Tree, TreeFolder, TreeFile } from 'idecn'
+;<Tree>
   <TreeFolder name="src" defaultOpen>
     <TreeFile name="index.ts" path="src/index.ts" />
     <TreeFolder name="components">
@@ -118,7 +124,7 @@ import { Tree, TreeFolder, TreeFile } from "idecn";
     </TreeFolder>
   </TreeFolder>
   <TreeFile name="package.json" path="package.json" />
-</Tree>;
+</Tree>
 ```
 
 ## Icons

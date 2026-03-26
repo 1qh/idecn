@@ -4,6 +4,33 @@
   "homepage": "https://idecn.vercel.app",
   "items": [
     {
+      "name": "idecn",
+      "type": "registry:component",
+      "title": "idecn",
+      "description": "Full IDE layout with file tree, tabbed editor, and async file loading.",
+      "dependencies": [
+        "@base-ui/react",
+        "@monaco-editor/react",
+        "clsx",
+        "dockview-core",
+        "dockview-react",
+        "lucide-react",
+        "next-themes",
+        "tailwind-merge"
+      ],
+      "files": [
+        { "path": "src/workspace.tsx", "type": "registry:component", "target": "components/ui/workspace.tsx" },
+        { "path": "src/panels.tsx", "type": "registry:component", "target": "components/ui/workspace-panels.tsx" },
+        { "path": "src/tab.ts", "type": "registry:component", "target": "components/ui/workspace-tab.ts" },
+        { "path": "src/file-tree.tsx", "type": "registry:component", "target": "components/ui/file-tree.tsx" },
+        { "path": "src/tree.tsx", "type": "registry:component", "target": "components/ui/tree.tsx" },
+        { "path": "src/icon.tsx", "type": "registry:component", "target": "components/ui/tree-icon.tsx" },
+        { "path": "src/cn.ts", "type": "registry:lib", "target": "lib/cn.ts" },
+        { "path": "src/_generated/icon-svgs.json", "type": "registry:lib", "target": "lib/icon-svgs.json" },
+        { "path": "src/_generated/manifest.json", "type": "registry:lib", "target": "lib/icon-manifest.json" }
+      ]
+    },
+    {
       "name": "file-tree",
       "type": "registry:component",
       "title": "File Tree",
