@@ -137,7 +137,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           </button>
         </div>
         <ResizablePanelGroup orientation='horizontal'>
-          <ResizablePanel defaultSize='280px' minSize='200px'>
+          <ResizablePanel defaultSize='320px' minSize='200px'>
             <div className='h-full overflow-x-auto overflow-y-auto'>
               {treeLoading ? (
                 <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
