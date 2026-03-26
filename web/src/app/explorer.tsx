@@ -7,22 +7,19 @@ import type { TreeDataItem } from 'idecn'
 import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
 import { FileIcon, FileTree } from 'idecn'
-import { MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
+import { AlertTriangleIcon, MoonIcon, SearchIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/resizable'
+import { DEMO_TREE } from './demo-tree'
 // oxlint-disable-next-line import/no-unassigned-import
 import 'dockview-core/dist/styles/dockview.css'
 interface GitHubTreeItem {
-  mode: string
   path: string
-  sha: string
-  size?: number
   type: 'blob' | 'tree'
-  url: string
 }
-const DEFAULT_REPO = 'openclaw/openclaw',
+const DEFAULT_REPO = '1qh/idecn',
   buildTree = (items: GitHubTreeItem[]): TreeDataItem[] => {
     const root: TreeDataItem[] = [],
       dirs = new Map<string, TreeDataItem>(),
@@ -84,11 +81,21 @@ const DEFAULT_REPO = 'openclaw/openclaw',
   ),
   COMPONENTS = { file: FilePanel },
   TAB_COMPONENTS = { file: FileTab },
+  RateLimitBanner = ({ onDismiss }: { onDismiss: () => void }) => (
+    <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-sm text-amber-500'>
+      <AlertTriangleIcon className='size-4 shrink-0' />
+      <span>GitHub API rate limit reached. Unauthenticated requests are limited to 60/hour.</span>
+      <button className='ml-auto shrink-0 opacity-60 hover:opacity-100' onClick={onDismiss} type='button'>
+        <XIcon className='size-3' />
+      </button>
+    </div>
+  ),
   Explorer = () => {
     const [repo, setRepo] = useQueryState('repo', parseAsString.withDefault(DEFAULT_REPO)),
       [path, setPath] = useQueryState('path', parseAsString.withDefault('')),
       [tree, setTree] = useState<TreeDataItem[]>([]),
-      [treeLoading, setTreeLoading] = useState(false),
+      [treeLoading, setTreeLoading] = useState(true),
+      [rateLimited, setRateLimited] = useState(false),
       [repoInput, setRepoInput] = useState(repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
@@ -102,11 +109,27 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     }, [])
     useEffect(() => {
       setTreeLoading(true)
+      setRateLimited(false)
+      if (repo === DEFAULT_REPO) {
+        setTree(buildTree(DEMO_TREE))
+        setTreeLoading(false)
+        return
+      }
       fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
-        .then(async res => res.json() as Promise<{ tree?: GitHubTreeItem[] }>)
+        .then(async res => {
+          if (res.status === 403 || res.status === 429) {
+            setRateLimited(true)
+            setTree([])
+            setTreeLoading(false)
+            return null
+          }
+          return res.json() as Promise<{ tree?: GitHubTreeItem[] }>
+        })
         .then(data => {
-          setTree(data.tree ? buildTree(data.tree) : [])
-          setTreeLoading(false)
+          if (data) {
+            setTree(data.tree ? buildTree(data.tree) : [])
+            setTreeLoading(false)
+          }
         })
         .catch(() => {
           setTree([])
@@ -124,8 +147,15 @@ const DEFAULT_REPO = 'openclaw/openclaw',
           return
         }
         fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`)
-          .then(async res => res.json() as Promise<{ content?: string }>)
+          .then(async res => {
+            if (res.status === 403 || res.status === 429) {
+              setRateLimited(true)
+              return null
+            }
+            return res.json() as Promise<{ content?: string }>
+          })
           .then(data => {
+            if (!data) return
             const content = data.content ? atob(data.content) : ''
             api.addPanel({
               component: 'file',
@@ -175,6 +205,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
         </div>
+        {rateLimited ? <RateLimitBanner onDismiss={() => setRateLimited(false)} /> : null}
         <ResizablePanelGroup orientation='horizontal'>
           <ResizablePanel defaultSize='320px' minSize='200px'>
             <div className='h-full overflow-x-auto overflow-y-auto'>
