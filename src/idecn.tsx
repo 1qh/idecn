@@ -273,7 +273,7 @@ const TAB_TYPE = Symbol('idecn-tab'),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Tab = (_props: TabProps): null => null
 Tab._type = TAB_TYPE
-const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyondLastLine: false } as const,
+const EDITOR_OPTIONS = { fontFamily: 'inherit', readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
     useEffect(() => {
@@ -324,7 +324,7 @@ const EDITOR_OPTIONS = { minimap: { enabled: false }, readOnly: true, scrollBeyo
       closable = p?.closable !== false
     return (
       <div
-        className={cn('group/tab flex h-full items-center', p?.headerClassName)}
+        className={cn('group/tab flex h-full items-center pl-1', p?.headerClassName)}
         data-fill={p?.headerClassName ? '' : undefined}>
         {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
         <span className={showIcon ? 'mb-px ml-0.5' : 'mb-px'}>{api.title}</span>
@@ -552,11 +552,14 @@ const LANG: Record<string, string> = {
       for (const tab of tabs) addTab(tab)
       stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
       for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
-      if (initialFiles)
+      if (initialFiles) {
         for (const path of initialFiles) {
           const name = path.split('/').at(-1) ?? path
           openFile({ id: path, name, path })
         }
+        const first = event.api.panels.find(p => p.id === initialFiles[0])
+        if (first) first.focus()
+      }
       const notifyFiles = () => {
         if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
       }
