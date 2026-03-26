@@ -2,6 +2,8 @@
 import type { ReactNode } from 'react'
 interface TabProps {
   children: ReactNode
+  closable?: boolean
+  icon?: boolean
   id?: string
   onClose?: () => void
   position?: 'bottom' | 'left' | 'right'
