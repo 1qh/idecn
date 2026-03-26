@@ -1,5 +1,6 @@
 const DEMO_TREE = [
   { path: '.gitignore', type: 'blob' as const },
+  { path: 'LICENSE', type: 'blob' as const },
   { path: 'README.md', type: 'blob' as const },
   { path: 'package.json', type: 'blob' as const },
   { path: 'registry.json', type: 'blob' as const },
