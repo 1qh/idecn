@@ -38,7 +38,7 @@ const PADDINGS = [
         result.push(
           <div key={node.path}>
             <button className={cn(ROW, pad(depth))} onClick={() => ctx.toggle(node.path)} type='button'>
-              <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' open={isOpen} />
+              <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} open={isOpen} />
               <span className='truncate font-medium'>{node.name}</span>
             </button>
             {isOpen ? renderNodes(node.children, depth + 1, ctx) : null}
