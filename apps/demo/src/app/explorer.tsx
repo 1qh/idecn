@@ -6,7 +6,7 @@ import type { DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps
 import type { TreeDataItem } from 'nicetree'
 import { Editor } from '@monaco-editor/react'
 import { DockviewReact } from 'dockview-react'
-import { MoonIcon, SunIcon } from 'lucide-react'
+import { MoonIcon, SunIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { FileIcon, FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -71,6 +71,15 @@ const DEFAULT_REPO = 'openclaw/openclaw',
     <div className='flex items-center gap-1.5 px-2'>
       <FileIcon className='size-4 shrink-0 [&_svg]:size-4' name={api.title ?? ''} />
       <span>{api.title}</span>
+      <button
+        className='ml-1 rounded p-0.5 opacity-0 hover:bg-accent group-hover:opacity-100'
+        onClick={e => {
+          e.stopPropagation()
+          api.close()
+        }}
+        type='button'>
+        <XIcon className='size-3' />
+      </button>
     </div>
   ),
   COMPONENTS = { file: FilePanel },
