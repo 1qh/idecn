@@ -21,6 +21,7 @@ const DEMO_TREE = [
   { path: 'src/tree.tsx', type: 'blob' as const },
   { path: 'src/workspace.tsx', type: 'blob' as const },
   { path: 'tsconfig.json', type: 'blob' as const },
+  { path: 'turbo.json', type: 'blob' as const },
   { path: 'vercel.json', type: 'blob' as const },
   { path: 'web', type: 'tree' as const },
   { path: 'web/.gitignore', type: 'blob' as const },
