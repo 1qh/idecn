@@ -1,5 +1,5 @@
 {
-  "name": "@idecn/demo",
+  "name": "@idecn/web",
   "private": true,
   "scripts": {
     "build": "next build",

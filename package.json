@@ -2,18 +2,18 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "web"
   ],
   "scripts": {
     "build": "bun run --filter '*' build",
     "check": "lintmax check",
-    "clean": "rm -rf node_modules bun.lock dist .cache .next .turbo packages/*/node_modules apps/*/node_modules packages/*/dist apps/*/dist apps/*/.next",
-    "dev": "bun run --filter '@idecn/demo' dev",
+    "clean": "rm -rf node_modules bun.lock dist .cache .next .turbo packages/*/node_modules web/node_modules packages/*/dist web/.next",
+    "dev": "bun run --filter '@idecn/web' dev",
     "fix": "lintmax fix && bun run build"
   },
   "devDependencies": {
     "lintmax": "latest",
-    "material-icon-theme": "^5.32.0",
+    "material-icon-theme": "latest",
     "typescript": "latest"
   }
 }
