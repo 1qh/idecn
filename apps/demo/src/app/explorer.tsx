@@ -9,6 +9,7 @@ import { useTheme } from 'next-themes'
 import { FileTree } from 'nicetree'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useEffect, useMemo, useState } from 'react'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 interface GitHubTreeItem {
   mode: string
   path: string
@@ -116,7 +117,7 @@ const DEFAULT_REPO = 'openclaw/openclaw',
       <div className='flex h-screen flex-col'>
         <div className='flex items-center gap-2 border-b border-border px-3 py-1.5'>
           <input
-            className='flex-1 rounded border border-input bg-transparent px-2 py-1 text-sm'
+            className='flex-1 bg-transparent px-2 py-1 text-sm outline-none'
             onChange={e => setRepoInput(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') handleSubmit()
@@ -135,21 +136,24 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             {isDark ? <SunIcon className='size-4' /> : <MoonIcon className='size-4' />}
           </button>
         </div>
-        <div className='flex flex-1 overflow-hidden'>
-          <div className='w-64 shrink-0 overflow-auto border-r border-border'>
-            {treeLoading ? (
-              <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
-            ) : (
-              <FileTree
-                nodes={tree}
-                onSelect={p => {
-                  setPath(p)
-                }}
-                selected={path || null}
-              />
-            )}
-          </div>
-          <div className='flex-1'>
+        <Group orientation='horizontal'>
+          <Panel defaultSize={20} minSize={10}>
+            <div className='h-full overflow-x-auto overflow-y-auto border-r border-border'>
+              {treeLoading ? (
+                <div className='p-4 text-sm text-muted-foreground'>Loading...</div>
+              ) : (
+                <FileTree
+                  nodes={tree}
+                  onSelect={p => {
+                    setPath(p)
+                  }}
+                  selected={path || null}
+                />
+              )}
+            </div>
+          </Panel>
+          <Separator className='w-px bg-border hover:w-1 hover:bg-accent transition-all' />
+          <Panel>
             {loading ? (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Loading file...</div>
             ) : path ? (
@@ -157,8 +161,8 @@ const DEFAULT_REPO = 'openclaw/openclaw',
             ) : (
               <div className='flex h-full items-center justify-center text-muted-foreground'>Select a file to view</div>
             )}
-          </div>
-        </div>
+          </Panel>
+        </Group>
       </div>
     )
   }

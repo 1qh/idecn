@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
-/* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable react-perf/jsx-no-new-object-as-prop */
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { Collapsible } from '@base-ui/react/collapsible'
+import { useState } from 'react'
 import { cn } from './cn'
 import { FileIcon, FolderIcon } from './icon'
 interface TreeCtx {
@@ -18,30 +18,9 @@ interface TreeNode {
 }
 const INDENT_PX = 16,
   ROW =
-    'flex w-full items-center gap-1.5 py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
-  Collapsible = ({ children, open }: { children: React.ReactNode; open: boolean }) => {
-    const ref = useRef<HTMLDivElement>(null),
-      [height, setHeight] = useState(open ? undefined : 0)
-    useEffect(() => {
-      const el = ref.current
-      if (!el) return
-      if (open) {
-        setHeight(el.scrollHeight)
-        const id = setTimeout(() => setHeight(undefined), 150)
-        return () => clearTimeout(id)
-      }
-      setHeight(el.scrollHeight)
-      requestAnimationFrame(() => setHeight(0))
-    }, [open])
-    return (
-      <div
-        className='overflow-hidden transition-[height] duration-150 ease-out'
-        ref={ref}
-        style={{ height: height === undefined ? 'auto' : `${String(height)}px` }}>
-        {children}
-      </div>
-    )
-  },
+    'flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-[13px] leading-[22px] cursor-pointer whitespace-nowrap hover:bg-[var(--nicetree-hover,hsl(var(--accent)))]',
+  PANEL =
+    'overflow-hidden h-[var(--collapsible-panel-height)] transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0',
   renderNodes = (nodes: TreeNode[], depth: number, ctx: TreeCtx): React.ReactNode[] => {
     const result: React.ReactNode[] = []
     for (const node of nodes) {
@@ -49,13 +28,13 @@ const INDENT_PX = 16,
       if (node.children) {
         const isOpen = ctx.expanded.has(node.path)
         result.push(
-          <div key={node.path}>
+          <Collapsible.Root key={node.path} open={isOpen}>
             <button className={ROW} onClick={() => ctx.toggle(node.path)} style={{ paddingLeft: pl }} type='button'>
               <FolderIcon className='size-4 shrink-0 [&_svg]:size-4' name={node.name} open={isOpen} />
               <span className='truncate'>{node.name}</span>
             </button>
-            <Collapsible open={isOpen}>{renderNodes(node.children, depth + 1, ctx)}</Collapsible>
-          </div>
+            <Collapsible.Panel className={PANEL}>{renderNodes(node.children, depth + 1, ctx)}</Collapsible.Panel>
+          </Collapsible.Root>
         )
       } else
         result.push(
@@ -74,16 +53,19 @@ const INDENT_PX = 16,
   },
   FileTree = ({
     className,
+    defaultExpanded = false,
     nodes,
     onSelect,
     selected
   }: {
     className?: string
+    defaultExpanded?: boolean
     nodes: TreeNode[]
     onSelect?: (path: string) => void
     selected?: null | string
   }) => {
     const [expanded, setExpanded] = useState<Set<string>>(() => {
+        if (!defaultExpanded) return new Set<string>()
         const set = new Set<string>(),
           walk = (items: TreeNode[]) => {
             for (const item of items)
