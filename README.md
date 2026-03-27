@@ -10,6 +10,34 @@ bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 bun add idecn
 ```
 
+## Setup
+
+This package ships raw `.tsx` source. Your bundler compiles it.
+
+<details>
+<summary>Next.js</summary>
+
+```js
+// next.config.js
+export default { transpilePackages: ['idecn'] }
+```
+
+</details>
+
+<details>
+<summary>Vite</summary>
+
+Works out of the box with `@vitejs/plugin-react`.
+
+</details>
+
+<details>
+<summary>shadcn</summary>
+
+No config needed - the shadcn CLI copies source files directly into your project.
+
+</details>
+
 ## Workspace
 
 IDE layout with file tree sidebar, tabbed editor, and async file loading.
@@ -110,3 +138,4 @@ interface TreeDataItem {
 - [shadcn-tree-view](https://github.com/MrLightful/shadcn-tree-view/tree/41624def)
 - [dockview](https://dockview.dev)
 - [material-icon-theme](https://github.com/material-extensions/vscode-material-icon-theme)
+- [Monokai Lite](https://github.com/xthz/Monokai-Lite)
