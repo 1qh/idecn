@@ -31,13 +31,12 @@ cd test
 echo "-> Adding idecn from registry"
 bunx shadcn@latest add "http://localhost:$PORT/r/idecn.json" -s 2>&1 | tail -3
 
-echo "-> Copying demo files"
-for f in demo-tree.ts fonts.ts globals.css layout.tsx page.tsx utils.ts; do
-  cp "$IDECN/web/app/$f" "app/$f"
-done
+echo "-> Copying demo app"
+rm -rf app
+cp -r "$IDECN/web/app" app
 
 echo "-> Patching imports"
-sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g" app/page.tsx app/utils.ts
+find app -name '*.ts' -o -name '*.tsx' | xargs sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g"
 rm -f app/*.bak
 
 echo "-> Building"
