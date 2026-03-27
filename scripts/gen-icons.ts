@@ -26,22 +26,20 @@ for (const name of usedIcons)
   }
 const outDir = resolve(import.meta.dir, '../src/_generated')
 mkdirSync(outDir, { recursive: true })
-writeFileSync(
-  resolve(outDir, 'icons.json'),
-  JSON.stringify({
-    manifest: {
-      file: manifest.file,
-      fileExtensions: manifest.fileExtensions,
-      fileNames: manifest.fileNames,
-      folder: manifest.folder,
-      folderExpanded: manifest.folderExpanded,
-      folderNames: manifest.folderNames,
-      folderNamesExpanded: manifest.folderNamesExpanded,
-      languageIds: manifest.languageIds
-    },
-    svgs: svgMap
-  })
-)
+const data = JSON.stringify({
+  manifest: {
+    file: manifest.file,
+    fileExtensions: manifest.fileExtensions,
+    fileNames: manifest.fileNames,
+    folder: manifest.folder,
+    folderExpanded: manifest.folderExpanded,
+    folderNames: manifest.folderNames,
+    folderNamesExpanded: manifest.folderNamesExpanded,
+    languageIds: manifest.languageIds
+  },
+  svgs: svgMap
+})
+writeFileSync(resolve(outDir, 'icons.ts'), `const icons = ${data}\nexport { icons }\n`)
 console.log(
   `Generated ${Object.keys(svgMap).length} icon SVGs, manifest with ${Object.keys(manifest.folderNames as object).length} folder mappings`
 )
