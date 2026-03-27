@@ -2,11 +2,11 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { TreeDataItem } from 'idecn'
+import type { TreeDataItem, WorkspaceRef } from 'idecn'
 import { Workspace } from 'idecn'
-import { AlertTriangle, Moon, Search, Sun, X } from 'lucide-react'
+import { AlertTriangle, Moon, PanelLeft, Search, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GitHubTreeItem } from './github'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree } from './github'
@@ -39,7 +39,8 @@ const EMPTY_TREE: TreeDataItem[] = [],
       [repoInput, setRepoInput] = useState(initial.repo === DEFAULT_REPO ? '' : initial.repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
-      isDark = mounted && resolvedTheme === 'dark'
+      isDark = mounted && resolvedTheme === 'dark',
+      workspaceRef = useRef<WorkspaceRef>(null)
     useEffect(() => {
       setMounted(true)
     }, [])
@@ -100,6 +101,10 @@ const EMPTY_TREE: TreeDataItem[] = [],
     return (
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
+          <PanelLeft
+            className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent -mr-2'
+            onClick={() => workspaceRef.current?.toggleSidebar()}
+          />
           <Search className='stroke-1 size-8 p-2 hover:cursor-pointer hover:bg-accent' onClick={handleSubmit} />
           <input
             autoComplete='off'
@@ -128,6 +133,7 @@ const EMPTY_TREE: TreeDataItem[] = [],
           initialFiles={initial.files}
           onFilesChange={handleFilesChange}
           onOpenFile={handleOpenFile}
+          ref={workspaceRef}
           renderLoading={() => <div className='text-sm text-muted-foreground'>Loading file...</div>}
           tree={treeLoading ? EMPTY_TREE : tree}
         />

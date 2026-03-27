@@ -330,7 +330,16 @@ const monoFont = () => {
     }, [api])
     return <div className='h-full overflow-auto'>{content}</div>
   },
-  FilePanel = ({ api, params }: IDockviewPanelProps<{ content: string; language: string; loading?: ReactNode }>) => {
+  FilePanel = ({
+    api,
+    params
+  }: IDockviewPanelProps<{
+    content: string
+    editorOptions?: Record<string, unknown>
+    language: string
+    loading?: ReactNode
+    theme?: string | { dark: string; light: string }
+  }>) => {
     const [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
       [loadingState, setLoadingState] = useState(params.loading),
@@ -361,8 +370,14 @@ const monoFont = () => {
     return (
       <Editor
         language={language}
-        options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
-        theme={dark ? 'monokai-lite' : 'github-light'}
+        options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined, ...params.editorOptions }}
+        theme={
+          typeof params.theme === 'string'
+            ? params.theme
+            : dark
+              ? (params.theme?.dark ?? 'monokai-lite')
+              : (params.theme?.light ?? 'github-light')
+        }
         value={content}
       />
     )
@@ -411,6 +426,7 @@ const monoFont = () => {
 interface WorkspaceRef {
   focusPanel: (id: string) => void
   openFile: (item: TreeDataItem) => void
+  toggleSidebar: () => void
 }
 const LANG: Record<string, string> = {
     css: 'css',
@@ -475,24 +491,43 @@ const LANG: Record<string, string> = {
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
   Workspace = ({
     children,
+    defaultSidebar = true,
+    editorOptions,
     initialFiles,
     onFilesChange,
     onOpenFile,
+    onSidebarChange,
     ref,
     renderLoading,
+    sidebar: controlledSidebar,
+    sidebarPosition = 'left',
     sidebarSize = '250px',
+    theme,
     tree,
     ...props
-  }: ComponentProps<'div'> & {
+  }: Omit<ComponentProps<'div'>, 'ref'> & {
+    defaultSidebar?: boolean
+    editorOptions?: Record<string, unknown>
     initialFiles?: string[]
     onFilesChange?: (files: string[]) => void
     onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
+    onSidebarChange?: (visible: boolean) => void
     ref?: Ref<WorkspaceRef>
     renderLoading?: (item: TreeDataItem) => ReactNode
+    sidebar?: boolean
+    sidebarPosition?: 'left' | 'right'
     sidebarSize?: number | string
-    tree: TreeDataItem[]
+    theme?: string | { dark: string; light: string }
+    tree?: TreeDataItem[]
   }) => {
     const [mounted, setMounted] = useState(false),
+      [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
+      sidebarVisible = controlledSidebar ?? internalSidebar,
+      toggleSidebar = useCallback(() => {
+        const next = !sidebarVisible
+        setInternalSidebar(next)
+        onSidebarChange?.(next)
+      }, [onSidebarChange, sidebarVisible]),
       stateRef = useRef({
         api: null as DockviewApi | null,
         disposables: [] as { dispose: () => void }[],
@@ -503,11 +538,15 @@ const LANG: Record<string, string> = {
       }),
       onFilesChangeRef = useRef(onFilesChange),
       onOpenFileRef = useRef(onOpenFile),
-      renderLoadingRef = useRef(renderLoading)
+      renderLoadingRef = useRef(renderLoading),
+      editorOptionsRef = useRef(editorOptions),
+      themeRef = useRef(theme)
     useEffect(() => {
       onFilesChangeRef.current = onFilesChange
       onOpenFileRef.current = onOpenFile
       renderLoadingRef.current = renderLoading
+      editorOptionsRef.current = editorOptions
+      themeRef.current = theme
     })
     useEffect(() => {
       setMounted(true)
@@ -523,7 +562,24 @@ const LANG: Record<string, string> = {
         }
       }
     }, [])
+    useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === 'b' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault()
+          toggleSidebar()
+        }
+      }
+      document.addEventListener('keydown', handler)
+      return () => document.removeEventListener('keydown', handler)
+    }, [toggleSidebar])
     const tabs = useMemo(() => extractTabs(children), [children]),
+      sidebarChildren = useMemo(() => {
+        const items: ReactNode[] = []
+        Children.forEach(children, child => {
+          if (!(isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)) items.push(child)
+        })
+        return items
+      }, [children]),
       addTab = useCallback((tab: TabProps) => {
         const { api } = stateRef.current
         if (!api) return
@@ -569,7 +625,13 @@ const LANG: Record<string, string> = {
         const added = api.addPanel({
             component: 'file',
             id: item.path,
-            params: { content: '', language: langOf(item.path), loading: loadingNode },
+            params: {
+              content: '',
+              editorOptions: editorOptionsRef.current,
+              language: langOf(item.path),
+              loading: loadingNode,
+              theme: themeRef.current
+            },
             position,
             tabComponent: 'default',
             title: item.name
@@ -596,9 +658,10 @@ const LANG: Record<string, string> = {
       ref,
       () => ({
         focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
-        openFile
+        openFile,
+        toggleSidebar
       }),
-      [openFile]
+      [openFile, toggleSidebar]
     )
     useEffect(() => {
       const { api } = stateRef.current
@@ -649,30 +712,43 @@ const LANG: Record<string, string> = {
       })
     }
     if (!mounted) return null
-    return (
-      <div {...props}>
-        <style>{RESET_CSS}</style>
-        <Group className='h-full' orientation='horizontal'>
+    const sidebarContent = tree ? (
+        <FileTree
+          className='h-full overflow-auto'
+          data={tree}
+          onSelectChange={item => {
+            if (item && !item.children) openFile(item)
+          }}
+        />
+      ) : (
+        sidebarChildren
+      ),
+      dockview = (
+        <Panel minSize={20}>
+          <DockviewReact
+            className='dv-reset'
+            components={COMPONENTS}
+            onReady={handleReady}
+            tabComponents={TAB_COMPONENTS}
+          />
+        </Panel>
+      ),
+      sidePanel = sidebarVisible ? (
+        <>
+          {sidebarPosition === 'right' ? <Separator className='opacity-0' /> : null}
           <Panel defaultSize={sidebarSize} minSize={5}>
-            <FileTree
-              className='h-full overflow-auto'
-              data={tree}
-              onSelectChange={item => {
-                if (item && !item.children) openFile(item)
-              }}
-            />
+            {sidebarContent}
           </Panel>
-          <Separator className='opacity-0' />
-          <Panel minSize={20}>
-            <DockviewReact
-              className='dv-reset'
-              components={COMPONENTS}
-              onReady={handleReady}
-              tabComponents={TAB_COMPONENTS}
-            />
-          </Panel>
-        </Group>
-      </div>
+          {sidebarPosition === 'left' ? <Separator className='opacity-0' /> : null}
+        </>
+      ) : null
+    return (
+      <Group orientation='horizontal' {...props}>
+        <style>{RESET_CSS}</style>
+        {sidebarPosition === 'left' ? sidePanel : null}
+        {dockview}
+        {sidebarPosition === 'right' ? sidePanel : null}
+      </Group>
     )
   }
 type FileTreeProps = ComponentProps<typeof FileTree>
