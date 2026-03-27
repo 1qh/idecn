@@ -1,8 +1,9 @@
 /** biome-ignore-all lint/security/noDangerouslySetInnerHtml: trusted SVG from material-icon-theme */
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import */
 'use client'
+import 'dockview-core/dist/styles/dockview.css'
 import type { ClassValue } from 'clsx'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ComponentProps, ReactNode, Ref } from 'react'
