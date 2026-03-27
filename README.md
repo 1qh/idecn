@@ -1,5 +1,4 @@
-<h3 align="center"><a href="https://idecn.vercel.app">Try the live demo</a></h3>
-<p align="center"><a href="https://idecn.vercel.app"><img src="screenshot.png" alt="idecn demo" width="100%" /></a></p>
+<h3 align="center"><a href="https://idecn.vercel.app">Try the live demo</a></h3> <p align="center"><a href="https://idecn.vercel.app"><img src="screenshot.png" alt="idecn demo" width="100%" /></a></p>
 
 ```sh
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
@@ -48,8 +47,7 @@ Custom sidebar:
 | `renderLoading`   | `(item) => ReactNode`                      | -                           | Custom loading per file           |
 | `ref`             | `Ref<WorkspaceRef>`                        | -                           | Imperative handle                 |
 
-<details>
-<summary>Notes on sizing</summary>
+<details> <summary>Notes on sizing</summary>
 
 `sidebarSize` uses [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) v4 sizing:
 
