@@ -106,12 +106,14 @@ const iconsReady =
   getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
   ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
 interface TreeContextValue {
+  expandDepth: number
   indent: number
   onSelect?: (item: { id: string; name: string; path: string }) => void
   selectedId: null | string
   setSelectedId: (id: string) => void
 }
 const TreeContext = createContext<TreeContextValue>({
+    expandDepth: 0,
     indent: 16,
     selectedId: null,
     setSelectedId: () => undefined
@@ -120,7 +122,7 @@ const TreeContext = createContext<TreeContextValue>({
   ITEM_CLASS =
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
   useTreeItem = (id: string | undefined, name: string, path: string | undefined) => {
-    const { indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
+    const { expandDepth, indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
       depth = use(DepthContext),
       itemId = id ?? path ?? name,
       isSelected = selectedId === itemId,
@@ -129,16 +131,18 @@ const TreeContext = createContext<TreeContextValue>({
         setSelectedId(itemId)
         onSelect?.({ id: itemId, name, path: path ?? name })
       }
-    return { depth, iconClass: cn(ICON_CLASS, 'group-hover:scale-125'), isSelected, itemId, pl, select }
+    return { depth, expandDepth, iconClass: cn(ICON_CLASS, 'group-hover:scale-125'), isSelected, itemId, pl, select }
   },
   Tree = ({
     children,
     className,
+    expandDepth = 0,
     indent = 16,
     onSelect,
     selectedId: controlledSelectedId,
     ...props
   }: ComponentProps<'nav'> & {
+    expandDepth?: number
     indent?: number
     onSelect?: (item: { id: string; name: string; path: string }) => void
     selectedId?: null | string
@@ -146,8 +150,8 @@ const TreeContext = createContext<TreeContextValue>({
     const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null),
       selectedId = controlledSelectedId ?? internalSelectedId,
       ctx = useMemo(
-        () => ({ indent, onSelect, selectedId, setSelectedId: setInternalSelectedId }),
-        [indent, onSelect, selectedId]
+        () => ({ expandDepth, indent, onSelect, selectedId, setSelectedId: setInternalSelectedId }),
+        [expandDepth, indent, onSelect, selectedId]
       )
     return (
       <TreeContext value={ctx}>
@@ -174,8 +178,9 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { depth, iconClass, isSelected, itemId, pl, select } = useTreeItem(id, name, path),
-      [open, setOpen] = useState(defaultOpen ? [itemId] : []),
+    const { depth, expandDepth: expDepth, iconClass, isSelected, itemId, pl, select } = useTreeItem(id, name, path),
+      shouldOpen = defaultOpen || depth < expDepth,
+      [open, setOpen] = useState(shouldOpen ? [itemId] : []),
       isOpen = open.includes(itemId)
     return (
       <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
@@ -232,21 +237,39 @@ interface TreeDataItem {
   onClick?: () => void
   path: string
 }
-const renderItems = (items: TreeDataItem[], onItemClick?: (item: TreeDataItem) => void): ReactNode[] => {
+const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
+    let current = item,
+      merged = item.name
+    while (current.children?.length === 1 && current.children[0].children) {
+      current = current.children[0]
+      merged += `/${current.name}`
+    }
+    return { children: current.children ?? [], name: merged }
+  },
+  renderItems = ({
+    items,
+    onItemClick
+  }: {
+    items: TreeDataItem[]
+    onItemClick?: (item: TreeDataItem) => void
+  }): ReactNode[] => {
     const nodes: ReactNode[] = []
     for (const item of items)
-      nodes.push(
-        item.children ? (
+      if (item.children) {
+        const { children, name } = compactFolder(item)
+        nodes.push(
           <TreeFolder
             className={item.className}
             disabled={item.disabled}
             id={item.id}
             key={item.id}
-            name={item.name}
+            name={name}
             path={item.path}>
-            {renderItems(item.children, onItemClick)}
+            {renderItems({ items: children, onItemClick })}
           </TreeFolder>
-        ) : (
+        )
+      } else
+        nodes.push(
           <TreeFile
             className={item.className}
             disabled={item.disabled}
@@ -260,24 +283,25 @@ const renderItems = (items: TreeDataItem[], onItemClick?: (item: TreeDataItem) =
             path={item.path}
           />
         )
-      )
     return nodes
   },
   FileTree = ({
     className,
     data,
+    expandDepth = 0,
     initialSelectedItemId,
     onSelectChange
   }: {
     className?: string
     data: TreeDataItem | TreeDataItem[]
+    expandDepth?: number
     initialSelectedItemId?: string
     onSelectChange?: (item: TreeDataItem | undefined) => void
   }) => {
     const items = Array.isArray(data) ? data : [data]
     return (
-      <Tree className={className} selectedId={initialSelectedItemId}>
-        <div className='min-w-max'>{renderItems(items, onSelectChange)}</div>
+      <Tree className={className} expandDepth={expandDepth} selectedId={initialSelectedItemId}>
+        <div className='min-w-max'>{renderItems({ items, onItemClick: onSelectChange })}</div>
       </Tree>
     )
   },
@@ -511,6 +535,7 @@ const LANG: Record<string, string> = {
     children,
     defaultSidebar = true,
     editorOptions,
+    expandDepth = 0,
     initialFiles,
     onFilesChange,
     onOpenFile,
@@ -526,6 +551,7 @@ const LANG: Record<string, string> = {
   }: Omit<ComponentProps<'div'>, 'ref'> & {
     defaultSidebar?: boolean
     editorOptions?: Record<string, unknown>
+    expandDepth?: number
     initialFiles?: string[]
     onFilesChange?: (files: string[]) => void
     onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
@@ -734,6 +760,7 @@ const LANG: Record<string, string> = {
         <FileTree
           className='h-full overflow-auto'
           data={tree}
+          expandDepth={expandDepth}
           onSelectChange={item => {
             if (item && !item.children) openFile(item)
           }}

@@ -73,6 +73,7 @@ const init = readHash(),
         </div>
         <Workspace
           className='flex-1'
+          expandDepth={2}
           initialFiles={init.files}
           onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item =>
