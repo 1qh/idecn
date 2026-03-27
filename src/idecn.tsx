@@ -493,7 +493,8 @@ const LANG: Record<string, string> = {
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}'
+    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
+    '.dv-reset .monaco-editor .minimap{background-color:hsl(var(--background,0 0% 100%))}'
   ].join(''),
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
   TAB_COMPONENTS = { default: TabHeader },
