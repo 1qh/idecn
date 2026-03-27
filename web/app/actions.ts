@@ -4,11 +4,18 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 const root = resolve(process.cwd(), '..'),
+  gitignore = (() => {
+    try {
+      return readFileSync(resolve(root, '.gitignore'), 'utf8')
+    } catch {
+      return ''
+    }
+  })(),
   ignored = new Set([
     '.git',
     '.githooks',
     '.vercel',
-    ...readFileSync(resolve(root, '.gitignore'), 'utf8')
+    ...gitignore
       .split('\n')
       .map(l => l.trim())
       .filter(l => l && !l.startsWith('#'))
