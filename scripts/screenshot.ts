@@ -4,10 +4,10 @@
 import { chromium } from '@playwright/test'
 import { resolve } from 'node:path'
 const browser = await chromium.launch(),
-  page = await browser.newPage({ deviceScaleFactor: 2, viewport: { height: 675, width: 1200 } })
+  page = await browser.newPage({ viewport: { height: 1440, width: 2560 } })
 await page.goto('http://localhost:3000')
 await page.evaluate(() => {
-  document.body.style.zoom = '1.5'
+  document.documentElement.style.zoom = '1.5'
 })
 await page.waitForSelector('nav[aria-label="File tree"]')
 await page.waitForSelector('.monaco-editor', { timeout: 15_000 })
