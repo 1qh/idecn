@@ -380,9 +380,9 @@ const monoFont = () =>
     return (
       <div
         className={cn(
-          'group/tab flex h-full items-center pl-1',
+          'group/tab flex h-full items-center pl-1 text-sm',
           p?.headerClassName,
-          active ? p?.activeClassName : p?.inactiveClassName
+          active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}>
         {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
