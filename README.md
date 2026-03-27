@@ -1,3 +1,4 @@
+<p align="center"><a href="https://idecn.vercel.app"><img src="screenshot.png" alt="idecn demo" width="100%" /></a></p>
 <h3 align="center"><a href="https://idecn.vercel.app">Try the live demo</a></h3>
 
 ```sh
