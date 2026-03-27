@@ -107,7 +107,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
-    '.dv-reset .monaco-editor .minimap{background-color:hsl(var(--background,0 0% 100%))}'
+    '.dv-reset .monaco-editor .minimap,.dv-reset .monaco-editor .minimap-decorations-layer{background:hsl(var(--background,0 0% 100%))!important}'
   ].join('')
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
@@ -123,6 +123,10 @@ const iconsReady =
     'location' in globalThis
       ? (async () => {
           const mod = await import('./monokai-lite'),
+            theme = {
+              ...mod.monokaiLite,
+              colors: { ...mod.monokaiLite.colors, 'editor.background': '#00000000', 'minimap.background': '#00000000' }
+            },
             highlighter = await createHighlighter({
               langs: [
                 'css',
@@ -141,7 +145,7 @@ const iconsReady =
                 'typescript',
                 'yaml'
               ],
-              themes: [mod.monokaiLite as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
+              themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
             }),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
