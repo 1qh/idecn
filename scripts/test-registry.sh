@@ -6,10 +6,14 @@ IDECN="$(cd "$(dirname "$0")/.." && pwd)"
 DIR=$(mktemp -d)/test
 mkdir -p "$DIR"
 echo "-> Test dir: $DIR"
-trap 'rm -rf "$(dirname "$DIR")"' EXIT
+trap 'rm -rf "$(dirname "$DIR")"; kill $DEV_PID 2>/dev/null' EXIT
 
-echo "-> Checking registry at localhost:$PORT"
-curl -sf "http://localhost:$PORT/r/idecn.json" > /dev/null || { echo "x Dev server not running on port $PORT"; exit 1; }
+echo "-> Starting dev server"
+cd "$IDECN/web" && bun run dev -- --port "$PORT" &
+DEV_PID=$!
+cd "$IDECN"
+sleep 3
+curl -sf "http://localhost:$PORT/r/idecn.json" > /dev/null || { echo "x Dev server failed to start"; exit 1; }
 
 echo "-> Creating Next.js + shadcn"
 cd "$DIR"

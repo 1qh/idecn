@@ -34,7 +34,7 @@
   "scripts": {
     "build": "rm -rf dist && bun run gen && bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react && cd web && bun run build",
     "check": "lintmax check",
-    "ci": "bun i && bun run gen && bun run check && bun run build && bun run dev & sleep 3 && bun run test:registry",
+    "ci": "bun i && bun run gen && bun run check && bun run build && bun run test:registry",
     "clean": "rm -rf node_modules bun.lock dist src/_generated web/public/r .cache .next .turbo web/node_modules web/.next test-results",
     "dev": "cd web && bun run dev",
     "fix": "lintmax fix && bun run build",
