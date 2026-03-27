@@ -104,7 +104,7 @@ const iconsReady =
     return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
   },
   getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
-  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4'
+  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
 interface TreeContextValue {
   indent: number
   onSelect?: (item: { id: string; name: string; path: string }) => void
@@ -420,16 +420,16 @@ const monoFont = () => {
     return (
       <div
         className={cn(
-          'group/tab flex h-full items-center gap-0.5 pl-1 py-0.5 text-sm',
+          'group/tab flex h-full items-center gap-[3px] pl-1 py-0.5 text-sm',
           p?.headerClassName,
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}>
-        {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
+        {showIcon ? <FileIcon className={cn(ICON_CLASS, 'group-hover/tab:scale-125')} name={api.title ?? ''} /> : null}
         {api.title}
         {closable ? (
           <X
-            className='size-3.5 opacity-0 hover:cursor-pointer group-hover/tab:opacity-60'
+            className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
             onClick={e => {
               e.stopPropagation()
               api.close()

@@ -44,12 +44,15 @@ const init = readHash(),
     }
     return (
       <div className='flex h-screen flex-col'>
-        <div className='flex items-center'>
+        <div className='flex items-center *:transition-all *:duration-300'>
           <PanelLeft
-            className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent'
+            className='stroke-1 size-8 shrink-0 hover:p-1.5 p-2 hover:cursor-pointer hover:bg-accent -mr-2'
             onClick={() => ref.current?.toggleSidebar()}
           />
-          <Search className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent' onClick={submit} />
+          <Search
+            className='stroke-1 hover:p-1.5 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent'
+            onClick={submit}
+          />
           <input
             autoComplete='off'
             className='min-w-0 flex-1 bg-transparent text-sm outline-none'
@@ -62,7 +65,7 @@ const init = readHash(),
             value={input}
           />
           <button
-            className='shrink-0 p-1 hover:bg-accent [&_svg]:stroke-1'
+            className='shrink-0 *:p-1.5 *:hover:p-1 *:size-8 hover:bg-accent [&_svg]:stroke-1'
             onClick={() => setTheme(mounted && resolvedTheme === 'dark' ? 'light' : 'dark')}
             type='button'>
             {mounted && resolvedTheme === 'dark' ? <Sun /> : <Moon />}
