@@ -8,6 +8,7 @@ import { Moon, PanelLeft, Search, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import type { GitHubTreeItem } from './utils'
+import { readFile } from './actions'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree, DEFAULT_REPO, EMPTY_TREE, readHash, writeHash } from './utils'
 const init = readHash(),
@@ -77,10 +78,12 @@ const init = readHash(),
           initialFiles={init.files}
           onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item =>
-            fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
-              .then(async r => r.json() as Promise<{ content?: string }>)
-              .then(d => (d.content ? atob(d.content) : null))
-              .catch(() => null)
+            repo === DEFAULT_REPO
+              ? readFile(item.path)
+              : fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
+                  .then(async r => r.json() as Promise<{ content?: string }>)
+                  .then(d => (d.content ? atob(d.content) : null))
+                  .catch(() => null)
           }
           ref={ref}
           tree={loading ? EMPTY_TREE : tree}

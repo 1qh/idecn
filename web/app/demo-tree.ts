@@ -23,6 +23,7 @@ const DEMO_TREE = [
   { path: 'web', type: 'tree' as const },
   { path: 'web/.gitignore', type: 'blob' as const },
   { path: 'web/app', type: 'tree' as const },
+  { path: 'web/app/actions.ts', type: 'blob' as const },
   { path: 'web/app/demo-tree.ts', type: 'blob' as const },
   { path: 'web/app/fonts.ts', type: 'blob' as const },
   { path: 'web/app/globals.css', type: 'blob' as const },
