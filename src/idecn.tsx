@@ -9,7 +9,7 @@ import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockv
 import type { ComponentProps, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
-import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
+import { shikiToMonaco } from '@shikijs/monaco'
 import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
 import { X } from 'lucide-react'
@@ -105,9 +105,8 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
-    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:hsl(var(--background,0 0% 100%))}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
-    '.dv-reset .monaco-editor .minimap,.dv-reset .monaco-editor .minimap-decorations-layer{background:hsl(var(--background,0 0% 100%))!important}'
+    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
+    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}'
   ].join('')
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
@@ -147,15 +146,6 @@ const iconsReady =
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
-          const m = monaco as { editor: { defineTheme: (name: string, data: unknown) => void } }
-          for (const name of highlighter.getLoadedThemes()) {
-            const resolved = highlighter.getTheme(name),
-              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
-              bg = resolved.type === 'dark' ? '#0a0a0b' : '#ffffff'
-            converted.colors['editor.background'] = bg
-            converted.colors['minimap.background'] = bg
-            m.editor.defineTheme(name, converted)
-          }
         })()
       : null,
   cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
