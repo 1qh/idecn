@@ -11,7 +11,7 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "paths": {
-      "idecn": ["../src/index.ts"]
+      "idecn": ["../src/idecn.tsx"]
     },
     "plugins": [
       {
