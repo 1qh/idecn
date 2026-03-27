@@ -328,9 +328,13 @@ const monoFont = () =>
     const [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
       [loadingState, setLoadingState] = useState(params.loading),
-      [ready, setReady] = useState(!shikiSetup)
+      [ready, setReady] = useState(!shikiSetup),
+      [dark, setDark] = useState(isDark)
     useEffect(() => {
       if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
+      const observer = new MutationObserver(() => setDark(isDark()))
+      observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
+      return () => observer.disconnect()
     }, [])
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
@@ -353,7 +357,7 @@ const monoFont = () =>
       <Editor
         language={language}
         options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
-        theme={isDark() ? 'monokai-lite' : 'github-light'}
+        theme={dark ? 'monokai-lite' : 'github-light'}
         value={content}
       />
     )
@@ -380,7 +384,7 @@ const monoFont = () =>
     return (
       <div
         className={cn(
-          'group/tab flex h-full items-center pl-1 text-sm',
+          'group/tab flex h-full items-center pl-1 py-0.5 text-sm',
           p?.headerClassName,
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
@@ -389,7 +393,7 @@ const monoFont = () =>
         <span className={showIcon ? 'my-px ml-0.5' : 'mb-px'}>{api.title}</span>
         {closable ? (
           <X
-            className='size-3.5 stroke-[1.5] opacity-0 hover:cursor-pointer group-hover/tab:opacity-70'
+            className='size-3.5 opacity-0 hover:cursor-pointer group-hover/tab:opacity-60'
             onClick={e => {
               e.stopPropagation()
               api.close()
