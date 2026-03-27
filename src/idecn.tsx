@@ -36,8 +36,9 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   CENTER = 'flex h-full items-center justify-center',
   EDITOR_OPTIONS = {
     cursorWidth: 5,
-    letterSpacing: -2,
-    lineHeight: 1,
+    fontSize: 14,
+    letterSpacing: -0.5,
+    lineHeight: 1.4,
     minimap: { maxColumn: 69, renderCharacters: false, scale: 2, showSlider: 'always' as const },
     readOnly: true,
     scrollBeyondLastLine: false,
@@ -168,7 +169,6 @@ const iconsReady =
               converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
               converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
             } else converted.colors['minimap.background'] = '#ffffff'
-
             converted.colors['scrollbar.shadow'] = '#00000000'
             converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
             converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
