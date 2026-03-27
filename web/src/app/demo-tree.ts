@@ -35,7 +35,6 @@ const DEMO_TREE = [
   { path: 'web/src/app', type: 'tree' as const },
   { path: 'web/src/app/constants.ts', type: 'blob' as const },
   { path: 'web/src/app/demo-tree.ts', type: 'blob' as const },
-  { path: 'web/src/app/explorer.tsx', type: 'blob' as const },
   { path: 'web/src/app/fonts.ts', type: 'blob' as const },
   { path: 'web/src/app/github.ts', type: 'blob' as const },
   { path: 'web/src/app/globals.css', type: 'blob' as const },
