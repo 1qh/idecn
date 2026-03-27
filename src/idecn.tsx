@@ -262,11 +262,13 @@ const FileTree = ({ className, data, initialSelectedItemId, onSelectChange }: Fi
   )
 }
 interface TabProps {
+  activeClassName?: string
   children: ReactNode
   closable?: boolean
   headerClassName?: string
   icon?: boolean
   id?: string
+  inactiveClassName?: string
   onClose?: () => void
   title: string
 }
@@ -278,6 +280,7 @@ const monoFont = () =>
     typeof document === 'undefined'
       ? ''
       : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
+  isDark = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
   shikiSetup =
     'location' in globalThis
       ? (async () => {
@@ -300,7 +303,7 @@ const monoFont = () =>
                 'typescript',
                 'yaml'
               ],
-              themes: [mod.default as Parameters<typeof createHighlighter>[0]['themes'][0]]
+              themes: [mod.default as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
             }),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
@@ -350,18 +353,37 @@ const monoFont = () =>
       <Editor
         language={language}
         options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined }}
-        theme='monokai-lite'
+        theme={isDark() ? 'monokai-lite' : 'github-light'}
         value={content}
       />
     )
   },
   TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
-    const p = params as undefined | { closable?: boolean; headerClassName?: string; icon?: boolean },
+    const p = params as
+        | undefined
+        | {
+            activeClassName?: string
+            closable?: boolean
+            headerClassName?: string
+            icon?: boolean
+            inactiveClassName?: string
+          },
       showIcon = p?.icon !== false,
-      closable = p?.closable !== false
+      closable = p?.closable !== false,
+      [active, setActive] = useState(api.isActive)
+    useEffect(() => {
+      const d = api.onDidActiveChange(e => setActive(e.isActive))
+      return () => {
+        d.dispose()
+      }
+    }, [api])
     return (
       <div
-        className={cn('group/tab flex h-full items-center pl-1', p?.headerClassName)}
+        className={cn(
+          'group/tab flex h-full items-center pl-1',
+          p?.headerClassName,
+          active ? p?.activeClassName : p?.inactiveClassName
+        )}
         data-fill={p?.headerClassName ? '' : undefined}>
         {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
         <span className={showIcon ? 'my-px ml-0.5' : 'mb-px'}>{api.title}</span>
@@ -508,7 +530,14 @@ const LANG: Record<string, string> = {
         api.addPanel({
           component: 'custom',
           id: tabId,
-          params: { closable: tab.closable, content: tab.children, headerClassName: tab.headerClassName, icon: tab.icon },
+          params: {
+            activeClassName: tab.activeClassName,
+            closable: tab.closable,
+            content: tab.children,
+            headerClassName: tab.headerClassName,
+            icon: tab.icon,
+            inactiveClassName: tab.inactiveClassName
+          },
           tabComponent: 'default',
           title: tab.title
         })
