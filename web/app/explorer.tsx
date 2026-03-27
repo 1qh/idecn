@@ -70,9 +70,8 @@ const init = readHash(),
           onOpenFile={async item =>
             repo === DEFAULT_REPO
               ? readFile(item.path)
-              : fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
-                  .then(async r => r.json() as Promise<{ content?: string }>)
-                  .then(d => (d.content ? atob(d.content) : null))
+              : fetch(`https://raw.githubusercontent.com/${repo}/main/${item.path}`)
+                  .then(async r => (r.ok ? r.text() : null))
                   .catch(() => null)
           }
           ref={ref}
