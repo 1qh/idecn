@@ -41,11 +41,38 @@ const readHash = () => {
         .catch(async () =>
           fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
             .then(async r => r.json() as Promise<{ files?: unknown[] }>)
-            .then(d => setTree(d.files ? (d.files as TreeDataItem[]) : []))
-            .catch(() => {
-              setTree([])
-              setError('Failed to load repo tree from both server and jsdelivr')
+            .then(d => {
+              if (!d.files) throw new Error('no files')
+              setTree(d.files as TreeDataItem[])
             })
+            .catch(async () =>
+              fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
+                .then(async r => r.json() as Promise<{ tree?: { path: string; type: string }[] }>)
+                .then(d => {
+                  if (!d.tree) throw new Error('no tree')
+                  const items: TreeDataItem[] = [],
+                    dirs = new Map<string, TreeDataItem>()
+                  for (const t of d.tree.toSorted((a, b) => {
+                    if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
+                    return a.path.localeCompare(b.path)
+                  })) {
+                    const parts = t.path.split('/'),
+                      name = parts.at(-1) ?? t.path,
+                      node: TreeDataItem = { id: t.path, name, path: t.path }
+                    if (t.type === 'tree') {
+                      node.children = []
+                      dirs.set(t.path, node)
+                    }
+                    if (parts.length === 1) items.push(node)
+                    else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
+                  }
+                  setTree(items)
+                })
+                .catch(() => {
+                  setTree([])
+                  setError('Failed to load repo tree')
+                })
+            )
         )
     }, [initialTree, repo])
     const submit = () => {
@@ -98,8 +125,13 @@ const readHash = () => {
           onOpenFile={async item => {
             const content = await fetchFile(repo, item.path).catch(() => null)
             if (content !== null) return content
-            return fetch(`https://raw.githubusercontent.com/${repo}/main/${item.path}`)
+            const raw = await fetch(`https://raw.githubusercontent.com/${repo}/main/${item.path}`)
               .then(async r => (r.ok ? r.text() : null))
+              .catch(() => null)
+            if (raw !== null) return raw
+            return fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
+              .then(async r => r.json() as Promise<{ content?: string }>)
+              .then(d => (d.content ? atob(d.content) : null))
               .catch(() => null)
           }}
           ref={ref}
