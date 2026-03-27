@@ -1,5 +1,5 @@
-<p align="center"><a href="https://idecn.vercel.app"><img src="screenshot.png" alt="idecn demo" width="100%" /></a></p>
 <h3 align="center"><a href="https://idecn.vercel.app">Try the live demo</a></h3>
+<p align="center"><a href="https://idecn.vercel.app"><img src="screenshot.png" alt="idecn demo" width="100%" /></a></p>
 
 ```sh
 bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
