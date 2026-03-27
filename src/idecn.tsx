@@ -123,10 +123,7 @@ const iconsReady =
     'location' in globalThis
       ? (async () => {
           const mod = await import('./monokai-lite'),
-            theme = {
-              ...mod.monokaiLite,
-              colors: { ...mod.monokaiLite.colors, 'editor.background': '#00000000', 'minimap.background': '#00000000' }
-            },
+            theme = { ...mod.monokaiLite, colors: { ...mod.monokaiLite.colors, 'minimap.background': '#00000000' } },
             highlighter = await createHighlighter({
               langs: [
                 'css',
