@@ -48,7 +48,7 @@ const init = readHash(),
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
           <PanelLeft
-            className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent'
+            className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent -mr-2'
             onClick={() => ref.current?.toggleSidebar()}
           />
           <Search className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent' onClick={submit} />
