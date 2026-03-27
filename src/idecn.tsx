@@ -129,7 +129,7 @@ const TreeContext = createContext<TreeContextValue>({
         setSelectedId(itemId)
         onSelect?.({ id: itemId, name, path: path ?? name })
       }
-    return { depth, iconClass: ICON_CLASS, isSelected, itemId, pl, select }
+    return { depth, iconClass: cn(ICON_CLASS, 'group-hover:scale-125'), isSelected, itemId, pl, select }
   },
   Tree = ({
     children,
