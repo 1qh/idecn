@@ -36,9 +36,9 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   CENTER = 'flex h-full items-center justify-center',
   EDITOR_OPTIONS = {
     cursorWidth: 5,
-    fontSize: 24,
-    letterSpacing: -2,
-    lineHeight: 1,
+    fontSize: 16,
+    letterSpacing: -0.8,
+    lineHeight: 1.1,
     minimap: { maxColumn: 69, renderCharacters: false, scale: 2, showSlider: 'always' as const },
     readOnly: true,
     scrollBeyondLastLine: false,
@@ -572,7 +572,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     renderLoading,
     sidebar: controlledSidebar,
     sidebarPosition = 'left',
-    sidebarSize = '250px',
+    sidebarSize = '16%',
     theme,
     tree,
     ...props
@@ -715,14 +715,22 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           const panelPath = item.path
           result
             .then(fileContent => {
-              const p = api.panels.find(x => x.id === panelPath)
-              if (!p) return
-              if (fileContent === null) api.removePanel(p)
-              else p.api.updateParameters({ content: fileContent, loading: undefined })
+              try {
+                const p = api.panels.find(x => x.id === panelPath)
+                if (!p) return
+                if (fileContent === null) api.removePanel(p)
+                else p.api.updateParameters({ content: fileContent, loading: undefined })
+              } catch {
+                /* Panel already removed */
+              }
             })
             .catch(() => {
-              const p = api.panels.find(x => x.id === panelPath)
-              if (p) api.removePanel(p)
+              try {
+                const p = api.panels.find(x => x.id === panelPath)
+                if (p) api.removePanel(p)
+              } catch {
+                /* Panel already removed */
+              }
             })
         }
       }, [])
