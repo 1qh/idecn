@@ -9,7 +9,7 @@ import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockv
 import type { ComponentProps, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
-import { shikiToMonaco } from '@shikijs/monaco'
+import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
 import { X } from 'lucide-react'
@@ -146,6 +146,13 @@ const iconsReady =
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
+          const m = monaco as { editor: { defineTheme: (name: string, data: unknown) => void } }
+          for (const name of highlighter.getLoadedThemes()) {
+            const resolved = highlighter.getTheme(name),
+              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> }
+            converted.colors['minimap.background'] = resolved.type === 'dark' ? '#000000' : '#ffffff'
+            m.editor.defineTheme(name, converted)
+          }
         })()
       : null,
   cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
