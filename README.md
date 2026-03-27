@@ -49,6 +49,8 @@ interface TreeDataItem {
 ```
 
 ```tsx
+const ref = useRef<WorkspaceRef>(null)
+
 <Workspace onOpenFile={...} ref={ref}>
   <MyNavigation onSelect={item => ref.current?.openFile(item)} />
 </Workspace>
