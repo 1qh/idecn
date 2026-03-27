@@ -28,8 +28,9 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { twMerge } from 'tailwind-merge'
-// ── Constants ───────────────────────────────────────────────────────
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
+  ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
+  ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
   ITEM_CLASS =
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
   CENTER = 'flex h-full items-center justify-center',
@@ -108,7 +109,6 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
     '.dv-reset .monaco-editor .minimap{background-color:hsl(var(--background,0 0% 100%))}'
   ].join('')
-// ── Utils ───────────────────────────────────────────────────────────
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
   cachedMonoFont: string | undefined
@@ -194,7 +194,6 @@ const iconsReady =
     return tabs
   },
   getTabId = (tab: TabProps) => tab.id ?? tab.title
-// ── Types ───────────────────────────────────────────────────────────
 interface IconManifest {
   file: string
   fileExtensions: Record<string, string>
@@ -227,7 +226,6 @@ interface WorkspaceRef {
   openFile: (item: TreeDataItem) => void
   toggleSidebar: () => void
 }
-// ── Components ──────────────────────────────────────────────────────
 const TreeContext = createContext<TreeContextValue>({
     expandDepth: 0,
     indent: 16,
@@ -245,20 +243,20 @@ const TreeContext = createContext<TreeContextValue>({
         setSelectedId(itemId)
         onSelect?.({ id: itemId, name, path: path ?? name })
       }
-    return { depth, expandDepth, iconClass: cn(ICON_CLASS, 'group-hover:scale-125'), isSelected, itemId, pl, select }
+    return { depth, expandDepth, iconClass: ICON_CLASS_HOVER, isSelected, itemId, pl, select }
   },
-  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
+  useIconsReady = () => {
     const [loaded, setLoaded] = useState(Boolean(iconManifest))
     useEffect(() => {
       if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
     }, [loaded])
+  },
+  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
+    useIconsReady()
     return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
   },
   FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
-    const [loaded, setLoaded] = useState(Boolean(iconManifest))
-    useEffect(() => {
-      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
-    }, [loaded])
+    useIconsReady()
     return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
   },
   Tree = ({
@@ -516,7 +514,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}>
-        {showIcon ? <FileIcon className={cn(ICON_CLASS, 'group-hover/tab:scale-125')} name={api.title ?? ''} /> : null}
+        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={api.title ?? ''} /> : null}
         {api.title}
         {closable ? (
           <X
@@ -794,7 +792,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       </Group>
     )
   }
-// ── Exports ─────────────────────────────────────────────────────────
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
