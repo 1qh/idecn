@@ -39,6 +39,7 @@
     "fix": "lintmax fix && bun run build",
     "gen": "bun scripts/gen-icons.ts && bun scripts/gen-demo-tree.ts && bun scripts/build-registry.ts",
     "prepublishOnly": "bun x tsdown src/index.ts --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react",
+    "screenshot": "cd web && bun ../scripts/screenshot.ts",
     "test": "bun run check && bun run build && bun run test:registry",
     "test:registry": "bash scripts/test-registry.sh"
   },
