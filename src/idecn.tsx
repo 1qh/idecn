@@ -5,7 +5,7 @@
 'use client'
 import type { ClassValue } from 'clsx'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco } from '@shikijs/monaco'
@@ -81,11 +81,11 @@ const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
     if (open) return manifest.folderNamesExpanded[lower] ?? manifest.folderExpanded
     return manifest.folderNames[lower] ?? manifest.folder
   },
-  FileIcon = ({ name, className }: { className?: string; name: string }) => (
-    <span className={className} dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} />
+  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => (
+    <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
   ),
-  FolderIcon = ({ className, name, open }: { className?: string; name: string; open?: boolean }) => (
-    <span className={className} dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} />
+  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => (
+    <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
   ),
   getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
   ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4'
@@ -122,7 +122,7 @@ const TreeContext = createContext<TreeContextValue>({
     onSelect,
     selectedId: controlledSelectedId,
     ...props
-  }: React.ComponentProps<'nav'> & {
+  }: ComponentProps<'nav'> & {
     indent?: number
     onSelect?: (item: { id: string; name: string; path: string }) => void
     selectedId?: null | string
@@ -185,7 +185,7 @@ const TreeContext = createContext<TreeContextValue>({
     name,
     path,
     ...props
-  }: Omit<React.ComponentProps<'button'>, 'id'> & {
+  }: Omit<ComponentProps<'button'>, 'id'> & {
     disabled?: boolean
     id?: string
     name: string
@@ -473,21 +473,19 @@ const LANG: Record<string, string> = {
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
   Workspace = ({
     children,
-    className,
     initialFiles,
     onFilesChange,
     onOpenFile,
     ref,
     renderLoading,
     sidebarSize = '250px',
-    tree
-  }: {
-    children?: ReactNode
-    className?: string
+    tree,
+    ...props
+  }: ComponentProps<'div'> & {
     initialFiles?: string[]
     onFilesChange?: (files: string[]) => void
     onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
-    ref?: React.Ref<WorkspaceRef>
+    ref?: Ref<WorkspaceRef>
     renderLoading?: (item: TreeDataItem) => ReactNode
     sidebarSize?: number | string
     tree: TreeDataItem[]
@@ -650,7 +648,7 @@ const LANG: Record<string, string> = {
     }
     if (!mounted) return null
     return (
-      <div className={className}>
+      <div {...props}>
         <style>{RESET_CSS}</style>
         <Group className='h-full' orientation='horizontal'>
           <Panel defaultSize={sidebarSize} minSize={5}>
@@ -676,8 +674,8 @@ const LANG: Record<string, string> = {
       </div>
     )
   }
-type FileTreeProps = React.ComponentProps<typeof FileTree>
-type TabProps = React.ComponentProps<typeof Tab>
-type WorkspaceProps = React.ComponentProps<typeof Workspace>
+type FileTreeProps = ComponentProps<typeof FileTree>
+type TabProps = ComponentProps<typeof Tab>
+type WorkspaceProps = ComponentProps<typeof Workspace>
 export type { FileTreeProps, TabProps, TreeDataItem, WorkspaceProps, WorkspaceRef }
 export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }
