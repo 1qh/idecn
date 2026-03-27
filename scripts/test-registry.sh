@@ -1,19 +1,27 @@
 #!/bin/bash
-: "${PORT:=3000}"
+: "${PORT:=3333}"
 set -euo pipefail
 
 IDECN="$(cd "$(dirname "$0")/.." && pwd)"
 DIR=$(mktemp -d)/test
 mkdir -p "$DIR"
+STARTED_SERVER=false
 echo "-> Test dir: $DIR"
-trap 'rm -rf "$(dirname "$DIR")"; kill $DEV_PID 2>/dev/null' EXIT
 
-echo "-> Starting dev server"
-cd "$IDECN/web" && bun run dev -- --port "$PORT" &
-DEV_PID=$!
-cd "$IDECN"
-sleep 3
-curl -sf "http://localhost:$PORT/r/idecn.json" > /dev/null || { echo "x Dev server failed to start"; exit 1; }
+if curl -sf "http://localhost:$PORT/r/idecn.json" > /dev/null 2>&1; then
+  echo "-> Dev server already running on port $PORT"
+elif curl -sf "http://localhost:3000/r/idecn.json" > /dev/null 2>&1; then
+  PORT=3000
+  echo "-> Dev server already running on port $PORT"
+else
+  echo "-> Starting dev server on port $PORT"
+  (cd "$IDECN/web" && bun x next dev --turbopack --port "$PORT") &
+  DEV_PID=$!
+  STARTED_SERVER=true
+  sleep 5
+  curl -sf "http://localhost:$PORT/r/idecn.json" > /dev/null || { echo "x Dev server failed"; exit 1; }
+fi
+trap 'rm -rf "$(dirname "$DIR")"; if $STARTED_SERVER; then kill $DEV_PID 2>/dev/null; fi' EXIT
 
 echo "-> Creating Next.js + shadcn"
 cd "$DIR"

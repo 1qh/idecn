@@ -28,19 +28,26 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { twMerge } from 'tailwind-merge'
-import { icons as iconsData } from './_generated/icons'
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
-  { manifest: manifestData, svgs: svgData } = iconsData,
-  manifest = manifestData as {
-    file: string
-    fileExtensions: Record<string, string>
-    fileNames: Record<string, string>
-    folder: string
-    folderExpanded: string
-    folderNames: Record<string, string>
-    folderNamesExpanded: Record<string, string>
-    languageIds: Record<string, string>
-  },
+interface IconManifest {
+  file: string
+  fileExtensions: Record<string, string>
+  fileNames: Record<string, string>
+  folder: string
+  folderExpanded: string
+  folderNames: Record<string, string>
+  folderNamesExpanded: Record<string, string>
+  languageIds: Record<string, string>
+}
+let manifest: IconManifest | null = null,
+  svgs: Record<string, string> = {}
+const iconsReady =
+    'location' in globalThis
+      ? import('./_generated/icons').then(mod => {
+          manifest = mod.icons.manifest as IconManifest
+          svgs = mod.icons.svgs as Record<string, string>
+        })
+      : Promise.resolve(),
+  cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
   EXT_TO_LANG: Record<string, string> = {
     cjs: 'javascript',
     css: 'css',
@@ -63,10 +70,9 @@ const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
     yaml: 'yaml',
     yml: 'yaml'
   },
-  svgs = svgData as Record<string, string>,
-  fallback = svgs[manifest.file] ?? '',
-  getSvg = (name: string): string => svgs[name] ?? fallback,
+  getSvg = (name: string): string => svgs[name] || (manifest ? svgs[manifest.file] || '' : ''),
   resolveFileIcon = (filename: string): string => {
+    if (!manifest) return ''
     const lower = filename.toLowerCase()
     if (manifest.fileNames[lower]) return manifest.fileNames[lower]
     const ext = lower.includes('.') ? lower.slice(lower.indexOf('.') + 1) : ''
@@ -78,16 +84,25 @@ const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
     return manifest.file
   },
   resolveFolderIcon = (folderName: string, open: boolean): string => {
+    if (!manifest) return ''
     const lower = folderName.toLowerCase()
     if (open) return manifest.folderNamesExpanded[lower] ?? manifest.folderExpanded
     return manifest.folderNames[lower] ?? manifest.folder
   },
-  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => (
-    <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
-  ),
-  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => (
-    <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
-  ),
+  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
+    const [loaded, setLoaded] = useState(Boolean(manifest))
+    useEffect(() => {
+      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
+    }, [loaded])
+    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
+  },
+  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
+    const [loaded, setLoaded] = useState(Boolean(manifest))
+    useEffect(() => {
+      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
+    }, [loaded])
+    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
+  },
   getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
   ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4'
 interface TreeContextValue {
