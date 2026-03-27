@@ -202,7 +202,7 @@ const TreeContext = createContext<TreeContextValue>({
         type='button'
         {...props}>
         <FileIcon className={iconClass} name={name} />
-        <span>{name}</span>
+        {name}
       </button>
     )
   }
@@ -279,11 +279,13 @@ const renderItems = (items: TreeDataItem[], onItemClick?: (item: TreeDataItem) =
     title: string
   }): null => null
 Tab._type = TAB_TYPE
-const monoFont = () =>
-    typeof document === 'undefined'
-      ? ''
-      : getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim(),
-  isDark = () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+let cachedMonoFont: string | undefined
+const monoFont = () => {
+    if (cachedMonoFont !== undefined) return cachedMonoFont
+    if (typeof document === 'undefined') return ''
+    cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
+    return cachedMonoFont
+  },
   shikiSetup =
     'location' in globalThis
       ? (async () => {
@@ -313,6 +315,7 @@ const monoFont = () =>
           shikiToMonaco(highlighter, monaco)
         })()
       : null,
+  CENTER = 'flex h-full items-center justify-center',
   EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
   ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
@@ -332,10 +335,10 @@ const monoFont = () =>
       [language, setLanguage] = useState(params.language),
       [loadingState, setLoadingState] = useState(params.loading),
       [ready, setReady] = useState(!shikiSetup),
-      [dark, setDark] = useState(isDark)
+      [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
     useEffect(() => {
       if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
-      const observer = new MutationObserver(() => setDark(isDark()))
+      const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
       observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
       return () => observer.disconnect()
     }, [])
@@ -353,9 +356,8 @@ const monoFont = () =>
         d.dispose()
       }
     }, [api])
-    if (loadingState || !ready) return <div className='flex h-full items-center justify-center'>{loadingState}</div>
-    if (!content)
-      return <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Empty file</div>
+    if (loadingState || !ready) return <div className={CENTER}>{loadingState}</div>
+    if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
     return (
       <Editor
         language={language}
@@ -559,7 +561,7 @@ const LANG: Record<string, string> = {
           loadingNode = loading ? (
             loading(item)
           ) : (
-            <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>Loading...</div>
+            <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
           ),
           existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
           position = existingFile ? { direction: 'within' as const, referenceGroup: existingFile.group.id } : undefined
@@ -659,8 +661,8 @@ const LANG: Record<string, string> = {
                 if (item && !item.children) openFile(item)
               }}
             />
-            <Separator className='opacity-0' />
           </Panel>
+          <Separator className='opacity-0' />
           <Panel minSize={20}>
             <DockviewReact
               className='dv-reset'
