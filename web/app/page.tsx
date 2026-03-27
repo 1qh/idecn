@@ -1,9 +1,5 @@
-import { readTree } from './actions'
+import { fetchTree } from './actions'
+import { DEFAULT_REPO } from './constants'
 import Explorer from './explorer'
-import { buildTree } from './utils'
-const Page = async () => {
-  const raw = await readTree(),
-    tree = buildTree(raw)
-  return <Explorer tree={tree} />
-}
+const Page = async () => <Explorer tree={await fetchTree(DEFAULT_REPO)} />
 export default Page
