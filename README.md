@@ -46,8 +46,6 @@ interface TreeDataItem {
 />
 ```
 
-Custom sidebar:
-
 ```tsx
 <Workspace onOpenFile={...} ref={ref}>
   <MyNavigation onSelect={item => ref.current?.openFile(item)} />
@@ -81,13 +79,7 @@ Custom sidebar:
 
 ### WorkspaceRef
 
-| Method            |                |
-| ----------------- | -------------- |
-| `openFile(item)`  | Open a file    |
-| `focusPanel(id)`  | Focus a panel  |
-| `toggleSidebar()` | Toggle sidebar |
-
-`Cmd+B` / `Ctrl+B` toggles sidebar.
+`openFile(item)` `focusPanel(id)` `toggleSidebar()` (`Cmd+B` / `Ctrl+B`)
 
 ### Tab
 
