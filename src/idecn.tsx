@@ -105,7 +105,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
-    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
+    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:hsl(var(--background,0 0% 100%))}',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
     '.dv-reset .monaco-editor .minimap,.dv-reset .monaco-editor .minimap-decorations-layer{background:hsl(var(--background,0 0% 100%))!important}'
   ].join('')
@@ -150,9 +150,10 @@ const iconsReady =
           const m = monaco as { editor: { defineTheme: (name: string, data: unknown) => void } }
           for (const name of highlighter.getLoadedThemes()) {
             const resolved = highlighter.getTheme(name),
-              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> }
-            converted.colors['editor.background'] = '#00000000'
-            converted.colors['minimap.background'] = '#00000000'
+              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
+              bg = resolved.type === 'dark' ? '#0a0a0b' : '#ffffff'
+            converted.colors['editor.background'] = bg
+            converted.colors['minimap.background'] = bg
             m.editor.defineTheme(name, converted)
           }
         })()
