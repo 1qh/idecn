@@ -9,7 +9,7 @@ import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockv
 import type { ComponentProps, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
-import { shikiToMonaco } from '@shikijs/monaco'
+import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
 import { X } from 'lucide-react'
@@ -123,7 +123,7 @@ const iconsReady =
     'location' in globalThis
       ? (async () => {
           const mod = await import('./monokai-lite'),
-            theme = { ...mod.monokaiLite, colors: { ...mod.monokaiLite.colors, 'minimap.background': '#00000000' } },
+            theme = mod.monokaiLite,
             highlighter = await createHighlighter({
               langs: [
                 'css',
@@ -147,6 +147,14 @@ const iconsReady =
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
+          const m = monaco as { editor: { defineTheme: (name: string, data: unknown) => void } }
+          for (const name of highlighter.getLoadedThemes()) {
+            const resolved = highlighter.getTheme(name),
+              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> }
+            converted.colors['editor.background'] = '#00000000'
+            converted.colors['minimap.background'] = '#00000000'
+            m.editor.defineTheme(name, converted)
+          }
         })()
       : null,
   cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
