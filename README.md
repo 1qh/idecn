@@ -48,6 +48,19 @@ Custom sidebar:
 | `renderLoading`   | `(item) => ReactNode`                      | —                           | Custom loading per file           |
 | `ref`             | `Ref<WorkspaceRef>`                        | —                           | Imperative handle                 |
 
+<details>
+<summary>Notes on sizing</summary>
+
+`sidebarSize` uses [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) v4 sizing:
+
+- `'250px'` — pixels (string)
+- `'20%'` or `'20'` — percentage of container (string)
+- `250` — pixels (number)
+
+Numbers are **pixels**, not percentages. Use strings for percentages.
+
+</details>
+
 ### WorkspaceRef
 
 | Method            | Description               |
