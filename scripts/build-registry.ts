@@ -8,8 +8,8 @@ const root = resolve(import.meta.dir, '..'),
 mkdirSync(outDir, { recursive: true })
 let content = await read('src/idecn.tsx')
 content = content
-  .replaceAll("from './_generated/icons'", "from '@/lib/icons'")
-  .replaceAll("'./monokai-lite'", "'@/lib/monokai-lite'")
+  .replaceAll('./_generated/icons', '@/lib/icons')
+  .replaceAll('./monokai-lite', '@/lib/monokai-lite')
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
