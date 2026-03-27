@@ -652,14 +652,13 @@ const LANG: Record<string, string> = {
         <style>{RESET_CSS}</style>
         <Group className='h-full' orientation='horizontal'>
           <Panel defaultSize={sidebarSize} minSize={5}>
-            <div className='h-full overflow-auto'>
-              <FileTree
-                data={tree}
-                onSelectChange={item => {
-                  if (item && !item.children) openFile(item)
-                }}
-              />
-            </div>
+            <FileTree
+              className='h-full overflow-auto'
+              data={tree}
+              onSelectChange={item => {
+                if (item && !item.children) openFile(item)
+              }}
+            />
             <Separator className='opacity-0' />
           </Panel>
           <Panel minSize={20}>
