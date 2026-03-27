@@ -34,28 +34,28 @@ Custom sidebar:
 
 | Prop              | Type                                       | Default                     | Description                       |
 | ----------------- | ------------------------------------------ | --------------------------- | --------------------------------- |
-| `tree`            | `TreeDataItem[]`                           | —                           | File tree data (built-in sidebar) |
-| `onOpenFile`      | `(item) => string \| null \| Promise<...>` | —                           | Fetch file content                |
+| `tree`            | `TreeDataItem[]`                           | -                           | File tree data (built-in sidebar) |
+| `onOpenFile`      | `(item) => string \| null \| Promise<...>` | -                           | Fetch file content                |
 | `sidebarSize`     | `string \| number`                         | `'250px'`                   | Sidebar default size              |
 | `sidebarPosition` | `'left' \| 'right'`                        | `'left'`                    | Sidebar position                  |
-| `sidebar`         | `boolean`                                  | —                           | Controlled sidebar visibility     |
+| `sidebar`         | `boolean`                                  | -                           | Controlled sidebar visibility     |
 | `defaultSidebar`  | `boolean`                                  | `true`                      | Initial sidebar visibility        |
-| `onSidebarChange` | `(visible: boolean) => void`               | —                           | Sidebar toggle callback           |
-| `editorOptions`   | `Record<string, unknown>`                  | —                           | Monaco editor options             |
+| `onSidebarChange` | `(visible: boolean) => void`               | -                           | Sidebar toggle callback           |
+| `editorOptions`   | `Record<string, unknown>`                  | -                           | Monaco editor options             |
 | `theme`           | `string \| { dark, light }`                | monokai-lite / github-light | Monaco theme                      |
-| `initialFiles`    | `string[]`                                 | —                           | File paths to open on mount       |
-| `onFilesChange`   | `(files: string[]) => void`                | —                           | Called when open files change     |
-| `renderLoading`   | `(item) => ReactNode`                      | —                           | Custom loading per file           |
-| `ref`             | `Ref<WorkspaceRef>`                        | —                           | Imperative handle                 |
+| `initialFiles`    | `string[]`                                 | -                           | File paths to open on mount       |
+| `onFilesChange`   | `(files: string[]) => void`                | -                           | Called when open files change     |
+| `renderLoading`   | `(item) => ReactNode`                      | -                           | Custom loading per file           |
+| `ref`             | `Ref<WorkspaceRef>`                        | -                           | Imperative handle                 |
 
 <details>
 <summary>Notes on sizing</summary>
 
 `sidebarSize` uses [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) v4 sizing:
 
-- `'250px'` — pixels (string)
-- `'20%'` or `'20'` — percentage of container (string)
-- `250` — pixels (number)
+- `'250px'` - pixels (string)
+- `'20%'` or `'20'` - percentage of container (string)
+- `250` - pixels (number)
 
 Numbers are **pixels**, not percentages. Use strings for percentages.
 
@@ -80,10 +80,10 @@ Extra tabs inside dockview.
 | `title`             | `string`     | required | Tab title             |
 | `closable`          | `boolean`    | `true`   | Show close button     |
 | `icon`              | `boolean`    | `true`   | Show file icon        |
-| `headerClassName`   | `string`     | —        | Always applied        |
-| `activeClassName`   | `string`     | —        | Applied when active   |
-| `inactiveClassName` | `string`     | —        | Applied when inactive |
-| `onClose`           | `() => void` | —        | Called when closed    |
+| `headerClassName`   | `string`     | -        | Always applied        |
+| `activeClassName`   | `string`     | -        | Applied when active   |
+| `inactiveClassName` | `string`     | -        | Applied when inactive |
+| `onClose`           | `() => void` | -        | Called when closed    |
 
 ## FileTree
 
