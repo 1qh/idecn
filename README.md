@@ -10,7 +10,7 @@ bun add idecn
 
 ## Workspace
 
-IDE layout with built-in file tree sidebar, tabbed editor panels, and async file loading.
+IDE layout with file tree sidebar, tabbed editor, and async file loading.
 
 ```tsx
 <Workspace
@@ -19,66 +19,60 @@ IDE layout with built-in file tree sidebar, tabbed editor panels, and async file
 />
 ```
 
-Full customization:
+Custom sidebar:
 
 ```tsx
-<Workspace
-  tree={tree}
-  sidebarSize="300px"
-  initialFiles={['src/index.ts']}
-  onFilesChange={files => saveToUrl(files)}
-  onOpenFile={async item => {
-    const res = await fetch(`/api/files/${item.path}`)
-    return res.ok ? res.text() : null
-  }}
-  renderLoading={item => <Spinner label={item.name} />}
-  ref={ref}
->
-  <Tab title="Settings">
-    <SettingsPanel />
-  </Tab>
+<Workspace onOpenFile={...} ref={ref}>
+  <MyNavigation onSelect={item => ref.current?.openFile(item)} />
 </Workspace>
 ```
 
 ### Workspace props
 
-| Prop            | Type                                                                | Description                           |
-| --------------- | ------------------------------------------------------------------- | ------------------------------------- |
-| `tree`          | `TreeDataItem[]`                                                    | File tree data                        |
-| `onOpenFile`    | `(item: TreeDataItem) => string \| null \| Promise<string \| null>` | Fetch file content                    |
-| `sidebarSize`   | `string \| number`                                                  | Sidebar default size (e.g. `'250px'`) |
-| `initialFiles`  | `string[]`                                                          | File paths to open on mount           |
-| `onFilesChange` | `(files: string[]) => void`                                         | Called when open files change         |
-| `renderLoading` | `(item: TreeDataItem) => ReactNode`                                 | Custom loading state per file         |
-| `ref`           | `Ref<WorkspaceRef>`                                                 | Imperative handle                     |
-| `className`     | `string`                                                            | CSS class for the container           |
+| Prop              | Type                                       | Default                     | Description                       |
+| ----------------- | ------------------------------------------ | --------------------------- | --------------------------------- |
+| `tree`            | `TreeDataItem[]`                           | —                           | File tree data (built-in sidebar) |
+| `onOpenFile`      | `(item) => string \| null \| Promise<...>` | —                           | Fetch file content                |
+| `sidebarSize`     | `string \| number`                         | `'250px'`                   | Sidebar default size              |
+| `sidebarPosition` | `'left' \| 'right'`                        | `'left'`                    | Sidebar position                  |
+| `sidebar`         | `boolean`                                  | —                           | Controlled sidebar visibility     |
+| `defaultSidebar`  | `boolean`                                  | `true`                      | Initial sidebar visibility        |
+| `onSidebarChange` | `(visible: boolean) => void`               | —                           | Sidebar toggle callback           |
+| `editorOptions`   | `Record<string, unknown>`                  | —                           | Monaco editor options             |
+| `theme`           | `string \| { dark, light }`                | monokai-lite / github-light | Monaco theme                      |
+| `initialFiles`    | `string[]`                                 | —                           | File paths to open on mount       |
+| `onFilesChange`   | `(files: string[]) => void`                | —                           | Called when open files change     |
+| `renderLoading`   | `(item) => ReactNode`                      | —                           | Custom loading per file           |
+| `ref`             | `Ref<WorkspaceRef>`                        | —                           | Imperative handle                 |
 
 ### WorkspaceRef
 
-| Method           | Description               |
-| ---------------- | ------------------------- |
-| `openFile(item)` | Open a file in the editor |
-| `focusPanel(id)` | Focus a panel by ID       |
+| Method            | Description               |
+| ----------------- | ------------------------- |
+| `openFile(item)`  | Open a file in the editor |
+| `focusPanel(id)`  | Focus a panel by ID       |
+| `toggleSidebar()` | Toggle sidebar visibility |
 
-### Tab props
+Keyboard: `Cmd+B` / `Ctrl+B` toggles sidebar.
 
-Extra tabs inside dockview (non-positioned). File tree sidebar is built in.
+### Tab
 
-| Prop              | Type         | Default  | Description               |
-| ----------------- | ------------ | -------- | ------------------------- |
-| `title`           | `string`     | required | Tab title                 |
-| `closable`        | `boolean`    | `true`   | Show close button         |
-| `icon`            | `boolean`    | `true`   | Show file icon            |
-| `headerClassName` | `string`     | —        | CSS class for tab header  |
-| `onClose`         | `() => void` | —        | Called when tab is closed |
+Extra tabs inside dockview.
+
+| Prop                | Type         | Default  | Description           |
+| ------------------- | ------------ | -------- | --------------------- |
+| `title`             | `string`     | required | Tab title             |
+| `closable`          | `boolean`    | `true`   | Show close button     |
+| `icon`              | `boolean`    | `true`   | Show file icon        |
+| `headerClassName`   | `string`     | —        | Always applied        |
+| `activeClassName`   | `string`     | —        | Applied when active   |
+| `inactiveClassName` | `string`     | —        | Applied when inactive |
+| `onClose`           | `() => void` | —        | Called when closed    |
 
 ## FileTree
 
-Standalone file tree (also built into Workspace).
-
 ```tsx
-import { FileTree } from 'idecn'
-;<FileTree data={tree} onSelectChange={item => console.log(item?.path)} />
+<FileTree data={tree} onSelectChange={item => console.log(item?.path)} />
 ```
 
 ```ts
@@ -93,8 +87,6 @@ interface TreeDataItem {
 ## Icons
 
 ```tsx
-import { FileIcon, FolderIcon } from 'idecn'
-
 <FileIcon name="index.ts" className="size-4" />
 <FolderIcon name="src" className="size-4" />
 ```
