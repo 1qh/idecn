@@ -29,5 +29,5 @@ const root = resolve(import.meta.dir, '..'),
   }
 walk(root, '')
 const items = tree.map(t => `  { path: '${t.path}', type: '${t.type}' as const }`).join(',\n')
-await write(resolve(root, 'web/src/app/demo-tree.ts'), `const DEMO_TREE = [\n${items}\n]\nexport { DEMO_TREE }\n`)
+await write(resolve(root, 'web/app/demo-tree.ts'), `const DEMO_TREE = [\n${items}\n]\nexport { DEMO_TREE }\n`)
 console.log(`Generated demo-tree.ts: ${tree.length} entries`)

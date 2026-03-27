@@ -7,13 +7,11 @@ import { Workspace } from 'idecn'
 import { Moon, PanelLeft, Search, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
-import type { GitHubContent, GitHubTreeItem } from './types'
-import { DEFAULT_REPO, EMPTY_TREE } from './constants'
+import type { GitHubTreeItem } from './utils'
 import { DEMO_TREE } from './demo-tree'
-import { buildTree } from './github'
-import { readHash, writeHash } from './hash'
+import { buildTree, DEFAULT_REPO, EMPTY_TREE, readHash, writeHash } from './utils'
 const init = readHash(),
-  Explorer = () => {
+  Page = () => {
     const [repo, setRepo] = useState(init.repo),
       [tree, setTree] = useState(EMPTY_TREE),
       [loading, setLoading] = useState(true),
@@ -48,7 +46,7 @@ const init = readHash(),
       <div className='flex h-screen flex-col'>
         <div className='flex items-center'>
           <PanelLeft
-            className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent -mr-2'
+            className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent'
             onClick={() => ref.current?.toggleSidebar()}
           />
           <Search className='stroke-1 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent' onClick={submit} />
@@ -76,7 +74,7 @@ const init = readHash(),
           onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item =>
             fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
-              .then(async r => r.json() as Promise<GitHubContent>)
+              .then(async r => r.json() as Promise<{ content?: string }>)
               .then(d => (d.content ? atob(d.content) : null))
               .catch(() => null)
           }
@@ -87,4 +85,4 @@ const init = readHash(),
       </div>
     )
   }
-export default Explorer
+export default Page

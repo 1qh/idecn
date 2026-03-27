@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@source '../../../src';
+@source '../../src';
 @theme {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
