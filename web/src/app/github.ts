@@ -1,8 +1,5 @@
 import type { TreeDataItem } from 'idecn'
-interface GitHubTreeItem {
-  path: string
-  type: 'blob' | 'tree'
-}
+import type { GitHubTreeItem } from './types'
 const buildTree = (items: GitHubTreeItem[]): TreeDataItem[] => {
   const root: TreeDataItem[] = [],
     dirs = new Map<string, TreeDataItem>(),
@@ -23,5 +20,4 @@ const buildTree = (items: GitHubTreeItem[]): TreeDataItem[] => {
   }
   return root
 }
-export type { GitHubTreeItem }
 export { buildTree }

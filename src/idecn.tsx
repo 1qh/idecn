@@ -290,7 +290,7 @@ const monoFont = () => {
   shikiSetup =
     'location' in globalThis
       ? (async () => {
-          const mod = await import('./_generated/monokai-lite.json'),
+          const mod = await import('./monokai-lite.json'),
             highlighter = await createHighlighter({
               langs: [
                 'css',

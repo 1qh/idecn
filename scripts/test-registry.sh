@@ -20,16 +20,12 @@ echo "→ Adding idecn from registry"
 bunx shadcn@latest add "http://localhost:$PORT/r/idecn.json" -s 2>&1 | tail -3
 
 echo "→ Copying demo files"
-cp "$IDECN/web/src/app/explorer.tsx" app/explorer.tsx
-cp "$IDECN/web/src/app/github.ts" app/github.ts
-cp "$IDECN/web/src/app/demo-tree.ts" app/demo-tree.ts
-cp "$IDECN/web/src/app/fonts.ts" app/fonts.ts
-cp "$IDECN/web/src/app/page.tsx" app/page.tsx
-cp "$IDECN/web/src/app/layout.tsx" app/layout.tsx
-cp "$IDECN/web/src/app/globals.css" app/globals.css
+for f in constants.ts demo-tree.ts explorer.tsx fonts.ts github.ts globals.css hash.ts layout.tsx page.tsx types.ts; do
+  cp "$IDECN/web/src/app/$f" "app/$f"
+done
 
 echo "→ Patching imports"
-sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g" app/explorer.tsx app/github.ts
+sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g" app/explorer.tsx app/github.ts app/constants.ts
 sed -i.bak "s|from '~/lib/utils'|from '@/lib/utils'|g" app/layout.tsx
 rm -f app/*.bak
 

@@ -2,36 +2,29 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return */
 'use client'
-import type { TreeDataItem, WorkspaceRef } from 'idecn'
+import type { WorkspaceRef } from 'idecn'
 import { Workspace } from 'idecn'
 import { Moon, PanelLeft, Search, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
-import type { GitHubTreeItem } from './github'
+import type { GitHubContent, GitHubTreeItem } from './types'
+import { DEFAULT_REPO, EMPTY_TREE } from './constants'
 import { DEMO_TREE } from './demo-tree'
 import { buildTree } from './github'
-const EMPTY: TreeDataItem[] = [],
-  REPO = '1qh/idecn',
-  readHash = () => {
-    if (!('location' in globalThis)) return { files: [] as string[], repo: REPO }
-    const hash = globalThis.location.hash.slice(1)
-    if (!hash) return { files: ['README.md', 'src/idecn.tsx'], repo: REPO }
-    const [repo, ...files] = hash.split(',')
-    return { files: files.filter(Boolean), repo: repo || REPO }
-  },
-  init = readHash(),
+import { readHash, writeHash } from './hash'
+const init = readHash(),
   Explorer = () => {
     const [repo, setRepo] = useState(init.repo),
-      [tree, setTree] = useState<TreeDataItem[]>([]),
+      [tree, setTree] = useState(EMPTY_TREE),
       [loading, setLoading] = useState(true),
-      [input, setInput] = useState(init.repo === REPO ? '' : init.repo),
+      [input, setInput] = useState(init.repo === DEFAULT_REPO ? '' : init.repo),
       [mounted, setMounted] = useState(false),
       { resolvedTheme, setTheme } = useTheme(),
       ref = useRef<WorkspaceRef>(null)
     useEffect(() => setMounted(true), [])
     useEffect(() => {
       setLoading(true)
-      if (repo === REPO) {
+      if (repo === DEFAULT_REPO) {
         setTree(buildTree(DEMO_TREE))
         setLoading(false)
         return
@@ -66,7 +59,7 @@ const EMPTY: TreeDataItem[] = [],
             onKeyDown={e => {
               if (e.key === 'Enter') submit()
             }}
-            placeholder={`${REPO} · github username/repo`}
+            placeholder={`${DEFAULT_REPO} · github username/repo`}
             type='search'
             value={input}
           />
@@ -80,18 +73,15 @@ const EMPTY: TreeDataItem[] = [],
         <Workspace
           className='flex-1'
           initialFiles={init.files}
-          onFilesChange={f => {
-            const h = [repo, ...f].join(',')
-            globalThis.history.replaceState(null, '', f.length > 0 ? `#${h}` : globalThis.location.pathname)
-          }}
+          onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item =>
             fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
-              .then(async r => r.json() as Promise<{ content?: string }>)
+              .then(async r => r.json() as Promise<GitHubContent>)
               .then(d => (d.content ? atob(d.content) : null))
               .catch(() => null)
           }
           ref={ref}
-          tree={loading ? EMPTY : tree}
+          tree={loading ? EMPTY_TREE : tree}
         />
       </div>
     )

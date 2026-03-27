@@ -1,9 +1,11 @@
-node_modules
-bun.lock
-dist
-test-results
+_generated
+.cache
 .next
 .turbo
-.cache
 .vercel
+bun.lock
+dist
 next-env.d.ts
+node_modules
+test-results
+web/public/r
