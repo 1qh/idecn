@@ -35,10 +35,13 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
   CENTER = 'flex h-full items-center justify-center',
   EDITOR_OPTIONS = {
-    minimap: { maxColumn: 50, renderCharacters: false, scale: 2, showSlider: 'always' as const },
+    cursorWidth: 5,
+    letterSpacing: -2,
+    lineHeight: 1,
+    minimap: { maxColumn: 69, renderCharacters: false, scale: 2, showSlider: 'always' as const },
     readOnly: true,
     scrollBeyondLastLine: false,
-    scrollbar: { horizontalScrollbarSize: 6, verticalScrollbarSize: 6 }
+    scrollbar: { horizontal: 'hidden' as const, horizontalScrollbarSize: 1, verticalScrollbarSize: 0 }
   } as const,
   TAB_TYPE = Symbol('idecn-tab'),
   EXT_TO_LANG: Record<string, string> = {
@@ -111,8 +114,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
-    '.dv-reset .monaco-editor .scrollbar{opacity:0;transition:opacity .3s}.dv-reset .monaco-editor:hover .scrollbar,.dv-reset .monaco-editor .scrollbar.active{opacity:1}'
+    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}'
   ].join('')
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
@@ -157,11 +159,20 @@ const iconsReady =
             const resolved = highlighter.getTheme(name),
               converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
               isDark = resolved.type === 'dark'
-            converted.colors['minimap.background'] = isDark ? '#000000' : '#ffffff'
+            if (isDark) {
+              converted.colors['editor.background'] = '#00000077'
+              converted.colors['editor.lineHighlightBackground'] = '#00000000'
+              converted.colors['editorLineNumber.foreground'] = '#ffffff22'
+              converted.colors['minimap.background'] = '#000000'
+              converted.colors['minimapSlider.background'] = '#ffffff15'
+              converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
+              converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
+            } else converted.colors['minimap.background'] = '#ffffff'
+
             converted.colors['scrollbar.shadow'] = '#00000000'
-            converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff20' : '#00000020'
-            converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff40' : '#00000040'
-            converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff60' : '#00000060'
+            converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
+            converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
+            converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff50' : '#00000050'
             m.editor.defineTheme(name, converted)
           }
         })()
