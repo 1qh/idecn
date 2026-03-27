@@ -169,7 +169,7 @@ const TreeContext = createContext<TreeContextValue>({
             onClick={select}
             style={{ paddingLeft: pl }}>
             <FolderIcon className={iconClass} name={name} open={isOpen} />
-            <span>{name}</span>
+            {name}
           </Accordion.Trigger>
           <Accordion.Panel className='overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
             <DepthContext value={depth + 1}>{children}</DepthContext>
@@ -387,13 +387,13 @@ const monoFont = () =>
     return (
       <div
         className={cn(
-          'group/tab flex h-full items-center pl-1 py-0.5 text-sm',
+          'group/tab flex h-full items-center gap-0.5 pl-1 py-0.5 text-sm',
           p?.headerClassName,
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}>
         {showIcon ? <FileIcon className={ICON_CLASS} name={api.title ?? ''} /> : null}
-        <span className={showIcon ? 'my-px ml-0.5' : 'mb-px'}>{api.title}</span>
+        {api.title}
         {closable ? (
           <X
             className='size-3.5 opacity-0 hover:cursor-pointer group-hover/tab:opacity-60'
