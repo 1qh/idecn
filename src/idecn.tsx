@@ -217,64 +217,67 @@ interface TreeDataItem {
   path: string
 }
 const renderItems = (items: TreeDataItem[], onItemClick?: (item: TreeDataItem) => void): ReactNode[] => {
-  const nodes: ReactNode[] = []
-  for (const item of items)
-    nodes.push(
-      item.children ? (
-        <TreeFolder
-          className={item.className}
-          disabled={item.disabled}
-          id={item.id}
-          key={item.id}
-          name={item.name}
-          path={item.path}>
-          {renderItems(item.children, onItemClick)}
-        </TreeFolder>
-      ) : (
-        <TreeFile
-          className={item.className}
-          disabled={item.disabled}
-          id={item.id}
-          key={item.id}
-          name={item.name}
-          onClick={() => {
-            item.onClick?.()
-            onItemClick?.(item)
-          }}
-          path={item.path}
-        />
+    const nodes: ReactNode[] = []
+    for (const item of items)
+      nodes.push(
+        item.children ? (
+          <TreeFolder
+            className={item.className}
+            disabled={item.disabled}
+            id={item.id}
+            key={item.id}
+            name={item.name}
+            path={item.path}>
+            {renderItems(item.children, onItemClick)}
+          </TreeFolder>
+        ) : (
+          <TreeFile
+            className={item.className}
+            disabled={item.disabled}
+            id={item.id}
+            key={item.id}
+            name={item.name}
+            onClick={() => {
+              item.onClick?.()
+              onItemClick?.(item)
+            }}
+            path={item.path}
+          />
+        )
       )
+    return nodes
+  },
+  FileTree = ({
+    className,
+    data,
+    initialSelectedItemId,
+    onSelectChange
+  }: {
+    className?: string
+    data: TreeDataItem | TreeDataItem[]
+    initialSelectedItemId?: string
+    onSelectChange?: (item: TreeDataItem | undefined) => void
+  }) => {
+    const items = Array.isArray(data) ? data : [data]
+    return (
+      <Tree className={className} selectedId={initialSelectedItemId}>
+        <div className='min-w-max'>{renderItems(items, onSelectChange)}</div>
+      </Tree>
     )
-  return nodes
-}
-interface FileTreeProps {
-  className?: string
-  data: TreeDataItem | TreeDataItem[]
-  initialSelectedItemId?: string
-  onSelectChange?: (item: TreeDataItem | undefined) => void
-}
-const FileTree = ({ className, data, initialSelectedItemId, onSelectChange }: FileTreeProps) => {
-  const items = Array.isArray(data) ? data : [data]
-  return (
-    <Tree className={className} selectedId={initialSelectedItemId}>
-      <div className='min-w-max'>{renderItems(items, onSelectChange)}</div>
-    </Tree>
-  )
-}
-interface TabProps {
-  activeClassName?: string
-  children: ReactNode
-  closable?: boolean
-  headerClassName?: string
-  icon?: boolean
-  id?: string
-  inactiveClassName?: string
-  onClose?: () => void
-  title: string
-}
-const TAB_TYPE = Symbol('idecn-tab'),
+  },
+  TAB_TYPE = Symbol('idecn-tab'),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Tab = (_props: TabProps): null => null
+  Tab = (_props: {
+    activeClassName?: string
+    children: ReactNode
+    closable?: boolean
+    headerClassName?: string
+    icon?: boolean
+    id?: string
+    inactiveClassName?: string
+    onClose?: () => void
+    title: string
+  }): null => null
 Tab._type = TAB_TYPE
 const monoFont = () =>
     typeof document === 'undefined'
@@ -403,17 +406,6 @@ const monoFont = () =>
       </div>
     )
   }
-interface WorkspaceProps {
-  children?: ReactNode
-  className?: string
-  initialFiles?: string[]
-  onFilesChange?: (files: string[]) => void
-  onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
-  ref?: React.Ref<WorkspaceRef>
-  renderLoading?: (item: TreeDataItem) => ReactNode
-  sidebarSize?: number | string
-  tree: TreeDataItem[]
-}
 interface WorkspaceRef {
   focusPanel: (id: string) => void
   openFile: (item: TreeDataItem) => void
@@ -489,7 +481,17 @@ const LANG: Record<string, string> = {
     renderLoading,
     sidebarSize = '250px',
     tree
-  }: WorkspaceProps) => {
+  }: {
+    children?: ReactNode
+    className?: string
+    initialFiles?: string[]
+    onFilesChange?: (files: string[]) => void
+    onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
+    ref?: React.Ref<WorkspaceRef>
+    renderLoading?: (item: TreeDataItem) => ReactNode
+    sidebarSize?: number | string
+    tree: TreeDataItem[]
+  }) => {
     const [mounted, setMounted] = useState(false),
       stateRef = useRef({
         api: null as DockviewApi | null,
@@ -674,5 +676,8 @@ const LANG: Record<string, string> = {
       </div>
     )
   }
+type FileTreeProps = React.ComponentProps<typeof FileTree>
+type TabProps = React.ComponentProps<typeof Tab>
+type WorkspaceProps = React.ComponentProps<typeof Workspace>
 export type { FileTreeProps, TabProps, TreeDataItem, WorkspaceProps, WorkspaceRef }
 export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }
