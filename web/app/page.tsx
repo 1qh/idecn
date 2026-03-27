@@ -83,7 +83,6 @@ const init = readHash(),
               .catch(() => null)
           }
           ref={ref}
-          sidebarSize='15%'
           tree={loading ? EMPTY_TREE : tree}
         />
       </div>
