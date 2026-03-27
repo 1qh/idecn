@@ -28,26 +28,13 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { twMerge } from 'tailwind-merge'
-interface IconManifest {
-  file: string
-  fileExtensions: Record<string, string>
-  fileNames: Record<string, string>
-  folder: string
-  folderExpanded: string
-  folderNames: Record<string, string>
-  folderNamesExpanded: Record<string, string>
-  languageIds: Record<string, string>
-}
-let manifest: IconManifest | null = null,
-  svgs: Record<string, string> = {}
-const iconsReady =
-    'location' in globalThis
-      ? import('./_generated/icons').then(mod => {
-          manifest = mod.icons.manifest as IconManifest
-          svgs = mod.icons.svgs as Record<string, string>
-        })
-      : Promise.resolve(),
-  cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
+// ── Constants ───────────────────────────────────────────────────────
+const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
+  ITEM_CLASS =
+    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
+  CENTER = 'flex h-full items-center justify-center',
+  EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
+  TAB_TYPE = Symbol('idecn-tab'),
   EXT_TO_LANG: Record<string, string> = {
     cjs: 'javascript',
     css: 'css',
@@ -70,41 +57,154 @@ const iconsReady =
     yaml: 'yaml',
     yml: 'yaml'
   },
-  getSvg = (name: string): string => svgs[name] || (manifest ? svgs[manifest.file] || '' : ''),
+  LANG: Record<string, string> = {
+    css: 'css',
+    go: 'go',
+    html: 'html',
+    js: 'javascript',
+    json: 'json',
+    jsx: 'javascript',
+    md: 'markdown',
+    mjs: 'javascript',
+    py: 'python',
+    rs: 'rust',
+    sh: 'shell',
+    sql: 'sql',
+    toml: 'toml',
+    ts: 'typescript',
+    tsx: 'typescript',
+    yaml: 'yaml',
+    yml: 'yaml'
+  },
+  RESET_CSS = [
+    '.dv-reset{',
+    '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
+    '--dv-activegroup-visiblepanel-tab-color:inherit;',
+    '--dv-activegroup-hiddenpanel-tab-background-color:transparent;',
+    '--dv-activegroup-hiddenpanel-tab-color:inherit;',
+    '--dv-inactivegroup-visiblepanel-tab-background-color:transparent;',
+    '--dv-inactivegroup-visiblepanel-tab-color:inherit;',
+    '--dv-inactivegroup-hiddenpanel-tab-background-color:transparent;',
+    '--dv-inactivegroup-hiddenpanel-tab-color:inherit;',
+    '--dv-tabs-and-actions-container-background-color:transparent;',
+    '--dv-tabs-and-actions-container-height:auto;',
+    '--dv-group-view-background-color:transparent;',
+    '--dv-separator-border:transparent;',
+    '--dv-tab-divider-color:transparent;',
+    '--dv-drag-over-background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5);',
+    '--dv-drag-over-border-color:hsl(var(--ring,240 5.9% 10%)/0.3);',
+    '--dv-tab-margin:0;',
+    '--dv-border-radius:0;',
+    '--dv-active-sash-color:transparent;',
+    '--dv-sash-color:transparent;',
+    '--dv-scrollbar-background-color:transparent;',
+    '}',
+    '.dv-reset .dv-tab{padding:0;background:transparent}',
+    '.dv-reset .dv-tabs-container{gap:0}',
+    '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
+    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
+    '.dv-reset .dv-tab:has([data-fill]){flex:1}',
+    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
+    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
+    '.dv-reset .monaco-editor .minimap{background-color:hsl(var(--background,0 0% 100%))}'
+  ].join('')
+// ── Utils ───────────────────────────────────────────────────────────
+let iconManifest: IconManifest | null = null,
+  iconSvgs: Record<string, string> = {},
+  cachedMonoFont: string | undefined
+const iconsReady =
+    'location' in globalThis
+      ? import('./_generated/icons').then(mod => {
+          iconManifest = mod.icons.manifest as IconManifest
+          iconSvgs = mod.icons.svgs as Record<string, string>
+        })
+      : Promise.resolve(),
+  shikiSetup =
+    'location' in globalThis
+      ? (async () => {
+          const mod = await import('./monokai-lite'),
+            highlighter = await createHighlighter({
+              langs: [
+                'css',
+                'go',
+                'html',
+                'javascript',
+                'json',
+                'jsx',
+                'markdown',
+                'python',
+                'rust',
+                'shell',
+                'sql',
+                'toml',
+                'tsx',
+                'typescript',
+                'yaml'
+              ],
+              themes: [mod.monokaiLite as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
+            }),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            monaco = await loader.init()
+          shikiToMonaco(highlighter, monaco)
+        })()
+      : null,
+  cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
+  getSvg = (name: string): string => iconSvgs[name] || (iconManifest ? iconSvgs[iconManifest.file] || '' : ''),
   resolveFileIcon = (filename: string): string => {
-    if (!manifest) return ''
+    if (!iconManifest) return ''
     const lower = filename.toLowerCase()
-    if (manifest.fileNames[lower]) return manifest.fileNames[lower]
+    if (iconManifest.fileNames[lower]) return iconManifest.fileNames[lower]
     const ext = lower.includes('.') ? lower.slice(lower.indexOf('.') + 1) : ''
-    if (ext && manifest.fileExtensions[ext]) return manifest.fileExtensions[ext]
+    if (ext && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
     const lastExt = lower.split('.').at(-1) ?? ''
-    if (lastExt && manifest.fileExtensions[lastExt]) return manifest.fileExtensions[lastExt]
+    if (lastExt && iconManifest.fileExtensions[lastExt]) return iconManifest.fileExtensions[lastExt]
     const lang = EXT_TO_LANG[lastExt]
-    if (lang && manifest.languageIds[lang]) return manifest.languageIds[lang]
-    return manifest.file
+    if (lang && iconManifest.languageIds[lang]) return iconManifest.languageIds[lang]
+    return iconManifest.file
   },
   resolveFolderIcon = (folderName: string, open: boolean): string => {
-    if (!manifest) return ''
+    if (!iconManifest) return ''
     const lower = folderName.toLowerCase()
-    if (open) return manifest.folderNamesExpanded[lower] ?? manifest.folderExpanded
-    return manifest.folderNames[lower] ?? manifest.folder
-  },
-  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
-    const [loaded, setLoaded] = useState(Boolean(manifest))
-    useEffect(() => {
-      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
-    }, [loaded])
-    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
-  },
-  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
-    const [loaded, setLoaded] = useState(Boolean(manifest))
-    useEffect(() => {
-      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
-    }, [loaded])
-    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
+    if (open) return iconManifest.folderNamesExpanded[lower] ?? iconManifest.folderExpanded
+    return iconManifest.folderNames[lower] ?? iconManifest.folder
   },
   getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
-  ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
+  langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext',
+  monoFont = (): string => {
+    if (cachedMonoFont !== undefined) return cachedMonoFont
+    if (typeof document === 'undefined') return ''
+    cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
+    return cachedMonoFont
+  },
+  compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
+    let current = item,
+      merged = item.name
+    while (current.children?.length === 1 && current.children[0].children) {
+      current = current.children[0]
+      merged += `/${current.name}`
+    }
+    return { children: current.children ?? [], name: merged }
+  },
+  extractTabs = (children: ReactNode): TabProps[] => {
+    const tabs: TabProps[] = []
+    Children.forEach(children, child => {
+      if (isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)
+        tabs.push(child.props as TabProps)
+    })
+    return tabs
+  },
+  getTabId = (tab: TabProps) => tab.id ?? tab.title
+// ── Types ───────────────────────────────────────────────────────────
+interface IconManifest {
+  file: string
+  fileExtensions: Record<string, string>
+  fileNames: Record<string, string>
+  folder: string
+  folderExpanded: string
+  folderNames: Record<string, string>
+  folderNamesExpanded: Record<string, string>
+  languageIds: Record<string, string>
+}
 interface TreeContextValue {
   expandDepth: number
   indent: number
@@ -112,6 +212,22 @@ interface TreeContextValue {
   selectedId: null | string
   setSelectedId: (id: string) => void
 }
+interface TreeDataItem {
+  actions?: ReactNode
+  children?: TreeDataItem[]
+  className?: string
+  disabled?: boolean
+  id: string
+  name: string
+  onClick?: () => void
+  path: string
+}
+interface WorkspaceRef {
+  focusPanel: (id: string) => void
+  openFile: (item: TreeDataItem) => void
+  toggleSidebar: () => void
+}
+// ── Components ──────────────────────────────────────────────────────
 const TreeContext = createContext<TreeContextValue>({
     expandDepth: 0,
     indent: 16,
@@ -119,9 +235,7 @@ const TreeContext = createContext<TreeContextValue>({
     setSelectedId: () => undefined
   }),
   DepthContext = createContext(0),
-  ITEM_CLASS =
-    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
-  useTreeItem = (id: string | undefined, name: string, path: string | undefined) => {
+  useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
     const { expandDepth, indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
       depth = use(DepthContext),
       itemId = id ?? path ?? name,
@@ -133,9 +247,22 @@ const TreeContext = createContext<TreeContextValue>({
       }
     return { depth, expandDepth, iconClass: cn(ICON_CLASS, 'group-hover:scale-125'), isSelected, itemId, pl, select }
   },
+  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
+    const [loaded, setLoaded] = useState(Boolean(iconManifest))
+    useEffect(() => {
+      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
+    }, [loaded])
+    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
+  },
+  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
+    const [loaded, setLoaded] = useState(Boolean(iconManifest))
+    useEffect(() => {
+      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
+    }, [loaded])
+    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
+  },
   Tree = ({
     children,
-    className,
     expandDepth = 0,
     indent = 16,
     onSelect,
@@ -155,7 +282,7 @@ const TreeContext = createContext<TreeContextValue>({
       )
     return (
       <TreeContext value={ctx}>
-        <nav aria-label='File tree' className={cn('select-none overflow-auto text-sm', className)} {...props}>
+        <nav aria-label='File tree' {...props} className={cn('select-none overflow-auto text-sm', props.className)}>
           {children}
         </nav>
       </TreeContext>
@@ -163,14 +290,14 @@ const TreeContext = createContext<TreeContextValue>({
   },
   TreeFolder = ({
     children,
-    className,
     defaultOpen = false,
     disabled,
     id,
     name,
-    path
+    path,
+    ...props
   }: {
-    children?: React.ReactNode
+    children?: ReactNode
     className?: string
     defaultOpen?: boolean
     disabled?: boolean
@@ -178,15 +305,20 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { depth, expandDepth: expDepth, iconClass, isSelected, itemId, pl, select } = useTreeItem(id, name, path),
-      shouldOpen = defaultOpen || depth < expDepth,
+    const { depth, expandDepth, iconClass, isSelected, itemId, pl, select } = useTreeItem({ id, name, path }),
+      shouldOpen = defaultOpen || depth < expandDepth,
       [open, setOpen] = useState(shouldOpen ? [itemId] : []),
       isOpen = open.includes(itemId)
     return (
       <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
         <Accordion.Item value={itemId}>
           <Accordion.Trigger
-            className={cn(ITEM_CLASS, isSelected && 'bg-accent', disabled && 'pointer-events-none opacity-50', className)}
+            className={cn(
+              ITEM_CLASS,
+              isSelected && 'bg-accent',
+              disabled && 'pointer-events-none opacity-50',
+              props.className
+            )}
             onClick={select}
             style={{ paddingLeft: pl }}>
             <FolderIcon className={iconClass} name={name} open={isOpen} />
@@ -200,51 +332,32 @@ const TreeContext = createContext<TreeContextValue>({
     )
   },
   TreeFile = ({
-    className,
     disabled,
     id,
     name,
     path,
     ...props
-  }: Omit<ComponentProps<'button'>, 'id'> & {
-    disabled?: boolean
-    id?: string
-    name: string
-    path?: string
-  }) => {
-    const { iconClass, isSelected, pl, select } = useTreeItem(id, name, path)
+  }: Omit<ComponentProps<'button'>, 'id'> & { disabled?: boolean; id?: string; name: string; path?: string }) => {
+    const { iconClass, isSelected, pl, select } = useTreeItem({ id, name, path })
     return (
       <button
-        className={cn(ITEM_CLASS, isSelected && 'bg-accent', disabled && 'pointer-events-none opacity-50', className)}
-        onClick={() => {
-          if (!disabled) select()
-        }}
-        style={{ paddingLeft: pl }}
         type='button'
-        {...props}>
+        {...props}
+        className={cn(
+          ITEM_CLASS,
+          isSelected && 'bg-accent',
+          disabled && 'pointer-events-none opacity-50',
+          props.className
+        )}
+        onClick={e => {
+          if (!disabled) select()
+          props.onClick?.(e)
+        }}
+        style={{ paddingLeft: pl, ...props.style }}>
         <FileIcon className={iconClass} name={name} />
         {name}
       </button>
     )
-  }
-interface TreeDataItem {
-  actions?: ReactNode
-  children?: TreeDataItem[]
-  className?: string
-  disabled?: boolean
-  id: string
-  name: string
-  onClick?: () => void
-  path: string
-}
-const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
-    let current = item,
-      merged = item.name
-    while (current.children?.length === 1 && current.children[0].children) {
-      current = current.children[0]
-      merged += `/${current.name}`
-    }
-    return { children: current.children ?? [], name: merged }
   },
   renderItems = ({
     items,
@@ -258,20 +371,13 @@ const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: st
       if (item.children) {
         const { children, name } = compactFolder(item)
         nodes.push(
-          <TreeFolder
-            className={item.className}
-            disabled={item.disabled}
-            id={item.id}
-            key={item.id}
-            name={name}
-            path={item.path}>
+          <TreeFolder disabled={item.disabled} id={item.id} key={item.id} name={name} path={item.path}>
             {renderItems({ items: children, onItemClick })}
           </TreeFolder>
         )
       } else
         nodes.push(
           <TreeFile
-            className={item.className}
             disabled={item.disabled}
             id={item.id}
             key={item.id}
@@ -305,7 +411,6 @@ const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: st
       </Tree>
     )
   },
-  TAB_TYPE = Symbol('idecn-tab'),
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Tab = (_props: {
     activeClassName?: string
@@ -319,45 +424,7 @@ const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: st
     title: string
   }): null => null
 Tab._type = TAB_TYPE
-let cachedMonoFont: string | undefined
-const monoFont = () => {
-    if (cachedMonoFont !== undefined) return cachedMonoFont
-    if (typeof document === 'undefined') return ''
-    cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
-    return cachedMonoFont
-  },
-  shikiSetup =
-    'location' in globalThis
-      ? (async () => {
-          const mod = await import('./monokai-lite'),
-            highlighter = await createHighlighter({
-              langs: [
-                'css',
-                'go',
-                'html',
-                'javascript',
-                'json',
-                'jsx',
-                'markdown',
-                'python',
-                'rust',
-                'shell',
-                'sql',
-                'toml',
-                'tsx',
-                'typescript',
-                'yaml'
-              ],
-              themes: [mod.monokaiLite as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
-            }),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            monaco = await loader.init()
-          shikiToMonaco(highlighter, monaco)
-        })()
-      : null,
-  CENTER = 'flex h-full items-center justify-center',
-  EDITOR_OPTIONS = { readOnly: true, scrollBeyondLastLine: false } as const,
-  ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
+const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
     const [content, setContent] = useState(params.content)
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
@@ -462,75 +529,9 @@ const monoFont = () => {
         ) : null}
       </div>
     )
-  }
-interface WorkspaceRef {
-  focusPanel: (id: string) => void
-  openFile: (item: TreeDataItem) => void
-  toggleSidebar: () => void
-}
-const LANG: Record<string, string> = {
-    css: 'css',
-    go: 'go',
-    html: 'html',
-    js: 'javascript',
-    json: 'json',
-    jsx: 'javascript',
-    md: 'markdown',
-    mjs: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    sh: 'shell',
-    sql: 'sql',
-    toml: 'toml',
-    ts: 'typescript',
-    tsx: 'typescript',
-    yaml: 'yaml',
-    yml: 'yaml'
   },
-  langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext',
-  RESET_CSS = [
-    '.dv-reset{',
-    '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
-    '--dv-activegroup-visiblepanel-tab-color:inherit;',
-    '--dv-activegroup-hiddenpanel-tab-background-color:transparent;',
-    '--dv-activegroup-hiddenpanel-tab-color:inherit;',
-    '--dv-inactivegroup-visiblepanel-tab-background-color:transparent;',
-    '--dv-inactivegroup-visiblepanel-tab-color:inherit;',
-    '--dv-inactivegroup-hiddenpanel-tab-background-color:transparent;',
-    '--dv-inactivegroup-hiddenpanel-tab-color:inherit;',
-    '--dv-tabs-and-actions-container-background-color:transparent;',
-    '--dv-tabs-and-actions-container-height:auto;',
-    '--dv-group-view-background-color:transparent;',
-    '--dv-separator-border:transparent;',
-    '--dv-tab-divider-color:transparent;',
-    '--dv-drag-over-background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5);',
-    '--dv-drag-over-border-color:hsl(var(--ring,240 5.9% 10%)/0.3);',
-    '--dv-tab-margin:0;',
-    '--dv-border-radius:0;',
-    '--dv-active-sash-color:transparent;',
-    '--dv-sash-color:transparent;',
-    '--dv-scrollbar-background-color:transparent;',
-    '}',
-    '.dv-reset .dv-tab{padding:0;background:transparent}',
-    '.dv-reset .dv-tabs-container{gap:0}',
-    '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
-    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
-    '.dv-reset .dv-tab:has([data-fill]){flex:1}',
-    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5)!important;border:none!important}',
-    '.dv-reset .monaco-editor .minimap{background-color:hsl(var(--background,0 0% 100%))}'
-  ].join(''),
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
   TAB_COMPONENTS = { default: TabHeader },
-  extractTabs = (children: ReactNode): TabProps[] => {
-    const tabs: TabProps[] = []
-    Children.forEach(children, child => {
-      if (isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)
-        tabs.push(child.props as TabProps)
-    })
-    return tabs
-  },
-  getTabId = (tab: TabProps) => tab.id ?? tab.title,
   Workspace = ({
     children,
     defaultSidebar = true,
@@ -732,10 +733,7 @@ const LANG: Record<string, string> = {
       stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
       for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
       if (initialFiles) {
-        for (const path of initialFiles) {
-          const name = path.split('/').at(-1) ?? path
-          openFile({ id: path, name, path })
-        }
+        for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
         const first = event.api.panels.find(p => p.id === initialFiles[0])
         if (first) first.focus()
       }
@@ -796,6 +794,7 @@ const LANG: Record<string, string> = {
       </Group>
     )
   }
+// ── Exports ─────────────────────────────────────────────────────────
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
