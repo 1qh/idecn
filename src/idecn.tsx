@@ -28,7 +28,7 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { twMerge } from 'tailwind-merge'
-import iconsData from './_generated/icons.json' with { type: 'json' }
+import { icons as iconsData } from './_generated/icons'
 const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
   { manifest: manifestData, svgs: svgData } = iconsData,
   manifest = manifestData as {

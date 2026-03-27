@@ -8,8 +8,8 @@ const root = resolve(import.meta.dir, '..'),
 mkdirSync(outDir, { recursive: true })
 let content = await read('src/idecn.tsx')
 content = content
-  .replaceAll("from './_generated/icons.json'", "from '@/lib/icons.json'")
-  .replaceAll("'./monokai-lite'", "'@/lib/monokai-lite.json'")
+  .replaceAll("from './_generated/icons'", "from '@/lib/icons'")
+  .replaceAll("'./monokai-lite'", "'@/lib/monokai-lite'")
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
@@ -28,8 +28,8 @@ await write(
       description: 'Full IDE layout with file tree, tabbed editor, and async file loading.',
       files: [
         { content, path: 'components/ui/idecn.tsx', type: 'registry:component' },
-        { content: await read('src/_generated/icons.json'), path: 'lib/icons.json', type: 'registry:lib' },
-        { content: await read('src/monokai-lite.ts'), path: 'lib/monokai-lite.json', type: 'registry:lib' }
+        { content: await read('src/_generated/icons.ts'), path: 'lib/icons.ts', type: 'registry:lib' },
+        { content: await read('src/monokai-lite.ts'), path: 'lib/monokai-lite.ts', type: 'registry:lib' }
       ],
       name: 'idecn',
       registryDependencies: [],

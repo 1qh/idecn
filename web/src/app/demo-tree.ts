@@ -26,8 +26,6 @@ const DEMO_TREE = [
   { path: 'web/playwright.config.ts', type: 'blob' as const },
   { path: 'web/postcss.config.mjs', type: 'blob' as const },
   { path: 'web/public', type: 'tree' as const },
-  { path: 'web/public/r', type: 'tree' as const },
-  { path: 'web/public/r/idecn.json', type: 'blob' as const },
   { path: 'web/src', type: 'tree' as const },
   { path: 'web/src/app', type: 'tree' as const },
   { path: 'web/src/app/constants.ts', type: 'blob' as const },
