@@ -9,7 +9,7 @@ mkdirSync(outDir, { recursive: true })
 let content = await read('src/idecn.tsx')
 content = content
   .replaceAll("from './_generated/icons.json'", "from '@/lib/icons.json'")
-  .replaceAll("'./monokai-lite.json'", "'@/lib/monokai-lite.json'")
+  .replaceAll("'./monokai-lite'", "'@/lib/monokai-lite.json'")
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
@@ -29,7 +29,7 @@ await write(
       files: [
         { content, path: 'components/ui/idecn.tsx', type: 'registry:component' },
         { content: await read('src/_generated/icons.json'), path: 'lib/icons.json', type: 'registry:lib' },
-        { content: await read('src/monokai-lite.json'), path: 'lib/monokai-lite.json', type: 'registry:lib' }
+        { content: await read('src/monokai-lite.ts'), path: 'lib/monokai-lite.json', type: 'registry:lib' }
       ],
       name: 'idecn',
       registryDependencies: [],

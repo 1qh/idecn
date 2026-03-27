@@ -290,7 +290,7 @@ const monoFont = () => {
   shikiSetup =
     'location' in globalThis
       ? (async () => {
-          const mod = await import('./monokai-lite.json'),
+          const mod = await import('./monokai-lite'),
             highlighter = await createHighlighter({
               langs: [
                 'css',
@@ -309,7 +309,7 @@ const monoFont = () => {
                 'typescript',
                 'yaml'
               ],
-              themes: [mod.default as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
+              themes: [mod.monokaiLite as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
             }),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
