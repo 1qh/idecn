@@ -60,7 +60,6 @@ import {
   ContextMenuTrigger
 } from './ui/context-menu'
 import { Skeleton } from './ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
   ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
@@ -1498,27 +1497,21 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         <div className='flex h-full flex-col'>
           <div className='flex items-center justify-between px-3 py-1.5'>
             <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className='text-muted-foreground hover:text-foreground transition-colors'
-                    onClick={() => {
-                      log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
-                      setTreeCollapsed(c => !c)
-                      setTreeKey(k => k + 1)
-                    }}
-                    type='button'>
-                    {treeCollapsed ? (
-                      <ChevronRight className='stroke-1 size-4' />
-                    ) : (
-                      <ChevronsDownUp className='stroke-1 size-4' />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{treeCollapsed ? 'Expand All' : 'Collapse All'}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <button
+              className='text-muted-foreground hover:text-foreground transition-colors'
+              onClick={() => {
+                log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
+                setTreeCollapsed(c => !c)
+                setTreeKey(k => k + 1)
+              }}
+              title={treeCollapsed ? 'Expand All' : 'Collapse All'}
+              type='button'>
+              {treeCollapsed ? (
+                <ChevronRight className='stroke-1 size-4' />
+              ) : (
+                <ChevronsDownUp className='stroke-1 size-4' />
+              )}
+            </button>
           </div>
           <FileTree
             className='min-h-0 flex-1 overflow-auto'
