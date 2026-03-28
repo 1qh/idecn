@@ -1504,10 +1504,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                   <button
                     className='text-muted-foreground hover:text-foreground transition-colors'
                     onClick={() => {
-                      setTreeCollapsed(c => {
-                        log(c ? 'Tree expanded all' : 'Tree collapsed all')
-                        return !c
-                      })
+                      log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
+                      setTreeCollapsed(c => !c)
                       setTreeKey(k => k + 1)
                     }}
                     type='button'>
