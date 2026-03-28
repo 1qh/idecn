@@ -1,6 +1,7 @@
 {
   "extends": "lintmax/tsconfig",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "types": ["bun-types"]
   },
   "include": ["src", "scripts", "lintmax.config.ts"]
