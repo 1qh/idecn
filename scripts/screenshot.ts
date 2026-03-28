@@ -2,10 +2,11 @@
 /** biome-ignore-all lint/nursery/noPlaywrightWaitForTimeout: screenshot script */
 /* eslint-disable no-console */
 import { chromium } from '@playwright/test'
+import { env } from 'bun'
 import { resolve } from 'node:path'
 const browser = await chromium.launch(),
   page = await browser.newPage({ viewport: { height: 1800, width: 2400 } })
-await page.goto(Bun.env.URL ?? 'http://localhost:3000')
+await page.goto(env.URL ?? 'http://localhost:3000')
 await page.evaluate(() => {
   document.documentElement.style.zoom = '2'
 })
