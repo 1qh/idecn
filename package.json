@@ -1,6 +1,6 @@
 {
   "name": "idecn",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "private": false,
   "description": "IDE-like workspace and file tree components for React with material icons",
   "keywords": [
@@ -32,14 +32,14 @@
     "web"
   ],
   "scripts": {
-    "build": "rm -rf dist && bun run gen && bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react && cd web && bun run build",
+    "build": "rm -rf dist && bun run gen && bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys && cd web && bun run build",
     "check": "lintmax check",
     "ci": "bun i && bun run gen && bun run check && bun run build && bun run test:registry",
     "clean": "rm -rf node_modules bun.lock dist src/_generated web/public/r .cache .next .turbo web/node_modules web/.next test-results",
     "dev": "cd web && bun run dev",
     "fix": "lintmax fix && bun run build",
     "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
-    "prepublishOnly": "bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react",
+    "prepublishOnly": "bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys",
     "publish:git": "bash scripts/publish.sh",
     "screenshot": "cd web && bun ../scripts/screenshot.ts",
     "test": "bun run check && bun run build && bun run test:registry",
@@ -50,6 +50,7 @@
     "@monaco-editor/react": "latest",
     "@shikijs/monaco": "latest",
     "@tailwindcss/typography": "latest",
+    "@tanstack/react-hotkeys": "latest",
     "clsx": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
