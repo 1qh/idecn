@@ -957,7 +957,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     const setOpen = useSetAtom(quickOpenAtom),
       flatFiles = useMemo(() => flattenTree(tree), [tree])
     return (
-      <CommandDialog onOpenChange={setOpen} open={open}>
+      <CommandDialog
+        onOpenChange={v => {
+          setOpen(v)
+          if (!v) logFn('Quick open closed')
+        }}
+        open={open}>
         <CommandInput placeholder='Search files...' />
         <CommandList>
           <CommandEmpty>No files found</CommandEmpty>
@@ -1034,7 +1039,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [fontSizeDelta, setFontSizeDelta] = useState(0),
       log = useCallback(
         (msg: string) => {
-          activityLog?.(`[${new Date().toLocaleTimeString()}] ${msg}\n`)
+          activityLog?.(msg)
         },
         [activityLog]
       ),
@@ -1316,21 +1321,30 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               title: deduplicateTitle(item.name, item.path, api.panels)
             }),
             result = onOpen(item)
-          if (result === null) return
-          if (typeof result === 'string') added.api.updateParameters({ content: result, loading: undefined })
-          else {
+          if (result === null) {
+            log(`Load returned null: ${item.path}`)
+            return
+          }
+          if (typeof result === 'string') {
+            added.api.updateParameters({ content: result, loading: undefined })
+            log(`Loaded: ${item.path} (${String(result.length)} chars)`)
+          } else {
             const panelPath = item.path
             result
               .then(fileContent => {
                 try {
                   const p = api.panels.find(x => x.id === panelPath)
                   if (!p) return
-                  if (fileContent === null) api.removePanel(p)
-                  else
+                  if (fileContent === null) {
+                    api.removePanel(p)
+                    log(`Load failed: ${panelPath}`)
+                  } else {
                     p.api.updateParameters({
                       content: fileContent,
                       loading: undefined
                     })
+                    log(`Loaded: ${panelPath} (${String(fileContent.length)} chars)`)
+                  }
                 } catch {
                   /* Panel already removed */
                 }
@@ -1339,6 +1353,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                 try {
                   const p = api.panels.find(x => x.id === panelPath)
                   if (p) api.removePanel(p)
+                  log(`Load error: ${panelPath}`)
                 } catch {
                   /* Panel already removed */
                 }
@@ -1392,12 +1407,20 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         for (const tab of tabs) addTab(tab)
         stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
         for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
-        if (filesRef.current) for (const f of filesRef.current) if (f.open) openVirtualFile(f)
+        if (filesRef.current)
+          for (const f of filesRef.current)
+            if (f.open) {
+              openVirtualFile(f)
+              log(`Virtual file: ${f.name}`)
+            }
+
         if (initialFiles) {
+          log(`Initial files: ${initialFiles.join(', ')}`)
           for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
           const first = event.api.panels.find(p => p.id === initialFiles[0])
           if (first) first.focus()
         }
+        log('Workspace ready')
         const notifyFiles = () => {
           if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
         }
@@ -1479,10 +1502,17 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             key={treeKey}
             onDoubleClick={item => {
               if (item.children) return
-              if (!item.id.startsWith(VIRTUAL_PREFIX)) pinFile(item)
+              if (!item.id.startsWith(VIRTUAL_PREFIX)) {
+                pinFile(item)
+                log(`Double-click pinned: ${item.name}`)
+              }
             }}
             onSelectChange={item => {
-              if (!item || item.children) return
+              if (!item) return
+              if (item.children) {
+                log(`Folder: ${item.name}`)
+                return
+              }
               if (item.id.startsWith(VIRTUAL_PREFIX)) {
                 const vf = files?.find(f => virtualFileId(f.name) === item.id)
                 if (vf) openVirtualFile(vf)
