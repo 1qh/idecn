@@ -685,7 +685,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     loading?: ReactNode
     theme?: string | { dark: string; light: string }
   }>) => {
-    const [content, setContent] = useState(params.content),
+    const editorRef = useRef<null | { revealLine: (line: number) => void }>(null),
+      isVirtual = api.id.startsWith(VIRTUAL_PREFIX),
+      [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
       [loadingState, setLoadingState] = useState(params.loading),
       [editorOpts, setEditorOpts] = useState(params.editorOptions),
@@ -711,6 +713,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         if (p.content !== undefined) {
           setContent(p.content)
           setLoadingState(undefined)
+          if (isVirtual)
+            requestAnimationFrame(() => {
+              const lineCount = (p.content ?? '').split('\n').length
+              editorRef.current?.revealLine(lineCount)
+            })
         }
         if (p.language !== undefined) setLanguage(p.language)
         if (p.loading !== undefined) setLoadingState(p.loading)
@@ -719,7 +726,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       return () => {
         d.dispose()
       }
-    }, [api])
+    }, [api, isVirtual])
     const setCursor = useSetAtom(cursorAtom),
       setFileInfo = useSetAtom(activeFileInfoAtom)
     useEffect(() => {
@@ -745,22 +752,27 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       <div className='flex h-full flex-col'>
         <Breadcrumb className='border-b border-border px-3 py-1'>
           <BreadcrumbList className='flex-nowrap gap-1 text-xs sm:gap-1'>
-            {pathParts.map((part, i) => (
-              <BreadcrumbItem key={part}>
-                {i > 0 ? <BreadcrumbSeparator /> : null}
-                {i === pathParts.length - 1 ? (
-                  <BreadcrumbPage>{part}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink className='cursor-default'>{part}</BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            ))}
+            {pathParts.flatMap((part, i) => {
+              const items: ReactNode[] = []
+              if (i > 0) items.push(<BreadcrumbSeparator key={`sep-${part}`} />)
+              items.push(
+                <BreadcrumbItem key={part}>
+                  {i === pathParts.length - 1 ? (
+                    <BreadcrumbPage>{part}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink className='cursor-default'>{part}</BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              )
+              return items
+            })}
           </BreadcrumbList>
         </Breadcrumb>
         <Editor
           className='flex-1'
           language={language}
           onMount={editor => {
+            editorRef.current = editor
             const update = () => {
               const pos = editor.getPosition()
               if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
