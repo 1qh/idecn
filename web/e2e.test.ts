@@ -59,7 +59,9 @@ test.describe('idecn demo', () => {
     await input.fill('vercel/next.js')
     await input.press('Enter')
     await page.waitForSelector('text=Loading...', { timeout: 3000 })
-    await page.waitForSelector('nav[aria-label="File tree"] button', { timeout: 15_000 })
+    await page.waitForSelector('nav[aria-label="File tree"] button', {
+      timeout: 15_000
+    })
     expect(await page.locator('nav[aria-label="File tree"] button').count()).toBeGreaterThan(0)
   })
   test('tab close button works', async ({ page }) => {

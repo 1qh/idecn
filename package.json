@@ -49,13 +49,15 @@
     "@base-ui/react": "latest",
     "@monaco-editor/react": "latest",
     "@shikijs/monaco": "latest",
+    "@tailwindcss/typography": "latest",
     "clsx": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
     "lucide-react": "latest",
     "react-resizable-panels": "latest",
     "shiki": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "tw-animate-css": "latest"
   },
   "devDependencies": {
     "@playwright/test": "latest",

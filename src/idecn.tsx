@@ -4,9 +4,10 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
+import type { EditorProps } from '@monaco-editor/react'
 import type { ClassValue } from 'clsx'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
-import type { ComponentProps, ReactNode, Ref } from 'react'
+import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
@@ -34,16 +35,25 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ITEM_CLASS =
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
   CENTER = 'flex h-full items-center justify-center',
-  EDITOR_OPTIONS = {
+  EDITOR_OPTIONS: NonNullable<EditorProps['options']> = {
     cursorWidth: 5,
     fontSize: 16,
     letterSpacing: -0.8,
     lineHeight: 1.1,
-    minimap: { maxColumn: 69, renderCharacters: false, scale: 2, showSlider: 'always' as const },
+    minimap: {
+      maxColumn: 69,
+      renderCharacters: false,
+      scale: 2,
+      showSlider: 'always'
+    },
     readOnly: true,
     scrollBeyondLastLine: false,
-    scrollbar: { horizontal: 'hidden' as const, horizontalScrollbarSize: 1, verticalScrollbarSize: 0 }
-  } as const,
+    scrollbar: {
+      horizontal: 'hidden',
+      horizontalScrollbarSize: 1,
+      verticalScrollbarSize: 0
+    }
+  },
   TAB_TYPE = Symbol('idecn-tab'),
   EXT_TO_LANG: Record<string, string> = {
     cjs: 'javascript',
@@ -101,8 +111,8 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '--dv-group-view-background-color:transparent;',
     '--dv-separator-border:transparent;',
     '--dv-tab-divider-color:transparent;',
-    '--dv-drag-over-background-color:hsl(var(--accent,240 4.8% 95.9%)/0.5);',
-    '--dv-drag-over-border-color:hsl(var(--ring,240 5.9% 10%)/0.3);',
+    '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
+    '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
     '--dv-tab-margin:0;',
     '--dv-border-radius:0;',
     '--dv-active-sash-color:transparent;',
@@ -112,7 +122,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tab{padding:0;background:transparent}',
     '.dv-reset .dv-tabs-container{gap:0}',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
-    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:hsl(var(--muted,240 4.8% 95.9%))!important}',
+    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:var(--color-muted,var(--muted))!important}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}'
@@ -122,9 +132,9 @@ let iconManifest: IconManifest | null = null,
   cachedMonoFont: string | undefined
 const iconsReady =
     'location' in globalThis
-      ? import('./_generated/icons').then(mod => {
-          iconManifest = mod.icons.manifest as IconManifest
-          iconSvgs = mod.icons.svgs as Record<string, string>
+      ? import('./_generated/icons').then((mod: { icons: { manifest: IconManifest; svgs: Record<string, string> } }) => {
+          iconManifest = mod.icons.manifest
+          iconSvgs = mod.icons.svgs
         })
       : Promise.resolve(),
   shikiSetup =
@@ -155,10 +165,14 @@ const iconsReady =
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
-          const m = monaco as { editor: { defineTheme: (name: string, data: unknown) => void } }
+          const m = monaco as {
+            editor: { defineTheme: (name: string, data: unknown) => void }
+          }
           for (const name of highlighter.getLoadedThemes()) {
             const resolved = highlighter.getTheme(name),
-              converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
+              converted = textmateThemeToMonacoTheme(resolved) as {
+                colors: Record<string, string>
+              },
               isDark = resolved.type === 'dark'
             if (isDark) {
               converted.colors['editor.background'] = '#00000077'
@@ -178,7 +192,7 @@ const iconsReady =
         })()
       : null,
   cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
-  getSvg = (name: string): string => iconSvgs[name] || (iconManifest ? iconSvgs[iconManifest.file] || '' : ''),
+  getSvg = (name: string): string => iconSvgs[name] ?? (iconManifest ? (iconSvgs[iconManifest.file] ?? '') : ''),
   resolveFileIcon = (filename: string): string => {
     if (!iconManifest) return ''
     const lower = filename.toLowerCase()
@@ -233,6 +247,27 @@ interface IconManifest {
   folderNamesExpanded: Record<string, string>
   languageIds: Record<string, string>
 }
+interface PanelPosition {
+  direction: 'above' | 'below' | 'left' | 'right' | 'within'
+  referenceGroup: string
+}
+interface VirtualFile {
+  content: string
+  icon?: ComponentType<{ className?: string }>
+  language?: string
+  name: string
+  open?: boolean
+  pin?: 'bottom' | 'top'
+}
+const VIRTUAL_PREFIX = '__virtual:',
+  resolveLanguageIcon = (language: string): string => {
+    if (!iconManifest) return ''
+    if (iconManifest.languageIds[language]) return iconManifest.languageIds[language]
+    for (const [ext, lang] of Object.entries(EXT_TO_LANG))
+      if (lang === language && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
+    return iconManifest.file
+  },
+  virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
 interface TreeContextValue {
   expandDepth: number
   indent: number
@@ -245,6 +280,7 @@ interface TreeDataItem {
   children?: TreeDataItem[]
   className?: string
   disabled?: boolean
+  icon?: ComponentType<{ className?: string }> | string
   id: string
   name: string
   onClick?: () => void
@@ -272,7 +308,15 @@ const TreeContext = createContext<TreeContextValue>({
         setSelectedId(itemId)
         onSelect?.({ id: itemId, name, path: path ?? name })
       }
-    return { depth, expandDepth, iconClass: ICON_CLASS_HOVER, isSelected, itemId, pl, select }
+    return {
+      depth,
+      expandDepth,
+      iconClass: ICON_CLASS_HOVER,
+      isSelected,
+      itemId,
+      pl,
+      select
+    }
   },
   useIconsReady = () => {
     const [loaded, setLoaded] = useState(Boolean(iconManifest))
@@ -286,7 +330,14 @@ const TreeContext = createContext<TreeContextValue>({
   },
   FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
     useIconsReady()
-    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFolderIcon(name, open ?? false)) }} {...props} />
+    return (
+      <span
+        dangerouslySetInnerHTML={{
+          __html: getSvg(resolveFolderIcon(name, open ?? false))
+        }}
+        {...props}
+      />
+    )
   },
   Tree = ({
     children,
@@ -304,7 +355,13 @@ const TreeContext = createContext<TreeContextValue>({
     const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null),
       selectedId = controlledSelectedId ?? internalSelectedId,
       ctx = useMemo(
-        () => ({ expandDepth, indent, onSelect, selectedId, setSelectedId: setInternalSelectedId }),
+        () => ({
+          expandDepth,
+          indent,
+          onSelect,
+          selectedId,
+          setSelectedId: setInternalSelectedId
+        }),
         [expandDepth, indent, onSelect, selectedId]
       )
     return (
@@ -360,12 +417,25 @@ const TreeContext = createContext<TreeContextValue>({
   },
   TreeFile = ({
     disabled,
+    icon,
     id,
     name,
     path,
     ...props
-  }: Omit<ComponentProps<'button'>, 'id'> & { disabled?: boolean; id?: string; name: string; path?: string }) => {
-    const { iconClass, isSelected, pl, select } = useTreeItem({ id, name, path })
+  }: Omit<ComponentProps<'button'>, 'id'> & {
+    disabled?: boolean
+    icon?: ComponentType<{ className?: string }> | string
+    id?: string
+    name: string
+    path?: string
+  }) => {
+    const { iconClass, isSelected, pl, select } = useTreeItem({
+        id,
+        name,
+        path
+      }),
+      CustomIcon = typeof icon === 'function' ? icon : undefined
+    useIconsReady()
     return (
       <button
         type='button'
@@ -381,7 +451,13 @@ const TreeContext = createContext<TreeContextValue>({
           props.onClick?.(e)
         }}
         style={{ paddingLeft: pl, ...props.style }}>
-        <FileIcon className={iconClass} name={name} />
+        {CustomIcon ? (
+          <CustomIcon className={iconClass} />
+        ) : typeof icon === 'string' ? (
+          <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
+        ) : (
+          <FileIcon className={iconClass} name={name} />
+        )}
         {name}
       </button>
     )
@@ -406,6 +482,7 @@ const TreeContext = createContext<TreeContextValue>({
         nodes.push(
           <TreeFile
             disabled={item.disabled}
+            icon={item.icon}
             id={item.id}
             key={item.id}
             name={item.name}
@@ -482,12 +559,19 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useEffect(() => {
       if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
       const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
-      observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
+      observer.observe(document.documentElement, {
+        attributeFilter: ['class'],
+        attributes: true
+      })
       return () => observer.disconnect()
     }, [])
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
-        const p = e as { content?: string; language?: string; loading?: ReactNode }
+        const p = e as {
+          content?: string
+          language?: string
+          loading?: ReactNode
+        }
         if (p.content !== undefined) {
           setContent(p.content)
           setLoadingState(undefined)
@@ -504,7 +588,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     return (
       <Editor
         language={language}
-        options={{ ...EDITOR_OPTIONS, fontFamily: monoFont() || undefined, ...params.editorOptions }}
+        options={{
+          ...EDITOR_OPTIONS,
+          fontFamily: monoFont() || undefined,
+          ...params.editorOptions
+        }}
         theme={
           typeof params.theme === 'string'
             ? params.theme
@@ -524,6 +612,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             closable?: boolean
             headerClassName?: string
             icon?: boolean
+            iconName?: string
             inactiveClassName?: string
           },
       showIcon = p?.icon !== false,
@@ -538,12 +627,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     return (
       <div
         className={cn(
-          'group/tab flex h-full items-center gap-[3px] pl-1 py-0.5 text-sm',
+          'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
           p?.headerClassName,
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}>
-        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={api.title ?? ''} /> : null}
+        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
         {api.title}
         {closable ? (
           <X
@@ -564,6 +653,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     defaultSidebar = true,
     editorOptions,
     expandDepth = 0,
+    files,
     initialFiles,
     onFilesChange,
     onOpenFile,
@@ -580,6 +670,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     defaultSidebar?: boolean
     editorOptions?: Record<string, unknown>
     expandDepth?: number
+    files?: VirtualFile[]
     initialFiles?: string[]
     onFilesChange?: (files: string[]) => void
     onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
@@ -612,13 +703,15 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       onOpenFileRef = useRef(onOpenFile),
       renderLoadingRef = useRef(renderLoading),
       editorOptionsRef = useRef(editorOptions),
-      themeRef = useRef(theme)
+      themeRef = useRef(theme),
+      filesRef = useRef(files)
     useEffect(() => {
       onFilesChangeRef.current = onFilesChange
       onOpenFileRef.current = onOpenFile
       renderLoadingRef.current = renderLoading
       editorOptionsRef.current = editorOptions
       themeRef.current = theme
+      filesRef.current = files
     })
     useEffect(() => {
       setMounted(true)
@@ -676,6 +769,40 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           title: tab.title
         })
       }, []),
+      openVirtualFile = useCallback((file: VirtualFile) => {
+        const { api } = stateRef.current
+        if (!api) return
+        const id = virtualFileId(file.name),
+          existing = api.panels.find(p => p.id === id)
+        if (existing) {
+          existing.focus()
+          return
+        }
+        const existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
+          position: PanelPosition | undefined = existingFile
+            ? {
+                direction: 'within',
+                referenceGroup: existingFile.group.id
+              }
+            : undefined
+        stateRef.current.fileIds.add(id)
+        const lang = file.language ?? langOf(file.name),
+          iconName = file.language ? `file.${file.language}` : file.name
+        api.addPanel({
+          component: 'file',
+          id,
+          params: {
+            content: file.content,
+            editorOptions: editorOptionsRef.current,
+            iconName,
+            language: lang,
+            theme: themeRef.current
+          },
+          position,
+          tabComponent: 'default',
+          title: file.name
+        })
+      }, []),
       openFile = useCallback((item: TreeDataItem) => {
         const { api } = stateRef.current,
           onOpen = onOpenFileRef.current
@@ -692,7 +819,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
           ),
           existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
-          position = existingFile ? { direction: 'within' as const, referenceGroup: existingFile.group.id } : undefined
+          position: PanelPosition | undefined = existingFile
+            ? {
+                direction: 'within',
+                referenceGroup: existingFile.group.id
+              }
+            : undefined
         stateRef.current.fileIds.add(item.path)
         const added = api.addPanel({
             component: 'file',
@@ -719,7 +851,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                 const p = api.panels.find(x => x.id === panelPath)
                 if (!p) return
                 if (fileContent === null) api.removePanel(p)
-                else p.api.updateParameters({ content: fileContent, loading: undefined })
+                else
+                  p.api.updateParameters({
+                    content: fileContent,
+                    loading: undefined
+                  })
               } catch {
                 /* Panel already removed */
               }
@@ -762,40 +898,67 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       stateRef.current.onCloseMap.clear()
       for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
     }, [addTab, tabs])
+    useEffect(() => {
+      const { api } = stateRef.current
+      if (!(api && files)) return
+      for (const file of files) {
+        const id = virtualFileId(file.name),
+          panel = api.panels.find(p => p.id === id)
+        if (panel) panel.api.updateParameters({ content: file.content })
+      }
+    }, [files])
     const handleReady = (event: DockviewReadyEvent) => {
-      stateRef.current.api = event.api
-      for (const tab of tabs) addTab(tab)
-      stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
-      for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
-      if (initialFiles) {
-        for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
-        const first = event.api.panels.find(p => p.id === initialFiles[0])
-        if (first) first.focus()
-      }
-      const notifyFiles = () => {
-        if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
-      }
-      stateRef.current.disposables.push(
-        event.api.onDidRemovePanel(e => {
-          stateRef.current.fileIds.delete(e.id)
-          stateRef.current.onCloseMap.get(e.id)?.()
-          stateRef.current.onCloseMap.delete(e.id)
-          notifyFiles()
-        }),
-        event.api.onDidAddPanel(() => notifyFiles())
-      )
-      requestAnimationFrame(() => {
-        stateRef.current.ready = true
-      })
-    }
+        stateRef.current.api = event.api
+        for (const tab of tabs) addTab(tab)
+        stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
+        for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
+        if (filesRef.current) for (const f of filesRef.current) if (f.open) openVirtualFile(f)
+        if (initialFiles) {
+          for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
+          const first = event.api.panels.find(p => p.id === initialFiles[0])
+          if (first) first.focus()
+        }
+        const notifyFiles = () => {
+          if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
+        }
+        stateRef.current.disposables.push(
+          event.api.onDidRemovePanel(e => {
+            stateRef.current.fileIds.delete(e.id)
+            stateRef.current.onCloseMap.get(e.id)?.()
+            stateRef.current.onCloseMap.delete(e.id)
+            notifyFiles()
+          }),
+          event.api.onDidAddPanel(() => notifyFiles())
+        )
+        requestAnimationFrame(() => {
+          stateRef.current.ready = true
+        })
+      },
+      mergedTree = useMemo(() => {
+        if (!(tree || (files && files.length > 0))) return tree
+        const toItem = (f: VirtualFile): TreeDataItem => ({
+            icon: f.icon ?? (f.language ? resolveLanguageIcon(f.language) : undefined),
+            id: virtualFileId(f.name),
+            name: f.name,
+            path: virtualFileId(f.name)
+          }),
+          top = files?.filter(f => f.pin === 'top').map(toItem) ?? [],
+          mid = files?.filter(f => !f.pin).map(toItem) ?? [],
+          bottom = files?.filter(f => f.pin === 'bottom').map(toItem) ?? []
+        return [...top, ...mid, ...(tree ?? []), ...bottom]
+      }, [files, tree])
     if (!mounted) return null
-    const sidebarContent = tree ? (
+    const sidebarContent = mergedTree ? (
         <FileTree
           className='h-full overflow-auto'
-          data={tree}
+          data={mergedTree}
           expandDepth={expandDepth}
           onSelectChange={item => {
-            if (item && !item.children) openFile(item)
+            if (!item || item.children) return
+            if (item.id.startsWith(VIRTUAL_PREFIX)) {
+              const vf = files?.find(f => virtualFileId(f.name) === item.id)
+              if (vf) openVirtualFile(vf)
+            } else openFile(item)
           }}
         />
       ) : (
@@ -832,5 +995,5 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
-export type { FileTreeProps, TabProps, TreeDataItem, WorkspaceProps, WorkspaceRef }
+export type { FileTreeProps, TabProps, TreeDataItem, VirtualFile, WorkspaceProps, WorkspaceRef }
 export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }

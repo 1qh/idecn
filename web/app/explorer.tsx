@@ -47,7 +47,12 @@ const readHash = () => {
             })
             .catch(async () =>
               fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
-                .then(async r => r.json() as Promise<{ tree?: { path: string; type: string }[] }>)
+                .then(
+                  async r =>
+                    r.json() as Promise<{
+                      tree?: { path: string; type: string }[]
+                    }>
+                )
                 .then(d => {
                   if (!d.tree) throw new Error('no tree')
                   const items: TreeDataItem[] = [],

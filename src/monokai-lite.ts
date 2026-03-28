@@ -97,7 +97,10 @@ const monokaiLite = {
   semanticHighlighting: true,
   tokenColors: [
     { settings: { foreground: '#F8F8F2' } },
-    { scope: ['meta.embedded', 'source.groovy.embedded'], settings: { foreground: '#F8F8F2' } },
+    {
+      scope: ['meta.embedded', 'source.groovy.embedded'],
+      settings: { foreground: '#F8F8F2' }
+    },
     { name: 'Comment', scope: 'comment', settings: { foreground: '#88846f' } },
     { name: 'String', scope: 'string', settings: { foreground: '#E6DB74' } },
     {
@@ -110,57 +113,175 @@ const monokaiLite = {
       scope: ['meta.template.expression'],
       settings: { foreground: '#F8F8F2' }
     },
-    { name: 'Number', scope: 'constant.numeric', settings: { foreground: '#AE81FF' } },
-    { name: 'Built-in constant', scope: 'constant.language', settings: { foreground: '#AE81FF' } },
-    { name: 'User-defined constant', scope: 'constant.character, constant.other', settings: { foreground: '#AE81FF' } },
-    { name: 'Variable', scope: 'variable', settings: { fontStyle: '', foreground: '#F8F8F2' } },
+    {
+      name: 'Number',
+      scope: 'constant.numeric',
+      settings: { foreground: '#AE81FF' }
+    },
+    {
+      name: 'Built-in constant',
+      scope: 'constant.language',
+      settings: { foreground: '#AE81FF' }
+    },
+    {
+      name: 'User-defined constant',
+      scope: 'constant.character, constant.other',
+      settings: { foreground: '#AE81FF' }
+    },
+    {
+      name: 'Variable',
+      scope: 'variable',
+      settings: { fontStyle: '', foreground: '#F8F8F2' }
+    },
     { name: 'Keyword', scope: 'keyword', settings: { foreground: '#F92672' } },
-    { name: 'Storage', scope: 'storage', settings: { fontStyle: '', foreground: '#F92672' } },
-    { name: 'Storage type', scope: 'storage.type', settings: { fontStyle: 'italic', foreground: '#66D9EF' } },
-    { name: 'Function name', scope: 'entity.name.function', settings: { fontStyle: '', foreground: '#A6E22E' } },
-    { name: 'Function argument', scope: 'variable.parameter', settings: { fontStyle: 'italic', foreground: '#FD971F' } },
-    { name: 'Tag name', scope: 'entity.name.tag', settings: { fontStyle: '', foreground: '#F92672' } },
-    { name: 'Tag attribute', scope: 'entity.other.attribute-name', settings: { fontStyle: '', foreground: '#A6E22E' } },
-    { name: 'Library function', scope: 'support.function', settings: { fontStyle: '', foreground: '#66D9EF' } },
-    { name: 'Library constant', scope: 'support.constant', settings: { fontStyle: '', foreground: '#66D9EF' } },
+    {
+      name: 'Storage',
+      scope: 'storage',
+      settings: { fontStyle: '', foreground: '#F92672' }
+    },
+    {
+      name: 'Storage type',
+      scope: 'storage.type',
+      settings: { fontStyle: 'italic', foreground: '#66D9EF' }
+    },
+    {
+      name: 'Function name',
+      scope: 'entity.name.function',
+      settings: { fontStyle: '', foreground: '#A6E22E' }
+    },
+    {
+      name: 'Function argument',
+      scope: 'variable.parameter',
+      settings: { fontStyle: 'italic', foreground: '#FD971F' }
+    },
+    {
+      name: 'Tag name',
+      scope: 'entity.name.tag',
+      settings: { fontStyle: '', foreground: '#F92672' }
+    },
+    {
+      name: 'Tag attribute',
+      scope: 'entity.other.attribute-name',
+      settings: { fontStyle: '', foreground: '#A6E22E' }
+    },
+    {
+      name: 'Library function',
+      scope: 'support.function',
+      settings: { fontStyle: '', foreground: '#66D9EF' }
+    },
+    {
+      name: 'Library constant',
+      scope: 'support.constant',
+      settings: { fontStyle: '', foreground: '#66D9EF' }
+    },
     {
       name: 'Library class/type',
       scope: 'support.type, support.class',
       settings: { fontStyle: 'italic', foreground: '#66D9EF' }
     },
-    { name: 'Library variable', scope: 'support.other.variable', settings: { fontStyle: '' } },
-    { name: 'Invalid', scope: 'invalid', settings: { fontStyle: '', foreground: '#F44747' } },
-    { name: 'Invalid deprecated', scope: 'invalid.deprecated', settings: { foreground: '#F44747' } },
+    {
+      name: 'Library variable',
+      scope: 'support.other.variable',
+      settings: { fontStyle: '' }
+    },
+    {
+      name: 'Invalid',
+      scope: 'invalid',
+      settings: { fontStyle: '', foreground: '#F44747' }
+    },
+    {
+      name: 'Invalid deprecated',
+      scope: 'invalid.deprecated',
+      settings: { foreground: '#F44747' }
+    },
     {
       name: 'JSON String',
       scope: 'meta.structure.dictionary.json string.quoted.double.json',
       settings: { foreground: '#CFCFC2' }
     },
-    { name: 'diff.header', scope: 'meta.diff, meta.diff.header', settings: { foreground: '#75715E' } },
-    { name: 'diff.deleted', scope: 'markup.deleted', settings: { foreground: '#F92672' } },
-    { name: 'diff.inserted', scope: 'markup.inserted', settings: { foreground: '#A6E22E' } },
-    { name: 'diff.changed', scope: 'markup.changed', settings: { foreground: '#E6DB74' } },
-    { scope: 'constant.numeric.line-number.find-in-files - match', settings: { foreground: '#AE81FFA0' } },
-    { scope: 'entity.name.filename.find-in-files', settings: { foreground: '#E6DB74' } },
-    { name: 'Markup Quote', scope: 'markup.quote', settings: { foreground: '#F92672' } },
-    { name: 'Markup Lists', scope: 'markup.list', settings: { foreground: '#E6DB74' } },
-    { name: 'Markup Styling', scope: 'markup.bold, markup.italic', settings: { foreground: '#66D9EF' } },
-    { name: 'Markup Inline', scope: 'markup.inline.raw', settings: { fontStyle: '', foreground: '#FD971F' } },
-    { name: 'Markup Headings', scope: 'markup.heading', settings: { foreground: '#A6E22E' } },
+    {
+      name: 'diff.header',
+      scope: 'meta.diff, meta.diff.header',
+      settings: { foreground: '#75715E' }
+    },
+    {
+      name: 'diff.deleted',
+      scope: 'markup.deleted',
+      settings: { foreground: '#F92672' }
+    },
+    {
+      name: 'diff.inserted',
+      scope: 'markup.inserted',
+      settings: { foreground: '#A6E22E' }
+    },
+    {
+      name: 'diff.changed',
+      scope: 'markup.changed',
+      settings: { foreground: '#E6DB74' }
+    },
+    {
+      scope: 'constant.numeric.line-number.find-in-files - match',
+      settings: { foreground: '#AE81FFA0' }
+    },
+    {
+      scope: 'entity.name.filename.find-in-files',
+      settings: { foreground: '#E6DB74' }
+    },
+    {
+      name: 'Markup Quote',
+      scope: 'markup.quote',
+      settings: { foreground: '#F92672' }
+    },
+    {
+      name: 'Markup Lists',
+      scope: 'markup.list',
+      settings: { foreground: '#E6DB74' }
+    },
+    {
+      name: 'Markup Styling',
+      scope: 'markup.bold, markup.italic',
+      settings: { foreground: '#66D9EF' }
+    },
+    {
+      name: 'Markup Inline',
+      scope: 'markup.inline.raw',
+      settings: { fontStyle: '', foreground: '#FD971F' }
+    },
+    {
+      name: 'Markup Headings',
+      scope: 'markup.heading',
+      settings: { foreground: '#A6E22E' }
+    },
     {
       name: 'Markup Setext Header',
       scope: 'markup.heading.setext',
       settings: { fontStyle: 'bold', foreground: '#A6E22E' }
     },
-    { name: 'Markup Headings', scope: 'markup.heading.markdown', settings: { fontStyle: 'bold' } },
-    { name: 'Markdown Quote', scope: 'markup.quote.markdown', settings: { fontStyle: 'italic', foreground: '#75715E' } },
-    { name: 'Markdown Bold', scope: 'markup.bold.markdown', settings: { fontStyle: 'bold' } },
+    {
+      name: 'Markup Headings',
+      scope: 'markup.heading.markdown',
+      settings: { fontStyle: 'bold' }
+    },
+    {
+      name: 'Markdown Quote',
+      scope: 'markup.quote.markdown',
+      settings: { fontStyle: 'italic', foreground: '#75715E' }
+    },
+    {
+      name: 'Markdown Bold',
+      scope: 'markup.bold.markdown',
+      settings: { fontStyle: 'bold' }
+    },
     {
       name: 'Markdown Link Title/Description',
       scope: 'string.other.link.title.markdown,string.other.link.description.markdown',
       settings: { foreground: '#AE81FF' }
     },
-    { name: 'Markdown Emphasis', scope: 'markup.italic.markdown', settings: { fontStyle: 'italic' } },
+    {
+      name: 'Markdown Emphasis',
+      scope: 'markup.italic.markdown',
+      settings: { fontStyle: 'italic' }
+    },
     {
       name: 'Markdown Punctuation Definition Link',
       scope: 'markup.list.unnumbered.markdown, markup.list.numbered.markdown',
@@ -175,7 +296,11 @@ const monokaiLite = {
     { scope: 'token.warn-token', settings: { foreground: '#cd9731' } },
     { scope: 'token.error-token', settings: { foreground: '#f44747' } },
     { scope: 'token.debug-token', settings: { foreground: '#b267e6' } },
-    { name: 'this.self', scope: 'variable.language', settings: { foreground: '#FD971F' } }
+    {
+      name: 'this.self',
+      scope: 'variable.language',
+      settings: { foreground: '#FD971F' }
+    }
   ],
   type: 'dark'
 }
