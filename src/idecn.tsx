@@ -8,14 +8,12 @@
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
-import type { ClassValue } from 'clsx'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
-import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
 import { ChevronRight, ChevronsDownUp, X } from 'lucide-react'
 import {
@@ -32,7 +30,7 @@ import {
 } from 'react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
-import { twMerge } from 'tailwind-merge'
+import { cn } from './lib/utils'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
   ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
@@ -205,7 +203,6 @@ const iconsReady =
           }
         })()
       : null,
-  cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs)),
   getSvg = (name: string): string => iconSvgs[name] ?? (iconManifest ? (iconSvgs[iconManifest.file] ?? '') : ''),
   resolveFileIcon = (filename: string): string => {
     if (!iconManifest) return ''
