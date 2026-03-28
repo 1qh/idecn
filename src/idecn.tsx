@@ -1443,7 +1443,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             }
         if (initialFiles) {
           log(`Initial files: ${initialFiles.join(', ')}`)
-          for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
+          for (const path of initialFiles) pinFile({ id: path, name: path.split('/').at(-1) ?? path, path })
           const first = event.api.panels.find(p => p.id === initialFiles[0])
           if (first) first.focus()
         }
