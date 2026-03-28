@@ -16,7 +16,7 @@ import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { DockviewReact } from 'dockview-react'
-import { atom, useAtomValue, useSetAtom } from 'jotai'
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import {
   ArrowRightToLine,
   ChevronRight,
@@ -167,11 +167,13 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}',
     '.dv-reset .dv-watermark{background:transparent}',
+    String.raw`.dv-reset .dv-tab:has([data-preview]) .group\/tab{font-style:italic}`,
     '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
     '[data-slot=dialog-overlay]{background:transparent!important}'
   ].join(''),
   cursorAtom = atom({ col: 1, line: 1 }),
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
+  previewPanelAtom = atom<null | string>(null),
   quickOpenAtom = atom(false)
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
@@ -581,10 +583,12 @@ const TreeContext = createContext<TreeContextValue>({
   },
   renderItems = ({
     items,
-    onItemClick
+    onItemClick,
+    onItemDoubleClick
   }: {
     items: TreeDataItem[]
     onItemClick?: (item: TreeDataItem) => void
+    onItemDoubleClick?: (item: TreeDataItem) => void
   }): ReactNode[] => {
     const nodes: ReactNode[] = []
     for (const item of items)
@@ -592,7 +596,7 @@ const TreeContext = createContext<TreeContextValue>({
         const { children, name } = compactFolder(item)
         nodes.push(
           <TreeFolder disabled={item.disabled} id={item.id} key={item.id} name={name} path={item.path}>
-            {renderItems({ items: children, onItemClick })}
+            {renderItems({ items: children, onItemClick, onItemDoubleClick })}
           </TreeFolder>
         )
       } else
@@ -607,6 +611,7 @@ const TreeContext = createContext<TreeContextValue>({
               item.onClick?.()
               onItemClick?.(item)
             }}
+            onDoubleClick={() => onItemDoubleClick?.(item)}
             path={item.path}
           />
         )
@@ -618,6 +623,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth = 0,
     expandExclude,
     initialSelectedItemId,
+    onDoubleClick: onDoubleClickProp,
     onSelectChange,
     selectedId: controlledId
   }: {
@@ -626,6 +632,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth?: number
     expandExclude?: string[]
     initialSelectedItemId?: string
+    onDoubleClick?: (item: TreeDataItem) => void
     onSelectChange?: (item: TreeDataItem | undefined) => void
     selectedId?: null | string
   }) => {
@@ -636,7 +643,9 @@ const TreeContext = createContext<TreeContextValue>({
         expandDepth={expandDepth}
         expandExclude={expandExclude}
         selectedId={controlledId ?? initialSelectedItemId}>
-        <div className='min-w-max'>{renderItems({ items, onItemClick: onSelectChange })}</div>
+        <div className='min-w-max'>
+          {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
+        </div>
       </Tree>
     )
   },
@@ -786,8 +795,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             icon?: boolean
             iconName?: string
             inactiveClassName?: string
+            preview?: boolean
           },
       dv = use(DockviewApiContext),
+      previewId = useAtomValue(previewPanelAtom),
+      isPreview = previewId === api.id,
       showIcon = p?.icon !== false,
       closable = p?.closable !== false,
       [active, setActive] = useState(api.isActive)
@@ -806,6 +818,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
           )}
           data-fill={p?.headerClassName ? '' : undefined}
+          data-preview={isPreview ? '' : undefined}
           onMouseDown={e => {
             if (e.button === 1 && closable) {
               e.preventDefault()
@@ -996,6 +1009,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [treeKey, setTreeKey] = useState(0),
       [internalWordWrap, setInternalWordWrap] = useState(false),
       [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null),
+      [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
+      previewIdRef = useRef(currentPreviewId),
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
       [fontSizeDelta, setFontSizeDelta] = useState(0),
@@ -1036,6 +1051,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       editorOptionsRef.current = mergedEditorOptions
       themeRef.current = theme
       filesRef.current = files
+      previewIdRef.current = currentPreviewId
       onTabChangeRef.current = onTabChange
     })
     useEffect(() => {
@@ -1182,82 +1198,101 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           title: file.name
         })
       }, []),
-      openFile = useCallback((item: TreeDataItem) => {
-        const { api } = stateRef.current,
-          onOpen = onOpenFileRef.current
-        if (!(api && onOpen)) return
-        const existing = api.panels.find(p => p.id === item.path)
-        if (existing) {
-          existing.focus()
-          return
-        }
-        const loading = renderLoadingRef.current,
-          loadingNode = loading ? (
-            loading(item)
-          ) : (
-            <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
-          ),
-          existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
-          position: PanelPosition | undefined = existingFile
-            ? {
-                direction: 'within',
-                referenceGroup: existingFile.group.id
-              }
-            : undefined
-        stateRef.current.fileIds.add(item.path)
-        const added = api.addPanel({
-            component: 'file',
-            id: item.path,
-            params: {
-              content: '',
-              editorOptions: editorOptionsRef.current,
-              iconName: item.name,
-              language: langOf(item.path),
-              loading: loadingNode,
-              theme: themeRef.current
-            },
-            position,
-            tabComponent: 'default',
-            title: deduplicateTitle(item.name, item.path, api.panels)
-          }),
-          result = onOpen(item)
-        if (result === null) return
-        if (typeof result === 'string') added.api.updateParameters({ content: result, loading: undefined })
-        else {
-          const panelPath = item.path
-          result
-            .then(fileContent => {
+      openFileInPanel = useCallback(
+        (item: TreeDataItem, preview: boolean) => {
+          const { api } = stateRef.current,
+            onOpen = onOpenFileRef.current
+          if (!(api && onOpen)) return
+          const existing = api.panels.find(p => p.id === item.path)
+          if (existing) {
+            existing.focus()
+            if (!preview) setPreviewId(prev => (prev === item.path ? null : prev))
+            return
+          }
+          if (preview && previewIdRef.current) {
+            const prev = api.panels.find(p => p.id === previewIdRef.current)
+            if (prev) {
+              stateRef.current.fileIds.delete(prev.id)
               try {
-                const p = api.panels.find(x => x.id === panelPath)
-                if (!p) return
-                if (fileContent === null) api.removePanel(p)
-                else
-                  p.api.updateParameters({
-                    content: fileContent,
-                    loading: undefined
-                  })
+                api.removePanel(prev)
               } catch {
-                /* Panel already removed */
+                /* Removed */
               }
-            })
-            .catch(() => {
-              try {
-                const p = api.panels.find(x => x.id === panelPath)
-                if (p) api.removePanel(p)
-              } catch {
-                /* Panel already removed */
-              }
-            })
-        }
-      }, [])
+            }
+          }
+          const loading = renderLoadingRef.current,
+            loadingNode = loading ? (
+              loading(item)
+            ) : (
+              <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
+            ),
+            existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
+            position: PanelPosition | undefined = existingFile
+              ? {
+                  direction: 'within',
+                  referenceGroup: existingFile.group.id
+                }
+              : undefined
+          stateRef.current.fileIds.add(item.path)
+          setPreviewId(preview ? item.path : null)
+          previewIdRef.current = preview ? item.path : null
+          const added = api.addPanel({
+              component: 'file',
+              id: item.path,
+              params: {
+                content: '',
+                editorOptions: editorOptionsRef.current,
+                iconName: item.name,
+                language: langOf(item.path),
+                loading: loadingNode,
+                theme: themeRef.current
+              },
+              position,
+              tabComponent: 'default',
+              title: deduplicateTitle(item.name, item.path, api.panels)
+            }),
+            result = onOpen(item)
+          if (result === null) return
+          if (typeof result === 'string') added.api.updateParameters({ content: result, loading: undefined })
+          else {
+            const panelPath = item.path
+            result
+              .then(fileContent => {
+                try {
+                  const p = api.panels.find(x => x.id === panelPath)
+                  if (!p) return
+                  if (fileContent === null) api.removePanel(p)
+                  else
+                    p.api.updateParameters({
+                      content: fileContent,
+                      loading: undefined
+                    })
+                } catch {
+                  /* Panel already removed */
+                }
+              })
+              .catch(() => {
+                try {
+                  const p = api.panels.find(x => x.id === panelPath)
+                  if (p) api.removePanel(p)
+                } catch {
+                  /* Panel already removed */
+                }
+              })
+          }
+        },
+        [setPreviewId]
+      ),
+      openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel]),
+      pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
     useImperativeHandle(
       ref,
       () => ({
         focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
-        openFile,
+        openFile: pinFile,
         toggleSidebar
       }),
-      [openFile, toggleSidebar]
+      [pinFile, toggleSidebar]
     )
     useEffect(() => {
       const { api } = stateRef.current
@@ -1307,6 +1342,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             stateRef.current.fileIds.delete(e.id)
             stateRef.current.onCloseMap.get(e.id)?.()
             stateRef.current.onCloseMap.delete(e.id)
+            if (previewIdRef.current === e.id) {
+              setPreviewId(null)
+              previewIdRef.current = null
+            }
             notifyFiles()
           }),
           event.api.onDidAddPanel(() => notifyFiles()),
@@ -1366,6 +1405,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             expandDepth={treeCollapsed ? 0 : expandDepth}
             expandExclude={expandExclude}
             key={treeKey}
+            onDoubleClick={item => {
+              if (item.children) return
+              if (!item.id.startsWith(VIRTUAL_PREFIX)) pinFile(item)
+            }}
             onSelectChange={item => {
               if (!item || item.children) return
               if (item.id.startsWith(VIRTUAL_PREFIX)) {
