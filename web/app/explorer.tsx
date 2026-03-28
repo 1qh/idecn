@@ -155,7 +155,11 @@ const readHash = () => {
               log(`Theme: ${next}`)
             }}
             type='button'>
-            {mounted && resolvedTheme === 'dark' ? <Sun className='size-full stroke-1' /> : <Moon className='size-full stroke-1' />}
+            {mounted && resolvedTheme === 'dark' ? (
+              <Sun className='size-full stroke-1' />
+            ) : (
+              <Moon className='size-full stroke-1' />
+            )}
           </button>
         </div>
         {error ? (
