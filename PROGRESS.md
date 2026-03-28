@@ -15,6 +15,7 @@
 - Use shadcn components from src/ui/ — never hand-roll UI that shadcn already provides
 - Never style what shadcn already styles — no manual icon sizing, spacing, or colors on shadcn primitives
 - Read shadcn component source before using — understand DOM structure and usage patterns
+- Every new interaction must have activityLog — exhaustive verbose logging for all features
 
 ---
 
