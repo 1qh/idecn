@@ -174,7 +174,7 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 - Problems panel (errors/warnings list) `component` `logic` `prop`
 - Output panel (consumer pushes log lines) `component` `prop`
 - Notification toasts (save success, error) `component` `prop`
-- Minimap panel (bird's eye of all open files) `component`
+- Minimap panel (bird’s eye of all open files) `component`
 - Sticky terminal (stays visible across tab switches) `logic` `prop`
 - Title bar (workspace name, window controls) `component` `prop`
 - Sidebar accordion sections (explorer, search, outline in one sidebar) `component` `logic`
@@ -259,7 +259,7 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 
 ## Collaboration
 
-- Follow mode (auto-scroll to another user's view) `logic`
+- Follow mode (auto-scroll to another user’s view) `logic`
 - Selection sharing `dep` `logic`
 - Cursor presence `dep` `logic` `component`
 - User avatar on cursor `css` `component`

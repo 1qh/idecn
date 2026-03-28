@@ -3,6 +3,7 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/catch-or-return, promise/no-nesting */
 'use client'
 import type { TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
+import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Workspace } from 'idecn'
 import { AlertTriangle, Moon, PanelLeft, Search, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -139,6 +140,13 @@ const readHash = () => {
             type='search'
             value={input}
           />
+          <a
+            className='shrink-0 p-2 hover:p-1.5 hover:bg-accent transition-all duration-300'
+            href={`https://github.com/${DEFAULT_REPO}`}
+            rel='noopener noreferrer'
+            target='_blank'>
+            <SiGithub className='size-4' />
+          </a>
           <button
             className='shrink-0 *:p-1.5 *:hover:p-1 *:size-8 hover:bg-accent [&_svg]:stroke-1'
             onClick={() => {
