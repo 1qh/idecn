@@ -3,8 +3,9 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: dockview manages tab interactions */
 /** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: dockview manages tab interactions */
 /** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
+/** biome-ignore-all lint/a11y/useKeyWithClickEvents: quick open backdrop dismiss */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
@@ -15,7 +16,17 @@ import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { DockviewReact } from 'dockview-react'
-import { ChevronRight, ChevronsDownUp, X } from 'lucide-react'
+import { atom, useAtomValue, useSetAtom } from 'jotai'
+import {
+  ArrowRightToLine,
+  ChevronRight,
+  ChevronsDownUp,
+  ClipboardCopy,
+  SplitSquareHorizontal,
+  Trash,
+  Trash2,
+  X
+} from 'lucide-react'
 import {
   Children,
   createContext,
@@ -31,6 +42,14 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { cn } from './lib/utils'
+import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from './ui/command'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger
+} from './ui/context-menu'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
   ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
@@ -137,8 +156,12 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
     '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}',
     '.dv-reset .dv-watermark{background:transparent}',
-    '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}'
-  ].join('')
+    '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
+    '[data-slot=dialog-overlay]{background:transparent!important}'
+  ].join(''),
+  cursorAtom = atom({ col: 1, line: 1 }),
+  activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
+  quickOpenAtom = atom(false)
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
   cachedMonoFont: string | undefined
@@ -295,7 +318,8 @@ interface VirtualFile {
   open?: boolean
   pin?: 'bottom' | 'top'
 }
-const VIRTUAL_PREFIX = '__virtual:',
+const EMPTY_TREE: TreeDataItem[] = [],
+  VIRTUAL_PREFIX = '__virtual:',
   resolveLanguageIcon = (language: string): string => {
     if (!iconManifest) return ''
     if (iconManifest.languageIds[language]) return iconManifest.languageIds[language]
@@ -306,6 +330,7 @@ const VIRTUAL_PREFIX = '__virtual:',
   virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
 interface TreeContextValue {
   expandDepth: number
+  expandExclude?: string[]
   indent: number
   onSelect?: (item: { id: string; name: string; path: string }) => void
   selectedId: null | string
@@ -333,9 +358,10 @@ const TreeContext = createContext<TreeContextValue>({
     selectedId: null,
     setSelectedId: () => undefined
   }),
+  DockviewApiContext = createContext<DockviewApi | null>(null),
   DepthContext = createContext(0),
   useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
-    const { expandDepth, indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
+    const { expandDepth, expandExclude, indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
       depth = use(DepthContext),
       itemId = id ?? path ?? name,
       isSelected = selectedId === itemId,
@@ -347,6 +373,7 @@ const TreeContext = createContext<TreeContextValue>({
     return {
       depth,
       expandDepth,
+      expandExclude,
       iconClass: ICON_CLASS_HOVER,
       indent,
       isSelected,
@@ -379,12 +406,14 @@ const TreeContext = createContext<TreeContextValue>({
   Tree = ({
     children,
     expandDepth = 0,
+    expandExclude,
     indent = 16,
     onSelect,
     selectedId: controlledSelectedId,
     ...props
   }: ComponentProps<'nav'> & {
     expandDepth?: number
+    expandExclude?: string[]
     indent?: number
     onSelect?: (item: { id: string; name: string; path: string }) => void
     selectedId?: null | string
@@ -394,12 +423,13 @@ const TreeContext = createContext<TreeContextValue>({
       ctx = useMemo(
         () => ({
           expandDepth,
+          expandExclude,
           indent,
           onSelect,
           selectedId,
           setSelectedId: setInternalSelectedId
         }),
-        [expandDepth, indent, onSelect, selectedId]
+        [expandDepth, expandExclude, indent, onSelect, selectedId]
       )
     return (
       <TreeContext value={ctx}>
@@ -432,8 +462,13 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { depth, expandDepth, iconClass, indent, isSelected, itemId, pl, select } = useTreeItem({ id, name, path }),
-      shouldOpen = defaultOpen || depth < expandDepth,
+    const { depth, expandDepth, expandExclude, iconClass, indent, isSelected, itemId, pl, select } = useTreeItem({
+        id,
+        name,
+        path
+      }),
+      excluded = expandExclude?.some(ex => (path ?? name).startsWith(ex)),
+      shouldOpen = !excluded && (defaultOpen || depth < expandDepth),
       [open, setOpen] = useState(shouldOpen ? [itemId] : []),
       isOpen = open.includes(itemId)
     return (
@@ -546,6 +581,7 @@ const TreeContext = createContext<TreeContextValue>({
     className,
     data,
     expandDepth = 0,
+    expandExclude,
     initialSelectedItemId,
     onSelectChange,
     selectedId: controlledId
@@ -553,13 +589,18 @@ const TreeContext = createContext<TreeContextValue>({
     className?: string
     data: TreeDataItem | TreeDataItem[]
     expandDepth?: number
+    expandExclude?: string[]
     initialSelectedItemId?: string
     onSelectChange?: (item: TreeDataItem | undefined) => void
     selectedId?: null | string
   }) => {
     const items = Array.isArray(data) ? data : [data]
     return (
-      <Tree className={className} expandDepth={expandDepth} selectedId={controlledId ?? initialSelectedItemId}>
+      <Tree
+        className={className}
+        expandDepth={expandDepth}
+        expandExclude={expandExclude}
+        selectedId={controlledId ?? initialSelectedItemId}>
         <div className='min-w-max'>{renderItems({ items, onItemClick: onSelectChange })}</div>
       </Tree>
     )
@@ -635,11 +676,30 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         d.dispose()
       }
     }, [api])
+    const setCursor = useSetAtom(cursorAtom),
+      setFileInfo = useSetAtom(activeFileInfoAtom)
+    useEffect(() => {
+      if (api.isActive) setFileInfo({ language, path: api.id })
+      const d = api.onDidActiveChange(e => {
+        if (e.isActive) setFileInfo({ language, path: api.id })
+      })
+      return () => {
+        d.dispose()
+      }
+    }, [api, language, setFileInfo])
     if (loadingState || !ready) return <div className={CENTER}>{loadingState}</div>
     if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
     return (
       <Editor
         language={language}
+        onMount={editor => {
+          const update = () => {
+            const pos = editor.getPosition()
+            if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
+          }
+          update()
+          editor.onDidChangeCursorPosition(update)
+        }}
         options={{
           ...EDITOR_OPTIONS,
           fontFamily: monoFont() || undefined,
@@ -667,6 +727,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             iconName?: string
             inactiveClassName?: string
           },
+      dv = use(DockviewApiContext),
       showIcon = p?.icon !== false,
       closable = p?.closable !== false,
       [active, setActive] = useState(api.isActive)
@@ -677,41 +738,163 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       }
     }, [api])
     return (
-      <div
-        className={cn(
-          'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
-          p?.headerClassName,
-          active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
-        )}
-        data-fill={p?.headerClassName ? '' : undefined}
-        onMouseDown={e => {
-          if (e.button === 1 && closable) {
-            e.preventDefault()
-            api.close()
-          }
-        }}>
-        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
-        {api.title}
-        {closable ? (
-          <X
-            className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
-            onClick={e => {
-              e.stopPropagation()
+      <ContextMenu>
+        <ContextMenuTrigger
+          className={cn(
+            'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
+            p?.headerClassName,
+            active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
+          )}
+          data-fill={p?.headerClassName ? '' : undefined}
+          onMouseDown={e => {
+            if (e.button === 1 && closable) {
+              e.preventDefault()
               api.close()
-            }}
-          />
+            }
+          }}>
+          {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
+          {api.title}
+          {closable ? (
+            <X
+              className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
+              onClick={e => {
+                e.stopPropagation()
+                api.close()
+              }}
+            />
+          ) : null}
+        </ContextMenuTrigger>
+        {dv ? (
+          <ContextMenuContent>
+            <ContextMenuItem onClick={() => api.close()}>
+              <X /> Close
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                for (const pnl of dv.panels)
+                  if (pnl.id !== api.id)
+                    try {
+                      pnl.api.close()
+                    } catch {
+                      /* Removed */
+                    }
+              }}>
+              <Trash /> Close Others
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                const idx = dv.panels.findIndex(pnl => pnl.id === api.id)
+                for (let i = dv.panels.length - 1; i > idx; i -= 1)
+                  try {
+                    dv.panels[i].api.close()
+                  } catch {
+                    /* Removed */
+                  }
+              }}>
+              <ArrowRightToLine /> Close to the Right
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                for (let i = dv.panels.length - 1; i >= 0; i -= 1)
+                  try {
+                    dv.panels[i].api.close()
+                  } catch {
+                    /* Removed */
+                  }
+              }}>
+              <Trash2 /> Close All
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => {
+                navigator.clipboard.writeText(api.id).catch(() => undefined)
+              }}>
+              <ClipboardCopy /> Copy Path
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => {
+                const found = dv.panels.find(pnl => pnl.id === api.id)
+                if (found)
+                  dv.addPanel({
+                    component: found.view.contentComponent,
+                    id: `${found.id}-split-${Date.now()}`,
+                    params: found.params,
+                    position: { direction: 'right', referencePanel: found },
+                    tabComponent: 'default',
+                    title: found.title ?? ''
+                  })
+              }}>
+              <SplitSquareHorizontal /> Split Right
+            </ContextMenuItem>
+          </ContextMenuContent>
         ) : null}
-      </div>
+      </ContextMenu>
     )
   },
   WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>,
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
   TAB_COMPONENTS = { default: TabHeader },
+  StatusBar = () => {
+    const cursor = useAtomValue(cursorAtom),
+      fileInfo = useAtomValue(activeFileInfoAtom)
+    return (
+      <div className='flex h-6 items-center justify-between border-t border-border px-3 text-xs text-muted-foreground'>
+        <span className='truncate'>{fileInfo.path}</span>
+        <div className='flex items-center gap-3'>
+          <span className='font-mono'>
+            Ln {cursor.line}, Col {cursor.col}
+          </span>
+          <span className='capitalize'>{fileInfo.language}</span>
+        </div>
+      </div>
+    )
+  },
+  flattenTree = (items: TreeDataItem[], prefix = ''): TreeDataItem[] => {
+    const result: TreeDataItem[] = []
+    for (const item of items)
+      if (item.children) for (const child of flattenTree(item.children, `${prefix}${item.name}/`)) result.push(child)
+      else result.push({ ...item, name: `${prefix}${item.name}` })
+    return result
+  },
+  QuickOpenDialog = ({
+    onOpenFile,
+    open,
+    tree
+  }: {
+    onOpenFile: (item: TreeDataItem) => void
+    open: boolean
+    tree: TreeDataItem[]
+  }) => {
+    const setOpen = useSetAtom(quickOpenAtom),
+      flatFiles = useMemo(() => flattenTree(tree), [tree])
+    return (
+      <CommandDialog onOpenChange={setOpen} open={open}>
+        <CommandInput placeholder='Search files...' />
+        <CommandList>
+          <CommandEmpty>No files found</CommandEmpty>
+          {flatFiles.map(f => (
+            <CommandItem
+              key={f.id}
+              onSelect={() => {
+                onOpenFile(f)
+                setOpen(false)
+              }}
+              value={f.name}>
+              <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
+              <span className='truncate'>{f.name}</span>
+            </CommandItem>
+          ))}
+        </CommandList>
+      </CommandDialog>
+    )
+  },
   Workspace = ({
     children,
     defaultSidebar = true,
     editorOptions,
     expandDepth = 0,
+    expandExclude,
     files,
     initialFiles,
     onFilesChange,
@@ -731,6 +914,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     defaultSidebar?: boolean
     editorOptions?: Record<string, unknown>
     expandDepth?: number
+    expandExclude?: string[]
     files?: VirtualFile[]
     initialFiles?: string[]
     onFilesChange?: (files: string[]) => void
@@ -751,6 +935,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [treeCollapsed, setTreeCollapsed] = useState(false),
       [treeKey, setTreeKey] = useState(0),
       [internalWordWrap, setInternalWordWrap] = useState(false),
+      [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null),
+      quickOpenVisible = useAtomValue(quickOpenAtom),
+      setQuickOpen = useSetAtom(quickOpenAtom),
       [fontSizeDelta, setFontSizeDelta] = useState(0),
       [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
       sidebarVisible = controlledSidebar ?? internalSidebar,
@@ -814,6 +1001,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useHotkeys(
       [
         { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
+        { callback: () => setQuickOpen(v => !v), hotkey: 'Mod+P' },
         {
           callback: () => {
             const panel = stateRef.current.api?.activePanel
@@ -1041,6 +1229,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     }, [files])
     const handleReady = (event: DockviewReadyEvent) => {
         stateRef.current.api = event.api
+        setDockviewApi(event.api)
         for (const tab of tabs) addTab(tab)
         stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
         for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
@@ -1109,6 +1298,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             className='min-h-0 flex-1 overflow-auto'
             data={mergedTree}
             expandDepth={treeCollapsed ? 0 : expandDepth}
+            expandExclude={expandExclude}
             key={treeKey}
             onSelectChange={item => {
               if (!item || item.children) return
@@ -1125,13 +1315,18 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       ),
       dockview = (
         <Panel minSize={20}>
-          <DockviewReact
-            className='dv-reset'
-            components={COMPONENTS}
-            onReady={handleReady}
-            tabComponents={TAB_COMPONENTS}
-            watermarkComponent={WatermarkPanel}
-          />
+          <div className='flex h-full flex-col'>
+            <DockviewApiContext value={dockviewApi}>
+              <DockviewReact
+                className='dv-reset flex-1'
+                components={COMPONENTS}
+                onReady={handleReady}
+                tabComponents={TAB_COMPONENTS}
+                watermarkComponent={WatermarkPanel}
+              />
+            </DockviewApiContext>
+            <StatusBar />
+          </div>
         </Panel>
       ),
       sidePanel = sidebarVisible ? (
@@ -1149,6 +1344,16 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         {sidebarPosition === 'left' ? sidePanel : null}
         {dockview}
         {sidebarPosition === 'right' ? sidePanel : null}
+        <QuickOpenDialog
+          onOpenFile={item => {
+            if (item.id.startsWith(VIRTUAL_PREFIX)) {
+              const vf = files?.find(f => virtualFileId(f.name) === item.id)
+              if (vf) openVirtualFile(vf)
+            } else openFile(item)
+          }}
+          open={quickOpenVisible}
+          tree={mergedTree ?? EMPTY_TREE}
+        />
       </Group>
     )
   }

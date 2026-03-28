@@ -8,7 +8,7 @@ import { AlertTriangle, Moon, PanelLeft, Search, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import { fetchFile, fetchTree } from './actions'
-import { DEFAULT_FILES, DEFAULT_REPO } from './constants'
+import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
 const readHash = () => {
     if (!('location' in globalThis)) return { files: [] as string[], repo: DEFAULT_REPO }
     const hash = globalThis.location.hash.slice(1)
@@ -125,6 +125,7 @@ const readHash = () => {
         <Workspace
           className='flex-1'
           expandDepth={2}
+          expandExclude={EXPAND_EXCLUDE}
           initialFiles={init.files}
           onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item => {

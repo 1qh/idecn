@@ -1,5 +1,5 @@
 #!/bin/bash
-: "${PORT:=3333}"
+: "${PORT:=3456}"
 set -euo pipefail
 
 IDECN="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,7 +32,7 @@ echo "-> Adding idecn from registry"
 bunx shadcn@latest add "http://localhost:$PORT/r/idecn.json" -s 2>&1 | tail -3
 
 echo "-> Installing extra deps"
-bun add @tailwindcss/typography tw-animate-css dockview-core 2>&1 | tail -1
+bun add @tailwindcss/typography tw-animate-css dockview-core cmdk jotai 2>&1 | tail -1
 
 echo "-> Copying demo app"
 rm -rf app

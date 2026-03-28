@@ -5,13 +5,15 @@ import { chromium } from '@playwright/test'
 import { resolve } from 'node:path'
 const browser = await chromium.launch(),
   page = await browser.newPage({ viewport: { height: 1800, width: 2400 } })
-await page.goto('http://localhost:3000')
+await page.goto(Bun.env.URL ?? 'http://localhost:3000')
 await page.evaluate(() => {
   document.documentElement.style.zoom = '2'
 })
 await page.waitForSelector('nav[aria-label="File tree"]')
 await page.waitForSelector('.monaco-editor', { timeout: 15_000 })
-await page.waitForTimeout(3000)
+await page.waitForTimeout(2000)
+await page.keyboard.press('Meta+p')
+await page.waitForTimeout(1000)
 const out = resolve(import.meta.dir, '../screenshot.png')
 await page.screenshot({ path: out })
 await browser.close()

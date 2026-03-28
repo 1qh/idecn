@@ -12,6 +12,8 @@ content = content
   .replaceAll('./_generated/icons', '@/lib/icons')
   .replaceAll('./monokai-lite', '@/lib/monokai-lite')
   .replaceAll('./lib/utils', '@/lib/utils')
+  .replaceAll('./ui/command', '@/components/ui/command')
+  .replaceAll('./ui/context-menu', '@/components/ui/context-menu')
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
@@ -23,8 +25,10 @@ await write(
         '@shikijs/monaco',
         '@tanstack/react-hotkeys',
         'clsx',
+        'cmdk',
         'dockview-core',
         'dockview-react',
+        'jotai',
         'lucide-react',
         'react-resizable-panels',
         'shiki',
@@ -49,7 +53,7 @@ await write(
         }
       ],
       name: 'idecn',
-      registryDependencies: [],
+      registryDependencies: ['command', 'context-menu'],
       title: 'idecn',
       type: 'registry:component'
     },

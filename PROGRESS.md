@@ -12,6 +12,8 @@
 - Minimal DOM — every element earns its place
 - Dark mode ready — all colors use CSS variables
 - Consolidated logic — no duplicate code paths
+- Use shadcn components from src/ui/ — never hand-roll UI that shadcn already provides
+- Never style what shadcn already styles — no manual icon sizing, spacing, or colors on shadcn primitives
 
 ---
 
