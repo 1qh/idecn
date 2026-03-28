@@ -12,8 +12,7 @@ content = content
   .replaceAll('./_generated/icons', '@/lib/icons')
   .replaceAll('./monokai-lite', '@/lib/monokai-lite')
   .replaceAll('./lib/utils', '@/lib/utils')
-  .replaceAll('./ui/command', '@/components/ui/command')
-  .replaceAll('./ui/context-menu', '@/components/ui/context-menu')
+  .replaceAll(/'.\/ui\/(?<name>[^']+)'/gu, "'@/components/ui/$<name>'")
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
@@ -53,7 +52,7 @@ await write(
         }
       ],
       name: 'idecn',
-      registryDependencies: ['command', 'context-menu'],
+      registryDependencies: ['breadcrumb', 'command', 'context-menu', 'skeleton'],
       title: 'idecn',
       type: 'registry:component'
     },
