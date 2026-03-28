@@ -1,6 +1,6 @@
 # Ideas
 
-460 items. Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc`
+Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc`
 
 ---
 
@@ -8,20 +8,12 @@
 
 ## Tabs
 
-- Active tab underline/border accent `css`
 - Reordering visual feedback `css`
-- Overflow scrollbar styling `css`
 - Compact style when many tabs open `css`
 - Open/close transitions `css`
-- Tab separator lines `css`
 - Tab sticky scroll (tab bar stays visible when editor scrolls) `css`
-- Middle-click tab to close `logic`
-- Close active tab `Ctrl+W` `logic`
-- Cycle through tabs `Ctrl+Tab` `logic`
 - Close all tabs `logic`
-- Pin on double-click `logic`
 - Tab scroll into view when activated programmatically `logic`
-- Tab label deduplication (show parent folder when names collide) `logic`
 - Undo close tab `Ctrl+Shift+T` `logic`
 - Maximize tab (double-click to fill workspace) `logic`
 - Remember scroll position per file `logic`
@@ -30,7 +22,6 @@
 - Dirty/modified dot indicator `css` `logic`
 - Tab progress indicator (loading spinner while file fetches) `css` `logic`
 - Colorized tab border by file type `css` `logic`
-- Preview mode (italic title, replaced by next click) `logic` `prop`
 - Pinned tabs `css` `logic` `prop`
 - Tab groups/colors per folder `css` `logic` `prop`
 - Tab width min/max constraints `css` `prop`
@@ -38,23 +29,18 @@
 - Tab strip position (top/bottom) `css` `prop`
 - Wrap tabs to multiple rows when overflowing `css` `prop`
 - Tab badge (notification count, error count) `css` `logic` `prop`
-- `onTabChange` / `onTabOpen` / `onTabClose` / `onTabFocus` `prop`
 - Tab preview on hover (show file content thumbnail) `component` `logic`
 - Tab close confirmation for dirty files `logic` `component`
 - Right-click tab to change language mode `component` `logic`
-- Tab context menu (close, close others, copy path) `dep` `component`
 - Tab tooltip showing full file path `css` `dep`
 - Tab drag to external window (pop out) `logic`
 
 ## Tree
 
-- Indent guides `css`
-- Section header ("EXPLORER") `css`
 - Expand/collapse animation refinement `css`
 - Symlink indicator `css`
 - Tree horizontal scroll when names overflow `css`
 - Tree icon animation on expand/collapse `css`
-- Selection highlight matching active tab `css` `logic`
 - Tree file count per folder `css` `logic`
 - Tree search highlight (highlight matching chars in file names) `css` `logic`
 - Keyboard navigation (arrow keys, enter) `logic`
@@ -64,7 +50,6 @@
 - Tree cut/copy/paste files `logic`
 - Tree rename on slow double-click (like OS file rename) `logic`
 - Tree drag to outside (export file path to other app) `logic`
-- Selection syncs with active tab `logic` `fix`
 - Tree color-coded by git status (green new, yellow modified, red deleted) `css` `logic` `prop`
 - Tree item decorations (badges, status icons, git modified) `css` `logic` `prop`
 - File nesting rules (group `*.test.ts` under `*.ts`) `logic` `prop`
@@ -86,17 +71,13 @@
 - Tree empty state (no files message) `component` `prop`
 - Tree error/warning count badges per folder (aggregate) `css` `logic` `prop`
 - Hover tooltip (full path) `dep`
-- Tree context menu (create, rename, delete, copy path) `dep` `component`
 - Virtualized tree for large repos `perf` `dep`
 - Tree file size display `css` `logic`
 - Tree last modified timestamp `css` `logic`
 
 ## Editor
 
-- Smooth scrolling `monaco`
-- Cursor smooth caret animation `monaco`
 - Cursor blinking style `monaco`
-- Font ligatures `monaco`
 - Linked editing (HTML tags) `monaco`
 - Find in file `Ctrl+F` `monaco`
 - Find and replace `Ctrl+H` `monaco`
@@ -120,9 +101,6 @@
 - Toggle block comment `Ctrl+Shift+/` `monaco`
 - Sticky scroll scope highlighting `monaco`
 - Read-only badge overlay on editor `css`
-- Editor watermark (faded text when empty) `css`
-- Sticky scroll `monaco` `prop`
-- Bracket pair colorization `monaco` `prop`
 - Render whitespace `monaco` `prop`
 - Line numbers toggle `monaco` `prop`
 - Minimap toggle `monaco` `prop`
@@ -143,7 +121,6 @@
 - Gutter icons API (breakpoints, bookmarks) `logic` `prop`
 - Hover info provider (types, docs) `logic` `prop`
 - Split editor `Ctrl+\` `logic`
-- Font size zoom `Ctrl+=` / `Ctrl+-` `logic`
 - Duplicate selection `logic`
 - Transpose characters/words `logic`
 - Remove duplicate lines `logic`
@@ -172,9 +149,7 @@
 
 - Go back / go forward `Alt+Left` / `Alt+Right` `logic`
 - Navigate to error `F8` / `Shift+F8` `logic`
-- Quick file open `Ctrl+P` `dep` `component` `logic` `prop`
 - Command palette `Ctrl+Shift+P` `dep` `component` `logic`
-- Breadcrumbs above editor `component` `logic` `prop`
 - Breadcrumb dropdown (click segment shows siblings) `component` `logic`
 - Outline view (symbols in file) `component` `logic`
 - Recently opened files `Ctrl+R` `component` `logic`
@@ -193,14 +168,13 @@
 - Focus mode (dim everything except current editor) `css` `logic`
 - Panel maximize/minimize toggle `logic`
 - Draggable panel borders (resize areas) `logic`
-- Status bar (line:col, language, encoding) `component` `prop`
 - Empty state (welcome when no files open) `component` `prop`
 - Panel area below editor (terminal, output) `component` `prop`
 - Secondary sidebar (right side) `component` `prop`
 - Problems panel (errors/warnings list) `component` `logic` `prop`
 - Output panel (consumer pushes log lines) `component` `prop`
 - Notification toasts (save success, error) `component` `prop`
-- Minimap panel (bird’s eye of all open files) `component`
+- Minimap panel (bird's eye of all open files) `component`
 - Sticky terminal (stays visible across tab switches) `logic` `prop`
 - Title bar (workspace name, window controls) `component` `prop`
 - Sidebar accordion sections (explorer, search, outline in one sidebar) `component` `logic`
@@ -285,7 +259,7 @@
 
 ## Collaboration
 
-- Follow mode (auto-scroll to another user’s view) `logic`
+- Follow mode (auto-scroll to another user's view) `logic`
 - Selection sharing `dep` `logic`
 - Cursor presence `dep` `logic` `component`
 - User avatar on cursor `css` `component`
@@ -393,7 +367,6 @@
 - Custom tab bar background `css` `prop`
 - Custom activity bar colors `css` `prop`
 - Color-blind friendly diff colors `css` `prop`
-- Dark/light auto-detection without next-themes `logic`
 - Consumer-defined Monaco themes `prop`
 - Custom icon packs `prop`
 - Custom font loading `prop`
@@ -406,7 +379,6 @@
 ## Accessibility
 
 - ARIA labels on tree, tabs, panels `css`
-- Reduced motion support `css`
 - Touch-friendly tree `css`
 - Skip-to-content links `css`
 - Screen reader announcements `logic`
@@ -429,10 +401,6 @@
 
 ## Consumer props
 
-- `shortcuts` — enable/disable or override `prop`
-- `statusBar` — show/hide, custom content `prop`
-- `breadcrumbs` — show/hide `prop`
-- `previewMode` — single-click preview vs double-click `prop`
 - `emptyState` — custom component when no files open `prop`
 - `readOnly` — per-file or global `prop`
 - `wordWrap` — default on/off `prop`
@@ -516,10 +484,8 @@
 
 ## Existing fixes
 
-- Tree selection not syncing with active tab `fix`
 - Tab close button hard to discover on touch `fix`
 - Dockview panel remove crash during HMR `fix`
-- Virtual file content not auto-scrolling to bottom `fix`
 - Multiple Workspace instances state conflict `fix`
 - Monaco editor not resizing on panel resize `fix`
 - Sidebar keyboard focus escaping to editor `fix`
