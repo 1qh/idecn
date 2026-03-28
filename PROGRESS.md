@@ -1,40 +1,58 @@
 # Progress
 
-**Philosophy:** Great defaults out of the box. Everything on by default, consumer opts out if they want. One way to customize each thing — no overlapping APIs. Every change must be visible in the demo instantly.
+**Philosophy:** Great defaults out of the box. One way to customize each thing. Maximum type safety. Minimal DOM. Dark mode ready. Consolidated logic.
 
 **Workflow:** Copy a batch from IDEA.md → work through it → user reviews demo → confirm or iterate → mark done → next batch.
+
+**Review checklist (every phase):**
+
+- Great defaults — everything works out of the box
+- No overlapping options — one way to customize each thing
+- Maximum type safety — no `as const`, no `as any`, no `@ts-ignore`
+- Minimal DOM — every element earns its place
+- Dark mode ready — all colors use CSS variables
+- Consolidated logic — no duplicate code paths
 
 ---
 
 ## Phase 1: Styling + Monaco defaults + quick fixes ✓
 
-### Done
+(completed — see git log)
 
-- [x] Active tab 1px bottom border accent
-- [x] Tab separator lines
-- [x] Indent guides (absolute positioned vertical lines)
-- [x] Section header ("EXPLORER") with collapse/expand all toggle
-- [x] Selection highlight in tree matching active tab
-- [x] Watermark when no files open
-- [x] Reduced motion support
-- [x] Tabs overflow thin scrollbar + tree custom scrollbar
-- [x] Sticky scroll, bracket colorization, smooth scrolling, cursor animation, font ligatures
-- [x] All Monaco built-ins verified (find, replace, go-to-line, color picker, code folding, auto-close brackets)
-- [x] `@tanstack/react-hotkeys` adopted
-- [x] Shortcuts: Mod+B sidebar, Alt+W close tab, Alt+E cycle tabs, Alt+Z word wrap, Mod+\ split, Mod+=/- zoom, Mod+0 reset zoom, Mod+Shift+W close all
-- [x] Middle-click tab to close
-- [x] Tree-tab sync (click tab highlights tree item)
-- [x] Tab label deduplication (parent folder shown when names collide)
-- [x] `editorOptions` single prop for all Monaco customization
-- [x] `onTabChange` callback
-- [x] `shortcuts` enable/disable prop
+---
 
-### Deferred
+## Phase 2: Context menus, status bar, quick open
 
-- Compact tab style when many tabs — needs more tabs to test
-- Read-only badge, cursor blinking, render whitespace — editor mode features
-- CSS custom properties for dimensions — scope too broad
-- Virtual file auto-scroll to bottom — needs editor scroll API
-- Memory leak from Monaco models — needs investigation
-- `emptyState` prop — removed to keep API small
-- `breadcrumbs` — Phase 2
+### Adopt deps
+
+- [ ] `cmdk` — command palette / quick file open
+- [ ] `jotai` — atomic state for cross-component communication
+
+### New components
+
+- [ ] Quick file open `Mod+P` (flatten tree → fuzzy search → open)
+- [ ] Status bar at bottom (line:col, language, file path)
+- [ ] Tab context menu (close, close others, close to right, close all, copy path)
+- [ ] Tree context menu (copy path, copy relative path)
+
+### Style
+
+- [ ] Status bar styling (thin bar, muted colors, monospace for line:col)
+- [ ] Context menu styling (match VS Code look)
+- [ ] Quick open dialog styling (centered overlay, input + results list)
+
+### Logic
+
+- [ ] Status bar updates on cursor move / tab switch
+- [ ] Quick open flattens tree into searchable list
+- [ ] Tab context menu actions wired to dockview API
+- [ ] Copy path to clipboard
+
+### Consumer props
+
+- [ ] `statusBar` — show/hide (default on)
+
+### Fixes from Phase 1 deferred
+
+- [ ] Virtual file auto-scroll to bottom (logs)
+- [ ] Memory leak from Monaco models not disposed on tab close

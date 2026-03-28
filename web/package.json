@@ -4,26 +4,5 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbopack"
-  },
-  "dependencies": {
-    "@monaco-editor/react": "latest",
-    "clsx": "latest",
-    "dockview-core": "latest",
-    "dockview-react": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "next-themes": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwind-merge": "latest"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@tailwindcss/postcss": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest"
   }
 }
