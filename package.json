@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@base-ui/react": "latest",
+    "@icons-pack/react-simple-icons": "latest",
     "@monaco-editor/react": "latest",
     "@shikijs/monaco": "latest",
     "@tailwindcss/typography": "latest",
