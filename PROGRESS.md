@@ -17,6 +17,40 @@
 
 ---
 
+## Phase 3: Breadcrumbs, shadcn leverage, preview mode, polish
+
+### Leverage shadcn
+
+- [ ] `breadcrumb` — file path above editor
+- [ ] `tooltip` — collapse/expand button, status bar items
+- [ ] `kbd` — keyboard shortcuts in context menu items
+- [ ] `skeleton` — file loading state
+- [ ] `sonner` — toast on copy path
+- [ ] `popover` — breadcrumb segment dropdown (click to see siblings)
+
+### New components
+
+- [ ] Tree context menu (copy path, copy relative path)
+
+### Logic
+
+- [ ] Single-click preview mode (italic tab, replaced by next click)
+- [ ] Go back / go forward `Alt+Left` / `Alt+Right` (tab history)
+- [ ] Tree keyboard navigation (arrow keys, enter to open)
+
+### Fixes
+
+- [ ] Virtual file auto-scroll to bottom (logs)
+- [ ] Memory leak from Monaco models not disposed on tab close
+
+---
+
+## Phase 2: Context menus, status bar, quick open ✓
+
+(completed — see git log)
+
+---
+
 ## Phase 1: Styling + Monaco defaults + quick fixes ✓
 
 (completed — see git log)

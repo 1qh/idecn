@@ -42,14 +42,25 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { cn } from './lib/utils'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from './ui/breadcrumb'
 import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from './ui/command'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger
 } from './ui/context-menu'
+import { Skeleton } from './ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
   ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
@@ -474,18 +485,30 @@ const TreeContext = createContext<TreeContextValue>({
     return (
       <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
         <Accordion.Item value={itemId}>
-          <Accordion.Trigger
-            className={cn(
-              ITEM_CLASS,
-              isSelected && 'bg-accent',
-              disabled && 'pointer-events-none opacity-50',
-              props.className
-            )}
-            onClick={select}
-            style={{ paddingLeft: pl }}>
-            <FolderIcon className={iconClass} name={name} open={isOpen} />
-            {name}
-          </Accordion.Trigger>
+          <ContextMenu>
+            <ContextMenuTrigger>
+              <Accordion.Trigger
+                className={cn(
+                  ITEM_CLASS,
+                  isSelected && 'bg-accent',
+                  disabled && 'pointer-events-none opacity-50',
+                  props.className
+                )}
+                onClick={select}
+                style={{ paddingLeft: pl }}>
+                <FolderIcon className={iconClass} name={name} open={isOpen} />
+                {name}
+              </Accordion.Trigger>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem
+                onClick={() => {
+                  navigator.clipboard.writeText(path ?? name).catch(() => undefined)
+                }}>
+                <ClipboardCopy /> Copy Path
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
           <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
             <span
               className='absolute top-0 bottom-0 w-px bg-accent'
@@ -519,29 +542,41 @@ const TreeContext = createContext<TreeContextValue>({
       CustomIcon = typeof icon === 'function' ? icon : undefined
     useIconsReady()
     return (
-      <button
-        type='button'
-        {...props}
-        className={cn(
-          ITEM_CLASS,
-          isSelected && 'bg-accent',
-          disabled && 'pointer-events-none opacity-50',
-          props.className
-        )}
-        onClick={e => {
-          if (!disabled) select()
-          props.onClick?.(e)
-        }}
-        style={{ paddingLeft: pl, ...props.style }}>
-        {CustomIcon ? (
-          <CustomIcon className={iconClass} />
-        ) : typeof icon === 'string' ? (
-          <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
-        ) : (
-          <FileIcon className={iconClass} name={name} />
-        )}
-        {name}
-      </button>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <button
+            type='button'
+            {...props}
+            className={cn(
+              ITEM_CLASS,
+              isSelected && 'bg-accent',
+              disabled && 'pointer-events-none opacity-50',
+              props.className
+            )}
+            onClick={e => {
+              if (!disabled) select()
+              props.onClick?.(e)
+            }}
+            style={{ paddingLeft: pl, ...props.style }}>
+            {CustomIcon ? (
+              <CustomIcon className={iconClass} />
+            ) : typeof icon === 'string' ? (
+              <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
+            ) : (
+              <FileIcon className={iconClass} name={name} />
+            )}
+            {name}
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem
+            onClick={() => {
+              navigator.clipboard.writeText(path ?? name).catch(() => undefined)
+            }}>
+            <ClipboardCopy /> Copy Path
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     )
   },
   renderItems = ({
@@ -687,33 +722,58 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         d.dispose()
       }
     }, [api, language, setFileInfo])
-    if (loadingState || !ready) return <div className={CENTER}>{loadingState}</div>
+    if (loadingState || !ready)
+      return (
+        <div className='flex h-full flex-col gap-2 p-4'>
+          <Skeleton className='h-4 w-3/4' />
+          <Skeleton className='h-4 w-1/2' />
+          <Skeleton className='h-4 w-2/3' />
+        </div>
+      )
     if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
+    const pathParts = api.id.split('/')
     return (
-      <Editor
-        language={language}
-        onMount={editor => {
-          const update = () => {
-            const pos = editor.getPosition()
-            if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
+      <div className='flex h-full flex-col'>
+        <Breadcrumb className='border-b border-border px-3 py-1'>
+          <BreadcrumbList className='flex-nowrap gap-1 text-xs sm:gap-1'>
+            {pathParts.map((part, i) => (
+              <BreadcrumbItem key={part}>
+                {i > 0 ? <BreadcrumbSeparator /> : null}
+                {i === pathParts.length - 1 ? (
+                  <BreadcrumbPage>{part}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink className='cursor-default'>{part}</BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+        <Editor
+          className='flex-1'
+          language={language}
+          onMount={editor => {
+            const update = () => {
+              const pos = editor.getPosition()
+              if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
+            }
+            update()
+            editor.onDidChangeCursorPosition(update)
+          }}
+          options={{
+            ...EDITOR_OPTIONS,
+            fontFamily: monoFont() || undefined,
+            ...editorOpts
+          }}
+          theme={
+            typeof params.theme === 'string'
+              ? params.theme
+              : dark
+                ? (params.theme?.dark ?? 'monokai-lite')
+                : (params.theme?.light ?? 'github-light')
           }
-          update()
-          editor.onDidChangeCursorPosition(update)
-        }}
-        options={{
-          ...EDITOR_OPTIONS,
-          fontFamily: monoFont() || undefined,
-          ...editorOpts
-        }}
-        theme={
-          typeof params.theme === 'string'
-            ? params.theme
-            : dark
-              ? (params.theme?.dark ?? 'monokai-lite')
-              : (params.theme?.light ?? 'github-light')
-        }
-        value={content}
-      />
+          value={content}
+        />
+      </div>
     )
   },
   TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
@@ -767,7 +827,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         {dv ? (
           <ContextMenuContent>
             <ContextMenuItem onClick={() => api.close()}>
-              <X /> Close
+              <X /> Close <ContextMenuShortcut>⌥W</ContextMenuShortcut>
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => {
@@ -1279,20 +1339,26 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         <div className='flex h-full flex-col'>
           <div className='flex items-center justify-between px-3 py-1.5'>
             <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
-            <button
-              className='text-muted-foreground hover:text-foreground transition-colors'
-              onClick={() => {
-                setTreeCollapsed(c => !c)
-                setTreeKey(k => k + 1)
-              }}
-              title={treeCollapsed ? 'Expand All' : 'Collapse All'}
-              type='button'>
-              {treeCollapsed ? (
-                <ChevronRight className='stroke-1 size-4' />
-              ) : (
-                <ChevronsDownUp className='stroke-1 size-4' />
-              )}
-            </button>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className='text-muted-foreground hover:text-foreground transition-colors'
+                    onClick={() => {
+                      setTreeCollapsed(c => !c)
+                      setTreeKey(k => k + 1)
+                    }}
+                    type='button'>
+                    {treeCollapsed ? (
+                      <ChevronRight className='stroke-1 size-4' />
+                    ) : (
+                      <ChevronsDownUp className='stroke-1 size-4' />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{treeCollapsed ? 'Expand All' : 'Collapse All'}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <FileTree
             className='min-h-0 flex-1 overflow-auto'
