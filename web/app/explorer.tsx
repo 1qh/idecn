@@ -32,18 +32,33 @@ const readHash = () => {
       ref = useRef<WorkspaceRef>(null),
       log = useCallback((msg: string) => setActivity(prev => `${prev}[${new Date().toLocaleTimeString()}] ${msg}\n`), []),
       files = useMemo(
-        (): VirtualFile[] => [{ content: activity, language: 'log', name: 'Activity', open: true, pin: 'top' }],
+        (): VirtualFile[] => [{ content: activity, language: 'log', name: 'Activity', open: true, pin: 'bottom' }],
         [activity]
       )
-    useEffect(() => setMounted(true), [])
+    /** biome-ignore lint/correctness/useExhaustiveDependencies: mount only */
+    useEffect(() => {
+      setMounted(true)
+      log(`Loaded ${init.repo} with ${initialTree.length} root items`)
+      const handler = (e: KeyboardEvent) => {
+        const mods = [e.metaKey && '⌘', e.ctrlKey && 'Ctrl', e.altKey && '⌥', e.shiftKey && '⇧'].filter(Boolean).join('')
+        if (mods) log(`Key: ${mods}+${e.code.replace('Key', '').replace('Digit', '')}`)
+      }
+      document.addEventListener('keydown', handler)
+      return () => document.removeEventListener('keydown', handler)
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
       setError(null)
       if (repo === DEFAULT_REPO) {
         setTree(initialTree)
+        log(`Tree: ${String(initialTree.length)} root items (local)`)
         return
       }
+      log(`Fetching tree for ${repo}`)
       fetchTree(repo)
-        .then(setTree)
+        .then(t => {
+          setTree(t)
+          log(`Tree: ${String(t.length)} root items (server action)`)
+        })
         .catch(async () =>
           fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
             .then(async r => r.json() as Promise<{ files?: unknown[] }>)
@@ -85,7 +100,7 @@ const readHash = () => {
                 })
             )
         )
-    }, [initialTree, repo])
+    }, [initialTree, log, repo])
     const submit = () => {
       const v = input.trim()
       if (v && v !== repo) {
@@ -98,16 +113,25 @@ const readHash = () => {
         <div className='flex items-center *:transition-all *:duration-300'>
           <PanelLeft
             className='stroke-1 size-8 shrink-0 hover:p-1.5 p-2 hover:cursor-pointer hover:bg-accent -mr-2'
-            onClick={() => ref.current?.toggleSidebar()}
+            onClick={() => {
+              ref.current?.toggleSidebar()
+              log('Toggle sidebar')
+            }}
           />
           <Search
             className='stroke-1 hover:p-1.5 size-8 shrink-0 p-2 hover:cursor-pointer hover:bg-accent'
-            onClick={submit}
+            onClick={() => {
+              submit()
+              log('Search submitted')
+            }}
           />
           <input
             autoComplete='off'
             className='min-w-0 flex-1 bg-transparent text-sm outline-none'
             onChange={e => setInput(e.target.value)}
+            onFocus={() => {
+              log('Search focused')
+            }}
             onKeyDown={e => {
               if (e.key === 'Enter') submit()
             }}
@@ -130,12 +154,19 @@ const readHash = () => {
           <div className='flex items-center gap-2 border-b border-border bg-amber-500/10 px-3 py-2 text-xs text-amber-500'>
             <AlertTriangle className='size-3.5 shrink-0' />
             {error}
-            <button className='ml-auto shrink-0 opacity-60 hover:opacity-100' onClick={() => setError(null)} type='button'>
+            <button
+              className='ml-auto shrink-0 opacity-60 hover:opacity-100'
+              onClick={() => {
+                setError(null)
+                log('Error dismissed')
+              }}
+              type='button'>
               <X className='size-3' />
             </button>
           </div>
         ) : null}
         <Workspace
+          activityLog={log}
           className='flex-1'
           expandDepth={2}
           expandExclude={EXPAND_EXCLUDE}
@@ -143,23 +174,28 @@ const readHash = () => {
           initialFiles={init.files}
           onFilesChange={f => writeHash(repo, f)}
           onOpenFile={async item => {
-            log(`Opened ${item.path}`)
             const content = await fetchFile(repo, item.path).catch(() => null)
-            if (content !== null) return content
+            if (content !== null) {
+              log(`Loaded ${item.path} (server action, ${content.length} chars)`)
+              return content
+            }
             const raw = await fetch(`https://raw.githubusercontent.com/${repo}/main/${item.path}`)
               .then(async r => (r.ok ? r.text() : null))
               .catch(() => null)
-            if (raw !== null) return raw
-            return fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
+            if (raw !== null) {
+              log(`Loaded ${item.path} (raw.githubusercontent, ${raw.length} chars)`)
+              return raw
+            }
+            const ghContent = await fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
               .then(async r => r.json() as Promise<{ content?: string }>)
               .then(d => (d.content ? atob(d.content) : null))
               .catch(() => null)
-          }}
-          onSidebarChange={v => {
-            log(v ? 'Sidebar opened' : 'Sidebar closed')
-          }}
-          onTabChange={id => {
-            log(`Focused ${id}`)
+            if (ghContent !== null) {
+              log(`Loaded ${item.path} (GitHub API, ${ghContent.length} chars)`)
+              return ghContent
+            }
+            log(`Failed to load ${item.path}`)
+            return null
           }}
           ref={ref}
           tree={tree}

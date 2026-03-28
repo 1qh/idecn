@@ -81,6 +81,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
       scale: 2,
       showSlider: 'always'
     },
+    readOnly: true,
     scrollBeyondLastLine: false,
     scrollbar: {
       horizontal: 'hidden',
@@ -943,10 +944,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     return result
   },
   QuickOpenDialog = ({
+    log: logFn,
     onOpenFile,
     open,
     tree
   }: {
+    log: (msg: string) => void
     onOpenFile: (item: TreeDataItem) => void
     open: boolean
     tree: TreeDataItem[]
@@ -962,6 +965,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             <CommandItem
               key={f.id}
               onSelect={() => {
+                logFn(`Quick open: ${f.name}`)
                 onOpenFile(f)
                 setOpen(false)
               }}
@@ -975,6 +979,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     )
   },
   Workspace = ({
+    activityLog,
     children,
     defaultSidebar = true,
     editorOptions,
@@ -996,6 +1001,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     tree,
     ...props
   }: Omit<ComponentProps<'div'>, 'ref'> & {
+    activityLog?: (line: string) => void
     defaultSidebar?: boolean
     editorOptions?: Record<string, unknown>
     expandDepth?: number
@@ -1026,13 +1032,20 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
       [fontSizeDelta, setFontSizeDelta] = useState(0),
+      log = useCallback(
+        (msg: string) => {
+          activityLog?.(`[${new Date().toLocaleTimeString()}] ${msg}\n`)
+        },
+        [activityLog]
+      ),
       [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
       sidebarVisible = controlledSidebar ?? internalSidebar,
       toggleSidebar = useCallback(() => {
         const next = !sidebarVisible
         setInternalSidebar(next)
         onSidebarChange?.(next)
-      }, [onSidebarChange, sidebarVisible]),
+        log(next ? 'Sidebar opened' : 'Sidebar closed')
+      }, [log, onSidebarChange, sidebarVisible]),
       stateRef = useRef({
         api: null as DockviewApi | null,
         disposables: [] as { dispose: () => void }[],
@@ -1089,11 +1102,17 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useHotkeys(
       [
         { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
-        { callback: () => setQuickOpen(v => !v), hotkey: 'Mod+P' },
+        {
+          callback: () => {
+            setQuickOpen(v => !v)
+            log('Quick open toggled')
+          },
+          hotkey: 'Mod+P'
+        },
         {
           callback: () => {
             const panel = stateRef.current.api?.activePanel
-            if (panel)
+            if (panel) {
               stateRef.current.api?.addPanel({
                 component: panel.view.contentComponent,
                 id: `${panel.id}-split-${Date.now()}`,
@@ -1102,23 +1121,44 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                 tabComponent: 'default',
                 title: panel.title ?? ''
               })
+              log(`Split: ${panel.title ?? panel.id}`)
+            }
           },
           hotkey: 'Mod+\\'
         },
-        { callback: () => setFontSizeDelta(d => d + 2), hotkey: 'Mod+=' },
-        { callback: () => setFontSizeDelta(d => d - 2), hotkey: 'Mod+-' },
-        { callback: () => setFontSizeDelta(0), hotkey: 'Mod+0' },
+        {
+          callback: () => {
+            setFontSizeDelta(d => d + 2)
+            log('Zoom in')
+          },
+          hotkey: 'Mod+='
+        },
+        {
+          callback: () => {
+            setFontSizeDelta(d => d - 2)
+            log('Zoom out')
+          },
+          hotkey: 'Mod+-'
+        },
+        {
+          callback: () => {
+            setFontSizeDelta(0)
+            log('Zoom reset')
+          },
+          hotkey: 'Mod+0'
+        },
         {
           callback: () => {
             const { api } = stateRef.current
             if (!api) return
-            const allPanels = api.panels
-            for (let panelIdx = allPanels.length - 1; panelIdx >= 0; panelIdx -= 1)
+            const count = api.panels.length
+            for (let panelIdx = count - 1; panelIdx >= 0; panelIdx -= 1)
               try {
-                allPanels[panelIdx].api.close()
+                api.panels[panelIdx].api.close()
               } catch {
                 /* Already removed */
               }
+            log(`Closed all ${String(count)} tabs`)
           },
           hotkey: 'Mod+Shift+W'
         }
@@ -1133,14 +1173,22 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           const { panels } = api
           if (panels.length < 2) return
           const active = api.activePanel,
-            idx = active ? panels.indexOf(active) : -1
-          panels[(idx + 1) % panels.length].focus()
+            idx = active ? panels.indexOf(active) : -1,
+            next = panels[(idx + 1) % panels.length]
+          next.focus()
+          log(`Cycle tab: ${next.title ?? next.id}`)
         },
         KeyW: () => {
           const panel = stateRef.current.api?.activePanel
-          if (panel) panel.api.close()
+          if (panel) {
+            log(`Close tab: ${panel.title ?? panel.id}`)
+            panel.api.close()
+          }
         },
-        KeyZ: () => setInternalWordWrap(w => !w)
+        KeyZ: () => {
+          setInternalWordWrap(w => !w)
+          log('Word wrap toggled')
+        }
       },
       shortcuts
     )
@@ -1218,9 +1266,13 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           const existing = api.panels.find(p => p.id === item.path)
           if (existing) {
             existing.focus()
-            if (!preview) setPreviewId(prev => (prev === item.path ? null : prev))
+            if (!preview) {
+              setPreviewId(prev => (prev === item.path ? null : prev))
+              log(`Pinned: ${item.name}`)
+            }
             return
           }
+          log(`${preview ? 'Preview' : 'Open'}: ${item.path}`)
           if (preview && previewIdRef.current) {
             const prev = api.panels.find(p => p.id === previewIdRef.current)
             if (prev) {
@@ -1293,7 +1345,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               })
           }
         },
-        [setPreviewId]
+        [log, setPreviewId]
       ),
       openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel]),
       pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
@@ -1358,13 +1410,18 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               setPreviewId(null)
               previewIdRef.current = null
             }
+            log(`Closed: ${e.title ?? e.id}`)
             notifyFiles()
           }),
-          event.api.onDidAddPanel(() => notifyFiles()),
+          event.api.onDidAddPanel(e => {
+            log(`Opened tab: ${e.title ?? e.id}`)
+            notifyFiles()
+          }),
           event.api.onDidActivePanelChange(e => {
             if (e?.id) {
               setActiveFileId(e.id)
               onTabChangeRef.current?.(e.id)
+              log(`Focused: ${e.title ?? e.id}`)
             }
           })
         )
@@ -1396,7 +1453,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                   <button
                     className='text-muted-foreground hover:text-foreground transition-colors'
                     onClick={() => {
-                      setTreeCollapsed(c => !c)
+                      setTreeCollapsed(c => {
+                        log(c ? 'Tree expanded all' : 'Tree collapsed all')
+                        return !c
+                      })
                       setTreeKey(k => k + 1)
                     }}
                     type='button'>
@@ -1466,6 +1526,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         {dockview}
         {sidebarPosition === 'right' ? sidePanel : null}
         <QuickOpenDialog
+          log={log}
           onOpenFile={item => {
             if (item.id.startsWith(VIRTUAL_PREFIX)) {
               const vf = files?.find(f => virtualFileId(f.name) === item.id)
