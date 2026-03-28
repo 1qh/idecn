@@ -1,7 +1,9 @@
 /** biome-ignore-all lint/security/noDangerouslySetInnerHtml: trusted SVG from material-icon-theme */
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
+/** biome-ignore-all lint/a11y/noStaticElementInteractions: dockview manages tab interactions */
+/** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: dockview manages tab interactions */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
@@ -11,9 +13,10 @@ import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
+import { useHotkeys } from '@tanstack/react-hotkeys'
 import { clsx } from 'clsx'
 import { DockviewReact } from 'dockview-react'
-import { X } from 'lucide-react'
+import { ChevronRight, ChevronsDownUp, X } from 'lucide-react'
 import {
   Children,
   createContext,
@@ -36,7 +39,10 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
   CENTER = 'flex h-full items-center justify-center',
   EDITOR_OPTIONS: NonNullable<EditorProps['options']> = {
+    bracketPairColorization: { enabled: true },
+    cursorSmoothCaretAnimation: 'on',
     cursorWidth: 5,
+    fontLigatures: true,
     fontSize: 16,
     letterSpacing: -0.8,
     lineHeight: 1.1,
@@ -52,7 +58,9 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
       horizontal: 'hidden',
       horizontalScrollbarSize: 1,
       verticalScrollbarSize: 0
-    }
+    },
+    smoothScrolling: true,
+    stickyScroll: { enabled: true }
   },
   TAB_TYPE = Symbol('idecn-tab'),
   EXT_TO_LANG: Record<string, string> = {
@@ -123,9 +131,15 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-tabs-container{gap:0}',
     '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
     '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:var(--color-muted,var(--muted))!important}',
+    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:1px solid var(--color-primary,var(--primary))}',
+    '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:1px solid transparent}',
+    '.dv-reset .dv-tabs-container>.dv-tab+.dv-tab{border-left:1px solid color-mix(in oklch,var(--color-border,var(--border)) 50%,transparent)}',
     '.dv-reset .dv-tab:has([data-fill]){flex:1}',
+    '.dv-reset .dv-tabs-container{overflow-x:auto;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--color-foreground,var(--foreground)) 15%,transparent) transparent}',
     '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}'
+    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}',
+    '.dv-reset .dv-watermark{background:transparent}',
+    '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}'
   ].join('')
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
@@ -312,6 +326,7 @@ const TreeContext = createContext<TreeContextValue>({
       depth,
       expandDepth,
       iconClass: ICON_CLASS_HOVER,
+      indent,
       isSelected,
       itemId,
       pl,
@@ -389,7 +404,7 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { depth, expandDepth, iconClass, isSelected, itemId, pl, select } = useTreeItem({ id, name, path }),
+    const { depth, expandDepth, iconClass, indent, isSelected, itemId, pl, select } = useTreeItem({ id, name, path }),
       shouldOpen = defaultOpen || depth < expandDepth,
       [open, setOpen] = useState(shouldOpen ? [itemId] : []),
       isOpen = open.includes(itemId)
@@ -408,7 +423,11 @@ const TreeContext = createContext<TreeContextValue>({
             <FolderIcon className={iconClass} name={name} open={isOpen} />
             {name}
           </Accordion.Trigger>
-          <Accordion.Panel className='overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
+          <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
+            <span
+              className='absolute top-0 bottom-0 w-px bg-accent'
+              style={{ left: `${String(depth * indent + 16)}px` }}
+            />
             <DepthContext value={depth + 1}>{children}</DepthContext>
           </Accordion.Panel>
         </Accordion.Item>
@@ -500,17 +519,19 @@ const TreeContext = createContext<TreeContextValue>({
     data,
     expandDepth = 0,
     initialSelectedItemId,
-    onSelectChange
+    onSelectChange,
+    selectedId: controlledId
   }: {
     className?: string
     data: TreeDataItem | TreeDataItem[]
     expandDepth?: number
     initialSelectedItemId?: string
     onSelectChange?: (item: TreeDataItem | undefined) => void
+    selectedId?: null | string
   }) => {
     const items = Array.isArray(data) ? data : [data]
     return (
-      <Tree className={className} expandDepth={expandDepth} selectedId={initialSelectedItemId}>
+      <Tree className={className} expandDepth={expandDepth} selectedId={controlledId ?? initialSelectedItemId}>
         <div className='min-w-max'>{renderItems({ items, onItemClick: onSelectChange })}</div>
       </Tree>
     )
@@ -631,7 +652,13 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           p?.headerClassName,
           active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
         )}
-        data-fill={p?.headerClassName ? '' : undefined}>
+        data-fill={p?.headerClassName ? '' : undefined}
+        onMouseDown={e => {
+          if (e.button === 1 && closable) {
+            e.preventDefault()
+            api.close()
+          }
+        }}>
         {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
         {api.title}
         {closable ? (
@@ -646,6 +673,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       </div>
     )
   },
+  WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>,
   COMPONENTS = { custom: ContentPanel, file: FilePanel },
   TAB_COMPONENTS = { default: TabHeader },
   Workspace = ({
@@ -684,6 +712,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     tree?: TreeDataItem[]
   }) => {
     const [mounted, setMounted] = useState(false),
+      [activeFileId, setActiveFileId] = useState<null | string>(null),
+      [treeCollapsed, setTreeCollapsed] = useState(false),
+      [treeKey, setTreeKey] = useState(0),
       [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
       sidebarVisible = controlledSidebar ?? internalSidebar,
       toggleSidebar = useCallback(() => {
@@ -727,16 +758,46 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         }
       }
     }, [])
-    useEffect(() => {
-      const handler = (e: KeyboardEvent) => {
-        if (e.key === 'b' && (e.metaKey || e.ctrlKey)) {
-          e.preventDefault()
-          toggleSidebar()
+    useHotkeys(
+      [
+        { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
+        {
+          callback: () => {
+            const panel = stateRef.current.api?.activePanel
+            if (panel) panel.api.close()
+          },
+          hotkey: 'Alt+W'
+        },
+        {
+          callback: () => {
+            const { api } = stateRef.current
+            if (!api) return
+            const { panels } = api
+            if (panels.length < 2) return
+            const active = api.activePanel,
+              idx = active ? panels.indexOf(active) : -1
+            panels[(idx + 1) % panels.length].focus()
+          },
+          hotkey: 'Alt+E'
+        },
+        {
+          callback: () => {
+            const panel = stateRef.current.api?.activePanel
+            if (panel)
+              stateRef.current.api?.addPanel({
+                component: panel.view.contentComponent,
+                id: `${panel.id}-split-${Date.now()}`,
+                params: panel.params,
+                position: { direction: 'right', referencePanel: panel },
+                tabComponent: 'default',
+                title: panel.title ?? ''
+              })
+          },
+          hotkey: 'Mod+\\'
         }
-      }
-      document.addEventListener('keydown', handler)
-      return () => document.removeEventListener('keydown', handler)
-    }, [toggleSidebar])
+      ],
+      { preventDefault: true }
+    )
     const tabs = useMemo(() => extractTabs(children), [children]),
       sidebarChildren = useMemo(() => {
         const items: ReactNode[] = []
@@ -928,7 +989,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             stateRef.current.onCloseMap.delete(e.id)
             notifyFiles()
           }),
-          event.api.onDidAddPanel(() => notifyFiles())
+          event.api.onDidAddPanel(() => notifyFiles()),
+          event.api.onDidActivePanelChange(e => {
+            if (e?.id) setActiveFileId(e.id)
+          })
         )
         requestAnimationFrame(() => {
           stateRef.current.ready = true
@@ -949,18 +1013,35 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       }, [files, tree])
     if (!mounted) return null
     const sidebarContent = mergedTree ? (
-        <FileTree
-          className='h-full overflow-auto'
-          data={mergedTree}
-          expandDepth={expandDepth}
-          onSelectChange={item => {
-            if (!item || item.children) return
-            if (item.id.startsWith(VIRTUAL_PREFIX)) {
-              const vf = files?.find(f => virtualFileId(f.name) === item.id)
-              if (vf) openVirtualFile(vf)
-            } else openFile(item)
-          }}
-        />
+        <div className='flex h-full flex-col'>
+          <div className='flex items-center justify-between px-3 py-1.5'>
+            <span className='text-[11px] font-semibold uppercase tracking-wider text-muted-foreground'>Explorer</span>
+            <button
+              className='text-muted-foreground hover:text-foreground transition-colors'
+              onClick={() => {
+                setTreeCollapsed(c => !c)
+                setTreeKey(k => k + 1)
+              }}
+              title={treeCollapsed ? 'Expand All' : 'Collapse All'}
+              type='button'>
+              {treeCollapsed ? <ChevronRight className='size-3.5' /> : <ChevronsDownUp className='size-3.5' />}
+            </button>
+          </div>
+          <FileTree
+            className='min-h-0 flex-1 overflow-auto'
+            data={mergedTree}
+            expandDepth={treeCollapsed ? 0 : expandDepth}
+            key={treeKey}
+            onSelectChange={item => {
+              if (!item || item.children) return
+              if (item.id.startsWith(VIRTUAL_PREFIX)) {
+                const vf = files?.find(f => virtualFileId(f.name) === item.id)
+                if (vf) openVirtualFile(vf)
+              } else openFile(item)
+            }}
+            selectedId={activeFileId}
+          />
+        </div>
       ) : (
         sidebarChildren
       ),
@@ -971,6 +1052,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             components={COMPONENTS}
             onReady={handleReady}
             tabComponents={TAB_COMPONENTS}
+            watermarkComponent={WatermarkPanel}
           />
         </Panel>
       ),
