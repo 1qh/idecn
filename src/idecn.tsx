@@ -52,7 +52,6 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
       scale: 2,
       showSlider: 'always'
     },
-    readOnly: true,
     scrollBeyondLastLine: false,
     scrollbar: {
       horizontal: 'hidden',
@@ -250,7 +249,13 @@ const iconsReady =
     })
     return tabs
   },
-  getTabId = (tab: TabProps) => tab.id ?? tab.title
+  getTabId = (tab: TabProps) => tab.id ?? tab.title,
+  deduplicateTitle = (name: string, path: string, existingPanels: { id: string; title: string | undefined }[]): string => {
+    const hasDupe = existingPanels.some(p => p.title === name && p.id !== path)
+    if (!hasDupe) return name
+    const parts = path.split('/')
+    return parts.length >= 2 ? `${parts.at(-2)}/${name}` : name
+  }
 interface IconManifest {
   file: string
   fileExtensions: Record<string, string>
@@ -381,7 +386,13 @@ const TreeContext = createContext<TreeContextValue>({
       )
     return (
       <TreeContext value={ctx}>
-        <nav aria-label='File tree' {...props} className={cn('select-none overflow-auto text-sm', props.className)}>
+        <nav
+          aria-label='File tree'
+          {...props}
+          className={cn(
+            'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
+            props.className
+          )}>
           {children}
         </nav>
       </TreeContext>
@@ -686,8 +697,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     onFilesChange,
     onOpenFile,
     onSidebarChange,
+    onTabChange,
     ref,
     renderLoading,
+    shortcuts = true,
     sidebar: controlledSidebar,
     sidebarPosition = 'left',
     sidebarSize = '16%',
@@ -703,8 +716,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     onFilesChange?: (files: string[]) => void
     onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
     onSidebarChange?: (visible: boolean) => void
+    onTabChange?: (id: string) => void
     ref?: Ref<WorkspaceRef>
     renderLoading?: (item: TreeDataItem) => ReactNode
+    shortcuts?: boolean
     sidebar?: boolean
     sidebarPosition?: 'left' | 'right'
     sidebarSize?: number | string
@@ -715,6 +730,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [activeFileId, setActiveFileId] = useState<null | string>(null),
       [treeCollapsed, setTreeCollapsed] = useState(false),
       [treeKey, setTreeKey] = useState(0),
+      [internalWordWrap, setInternalWordWrap] = useState(false),
+      [fontSizeDelta, setFontSizeDelta] = useState(0),
       [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
       sidebarVisible = controlledSidebar ?? internalSidebar,
       toggleSidebar = useCallback(() => {
@@ -735,15 +752,31 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       renderLoadingRef = useRef(renderLoading),
       editorOptionsRef = useRef(editorOptions),
       themeRef = useRef(theme),
-      filesRef = useRef(files)
+      filesRef = useRef(files),
+      onTabChangeRef = useRef(onTabChange),
+      mergedEditorOptions = useMemo(
+        () => ({
+          ...editorOptions,
+          fontSize: (EDITOR_OPTIONS.fontSize ?? 16) + fontSizeDelta,
+          wordWrap: internalWordWrap ? ('on' as const) : ('off' as const)
+        }),
+        [editorOptions, fontSizeDelta, internalWordWrap]
+      )
     useEffect(() => {
       onFilesChangeRef.current = onFilesChange
       onOpenFileRef.current = onOpenFile
       renderLoadingRef.current = renderLoading
-      editorOptionsRef.current = editorOptions
+      editorOptionsRef.current = mergedEditorOptions
       themeRef.current = theme
       filesRef.current = files
+      onTabChangeRef.current = onTabChange
     })
+    useEffect(() => {
+      const { api } = stateRef.current
+      if (!api) return
+      for (const panel of api.panels)
+        if (stateRef.current.fileIds.has(panel.id)) panel.api.updateParameters({ editorOptions: mergedEditorOptions })
+    }, [mergedEditorOptions])
     useEffect(() => {
       setMounted(true)
       return () => {
@@ -794,9 +827,39 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               })
           },
           hotkey: 'Mod+\\'
+        },
+        {
+          callback: () => setInternalWordWrap(w => !w),
+          hotkey: 'Alt+Z'
+        },
+        {
+          callback: () => setFontSizeDelta(d => d + 2),
+          hotkey: 'Mod+='
+        },
+        {
+          callback: () => setFontSizeDelta(d => d - 2),
+          hotkey: 'Mod+-'
+        },
+        {
+          callback: () => setFontSizeDelta(0),
+          hotkey: 'Mod+0'
+        },
+        {
+          callback: () => {
+            const { api } = stateRef.current
+            if (!api) return
+            const allPanels = api.panels
+            for (let panelIdx = allPanels.length - 1; panelIdx >= 0; panelIdx -= 1)
+              try {
+                allPanels[panelIdx].api.close()
+              } catch {
+                /* Already removed */
+              }
+          },
+          hotkey: 'Mod+Shift+W'
         }
       ],
-      { preventDefault: true }
+      { enabled: shortcuts, preventDefault: true }
     )
     const tabs = useMemo(() => extractTabs(children), [children]),
       sidebarChildren = useMemo(() => {
@@ -899,7 +962,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             },
             position,
             tabComponent: 'default',
-            title: item.name
+            title: deduplicateTitle(item.name, item.path, api.panels)
           }),
           result = onOpen(item)
         if (result === null) return
@@ -991,7 +1054,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           }),
           event.api.onDidAddPanel(() => notifyFiles()),
           event.api.onDidActivePanelChange(e => {
-            if (e?.id) setActiveFileId(e.id)
+            if (e?.id) {
+              setActiveFileId(e.id)
+              onTabChangeRef.current?.(e.id)
+            }
           })
         )
         requestAnimationFrame(() => {

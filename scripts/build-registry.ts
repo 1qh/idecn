@@ -17,11 +17,14 @@ await write(
         '@base-ui/react',
         '@monaco-editor/react',
         '@shikijs/monaco',
+        '@tanstack/react-hotkeys',
+        'clsx',
         'dockview-core',
         'dockview-react',
         'lucide-react',
         'react-resizable-panels',
-        'shiki'
+        'shiki',
+        'tailwind-merge'
       ],
       description: 'Full IDE layout with file tree, tabbed editor, and async file loading.',
       files: [
