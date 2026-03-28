@@ -8,6 +8,7 @@ const root = resolve(import.meta.dir, '..'),
 mkdirSync(outDir, { recursive: true })
 let content = await read('src/idecn.tsx')
 content = content
+  .replace("import 'dockview-core/dist/styles/dockview.css'\n", '')
   .replaceAll('./_generated/icons', '@/lib/icons')
   .replaceAll('./monokai-lite', '@/lib/monokai-lite')
   .replaceAll('./lib/utils', '@/lib/utils')
