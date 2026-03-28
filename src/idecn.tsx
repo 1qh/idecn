@@ -346,6 +346,7 @@ interface TreeContextValue {
   expandDepth: number
   expandExclude?: string[]
   indent: number
+  log?: (msg: string) => void
   onSelect?: (item: { id: string; name: string; path: string }) => void
   selectedId: null | string
   setSelectedId: (id: string) => void
@@ -375,7 +376,7 @@ const TreeContext = createContext<TreeContextValue>({
   DockviewApiContext = createContext<DockviewApi | null>(null),
   DepthContext = createContext(0),
   useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
-    const { expandDepth, expandExclude, indent, onSelect, selectedId, setSelectedId } = use(TreeContext),
+    const { expandDepth, expandExclude, indent, log: treeLog, onSelect, selectedId, setSelectedId } = use(TreeContext),
       depth = use(DepthContext),
       itemId = id ?? path ?? name,
       isSelected = selectedId === itemId,
@@ -392,6 +393,7 @@ const TreeContext = createContext<TreeContextValue>({
       indent,
       isSelected,
       itemId,
+      log: treeLog,
       pl,
       select
     }
@@ -422,6 +424,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth = 0,
     expandExclude,
     indent = 16,
+    log: treePropLog,
     onSelect,
     selectedId: controlledSelectedId,
     ...props
@@ -429,6 +432,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth?: number
     expandExclude?: string[]
     indent?: number
+    log?: (msg: string) => void
     onSelect?: (item: { id: string; name: string; path: string }) => void
     selectedId?: null | string
   }) => {
@@ -439,11 +443,12 @@ const TreeContext = createContext<TreeContextValue>({
           expandDepth,
           expandExclude,
           indent,
+          log: treePropLog,
           onSelect,
           selectedId,
           setSelectedId: setInternalSelectedId
         }),
-        [expandDepth, expandExclude, indent, onSelect, selectedId]
+        [expandDepth, expandExclude, indent, treePropLog, onSelect, selectedId]
       )
     return (
       <TreeContext value={ctx}>
@@ -476,7 +481,18 @@ const TreeContext = createContext<TreeContextValue>({
     name: string
     path?: string
   }) => {
-    const { depth, expandDepth, expandExclude, iconClass, indent, isSelected, itemId, pl, select } = useTreeItem({
+    const {
+        depth,
+        expandDepth,
+        expandExclude,
+        iconClass,
+        indent,
+        log: treeLog,
+        isSelected,
+        itemId,
+        pl,
+        select
+      } = useTreeItem({
         id,
         name,
         path
@@ -486,7 +502,12 @@ const TreeContext = createContext<TreeContextValue>({
       [open, setOpen] = useState(shouldOpen ? [itemId] : []),
       isOpen = open.includes(itemId)
     return (
-      <Accordion.Root onValueChange={v => setOpen(v as string[])} value={open}>
+      <Accordion.Root
+        onValueChange={v => {
+          setOpen(v as string[])
+          treeLog?.(v.length > 0 ? `Expand: ${name}` : `Collapse: ${name}`)
+        }}
+        value={open}>
         <Accordion.Item value={itemId}>
           <ContextMenu>
             <ContextMenuTrigger>
@@ -624,6 +645,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth = 0,
     expandExclude,
     initialSelectedItemId,
+    log: fileTreeLog,
     onDoubleClick: onDoubleClickProp,
     onSelectChange,
     selectedId: controlledId
@@ -633,6 +655,7 @@ const TreeContext = createContext<TreeContextValue>({
     expandDepth?: number
     expandExclude?: string[]
     initialSelectedItemId?: string
+    log?: (msg: string) => void
     onDoubleClick?: (item: TreeDataItem) => void
     onSelectChange?: (item: TreeDataItem | undefined) => void
     selectedId?: null | string
@@ -643,6 +666,7 @@ const TreeContext = createContext<TreeContextValue>({
         className={className}
         expandDepth={expandDepth}
         expandExclude={expandExclude}
+        log={fileTreeLog}
         selectedId={controlledId ?? initialSelectedItemId}>
         <div className='min-w-max'>
           {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
@@ -1092,7 +1116,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     }, [mergedEditorOptions])
     useEffect(() => {
       setMounted(true)
+      const observer = new MutationObserver(() => {
+        log(`Theme: ${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`)
+      })
+      observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
       return () => {
+        observer.disconnect()
         for (const d of stateRef.current.disposables) d.dispose()
         stateRef.current = {
           api: null,
@@ -1103,7 +1132,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           ready: false
         }
       }
-    }, [])
+    }, [log])
     useHotkeys(
       [
         { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
@@ -1413,7 +1442,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               openVirtualFile(f)
               log(`Virtual file: ${f.name}`)
             }
-
         if (initialFiles) {
           log(`Initial files: ${initialFiles.join(', ')}`)
           for (const path of initialFiles) openFile({ id: path, name: path.split('/').at(-1) ?? path, path })
@@ -1500,6 +1528,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             expandDepth={treeCollapsed ? 0 : expandDepth}
             expandExclude={expandExclude}
             key={treeKey}
+            log={log}
             onDoubleClick={item => {
               if (item.children) return
               if (!item.id.startsWith(VIRTUAL_PREFIX)) {
