@@ -2,6 +2,7 @@
 /** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: dockview manages tab interactions */
 /** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: dockview manages tab interactions */
+/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions */
 'use client'
@@ -250,6 +251,25 @@ const iconsReady =
     return tabs
   },
   getTabId = (tab: TabProps) => tab.id ?? tab.title,
+  useAltKeys = (bindings: Record<string, () => void>, enabled: boolean) => {
+    const ref = useRef(bindings)
+    useEffect(() => {
+      ref.current = bindings
+    })
+    useEffect(() => {
+      if (!enabled) return
+      const handler = (e: KeyboardEvent) => {
+        if (!e.altKey || e.metaKey || e.ctrlKey) return
+        const fn = ref.current[e.code]
+        if (fn) {
+          e.preventDefault()
+          fn()
+        }
+      }
+      document.addEventListener('keydown', handler)
+      return () => document.removeEventListener('keydown', handler)
+    }, [enabled])
+  },
   deduplicateTitle = (name: string, path: string, existingPanels: { id: string; title: string | undefined }[]): string => {
     const hasDupe = existingPanels.some(p => p.title === name && p.id !== path)
     if (!hasDupe) return name
@@ -586,6 +606,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     const [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
       [loadingState, setLoadingState] = useState(params.loading),
+      [editorOpts, setEditorOpts] = useState(params.editorOptions),
       [ready, setReady] = useState(!shikiSetup),
       [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
     useEffect(() => {
@@ -601,6 +622,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       const d = api.onDidParametersChange(e => {
         const p = e as {
           content?: string
+          editorOptions?: Record<string, unknown>
           language?: string
           loading?: ReactNode
         }
@@ -610,6 +632,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         }
         if (p.language !== undefined) setLanguage(p.language)
         if (p.loading !== undefined) setLoadingState(p.loading)
+        if (p.editorOptions !== undefined) setEditorOpts(p.editorOptions)
       })
       return () => {
         d.dispose()
@@ -623,7 +646,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         options={{
           ...EDITOR_OPTIONS,
           fontFamily: monoFont() || undefined,
-          ...params.editorOptions
+          ...editorOpts
         }}
         theme={
           typeof params.theme === 'string'
@@ -758,7 +781,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         () => ({
           ...editorOptions,
           fontSize: (EDITOR_OPTIONS.fontSize ?? 16) + fontSizeDelta,
-          wordWrap: internalWordWrap ? ('on' as const) : ('off' as const)
+          wordWrap: (internalWordWrap ? 'on' : 'off') satisfies NonNullable<EditorProps['options']>['wordWrap']
         }),
         [editorOptions, fontSizeDelta, internalWordWrap]
       )
@@ -797,25 +820,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         {
           callback: () => {
             const panel = stateRef.current.api?.activePanel
-            if (panel) panel.api.close()
-          },
-          hotkey: 'Alt+W'
-        },
-        {
-          callback: () => {
-            const { api } = stateRef.current
-            if (!api) return
-            const { panels } = api
-            if (panels.length < 2) return
-            const active = api.activePanel,
-              idx = active ? panels.indexOf(active) : -1
-            panels[(idx + 1) % panels.length].focus()
-          },
-          hotkey: 'Alt+E'
-        },
-        {
-          callback: () => {
-            const panel = stateRef.current.api?.activePanel
             if (panel)
               stateRef.current.api?.addPanel({
                 component: panel.view.contentComponent,
@@ -828,22 +832,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           },
           hotkey: 'Mod+\\'
         },
-        {
-          callback: () => setInternalWordWrap(w => !w),
-          hotkey: 'Alt+Z'
-        },
-        {
-          callback: () => setFontSizeDelta(d => d + 2),
-          hotkey: 'Mod+='
-        },
-        {
-          callback: () => setFontSizeDelta(d => d - 2),
-          hotkey: 'Mod+-'
-        },
-        {
-          callback: () => setFontSizeDelta(0),
-          hotkey: 'Mod+0'
-        },
+        { callback: () => setFontSizeDelta(d => d + 2), hotkey: 'Mod+=' },
+        { callback: () => setFontSizeDelta(d => d - 2), hotkey: 'Mod+-' },
+        { callback: () => setFontSizeDelta(0), hotkey: 'Mod+0' },
         {
           callback: () => {
             const { api } = stateRef.current
@@ -860,6 +851,25 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         }
       ],
       { enabled: shortcuts, preventDefault: true }
+    )
+    useAltKeys(
+      {
+        KeyE: () => {
+          const { api } = stateRef.current
+          if (!api) return
+          const { panels } = api
+          if (panels.length < 2) return
+          const active = api.activePanel,
+            idx = active ? panels.indexOf(active) : -1
+          panels[(idx + 1) % panels.length].focus()
+        },
+        KeyW: () => {
+          const panel = stateRef.current.api?.activePanel
+          if (panel) panel.api.close()
+        },
+        KeyZ: () => setInternalWordWrap(w => !w)
+      },
+      shortcuts
     )
     const tabs = useMemo(() => extractTabs(children), [children]),
       sidebarChildren = useMemo(() => {
@@ -956,6 +966,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             params: {
               content: '',
               editorOptions: editorOptionsRef.current,
+              iconName: item.name,
               language: langOf(item.path),
               loading: loadingNode,
               theme: themeRef.current
@@ -1081,7 +1092,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     const sidebarContent = mergedTree ? (
         <div className='flex h-full flex-col'>
           <div className='flex items-center justify-between px-3 py-1.5'>
-            <span className='text-[11px] font-semibold uppercase tracking-wider text-muted-foreground'>Explorer</span>
+            <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
             <button
               className='text-muted-foreground hover:text-foreground transition-colors'
               onClick={() => {
@@ -1090,7 +1101,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               }}
               title={treeCollapsed ? 'Expand All' : 'Collapse All'}
               type='button'>
-              {treeCollapsed ? <ChevronRight className='size-3.5' /> : <ChevronsDownUp className='size-3.5' />}
+              {treeCollapsed ? (
+                <ChevronRight className='stroke-1 size-4' />
+              ) : (
+                <ChevronsDownUp className='stroke-1 size-4' />
+              )}
             </button>
           </div>
           <FileTree
