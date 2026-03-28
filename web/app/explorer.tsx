@@ -141,21 +141,21 @@ const readHash = () => {
             value={input}
           />
           <a
-            className='shrink-0 p-2 hover:p-1.5 hover:bg-accent transition-all duration-300'
+            className='-mr-2 stroke-1 size-8 shrink-0 p-2 hover:p-1.5 hover:cursor-pointer hover:bg-accent flex items-center justify-center'
             href={`https://github.com/${DEFAULT_REPO}`}
             rel='noopener noreferrer'
             target='_blank'>
-            <SiGithub className='size-4' />
+            <SiGithub className='mb-0.5 size-full' />
           </a>
           <button
-            className='shrink-0 *:p-1.5 *:hover:p-1 *:size-8 hover:bg-accent [&_svg]:stroke-1'
+            className='stroke-1 size-8 shrink-0 p-1.5 hover:p-1 hover:cursor-pointer hover:bg-accent'
             onClick={() => {
               const next = mounted && resolvedTheme === 'dark' ? 'light' : 'dark'
               setTheme(next)
               log(`Theme: ${next}`)
             }}
             type='button'>
-            {mounted && resolvedTheme === 'dark' ? <Sun /> : <Moon />}
+            {mounted && resolvedTheme === 'dark' ? <Sun className='size-full stroke-1' /> : <Moon className='size-full stroke-1' />}
           </button>
         </div>
         {error ? (
