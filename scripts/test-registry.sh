@@ -31,6 +31,9 @@ cd test
 echo "-> Adding idecn from registry"
 bunx shadcn@latest add "http://localhost:$PORT/r/idecn.json" -s 2>&1 | tail -3
 
+echo "-> Installing extra deps"
+bun add @tailwindcss/typography tw-animate-css dockview-core 2>&1 | tail -1
+
 echo "-> Copying demo app"
 rm -rf app
 cp -r "$IDECN/web/app" app
@@ -38,9 +41,11 @@ cp -r "$IDECN/web/app" app
 echo "-> Patching imports"
 find app -name '*.ts' -o -name '*.tsx' | xargs sed -i.bak "s|from 'idecn'|from '@/components/ui/idecn'|g"
 rm -f app/*.bak
+sed -i.bak "1s|^|import 'dockview-core/dist/styles/dockview.css'\n|" app/layout.tsx
+rm -f app/layout.tsx.bak
 
 echo "-> Building"
-if bun run build 2>&1 | tail -5; then
+if bun x next build 2>&1 | tail -5; then
   echo "v Registry test passed"
 else
   echo "x Build failed"
