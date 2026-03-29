@@ -1,4 +1,7 @@
-/* eslint-disable no-console */
+/** biome-ignore-all lint/performance/noAwaitInLoops: sequential file reads */
+/** biome-ignore-all lint/nursery/useNamedCaptureGroup: simple extraction */
+/* eslint-disable no-console, no-await-in-loop, prefer-named-capture-group */
+/* oxlint-disable no-await-in-loop */
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -13,7 +16,20 @@ const root = resolve(import.meta.dir, '..'),
       return dep.startsWith('@') ? dep.split('/').slice(0, 2).join('/') : dep.split('/')[0]
     })
   ),
-  deps = Object.keys(pkg.dependencies).filter(d => srcImports.has(d))
+  deps = Object.keys(pkg.dependencies).filter(d => srcImports.has(d)),
+  uiImports = [...new Set(src.match(/from '\.\/ui\/([^']+)'/gu)?.map(m => m.slice(11, -1)))],
+  uiFiles: { content: string; path: string; type: string }[] = [],
+  nestedRegistryDeps = new Set<string>()
+for (const name of uiImports) {
+  const uiSrc = await read(`src/ui/${name}.tsx`),
+    uiContent = uiSrc
+      .replaceAll('../lib/utils', '@/lib/utils')
+      .replaceAll(/"\.\/([^"]+)"/gu, '"@/components/ui/$1"')
+      .replaceAll(/'\.\/([^']+)'/gu, "'@/components/ui/$1'")
+  uiFiles.push({ content: uiContent, path: `components/ui/${name}.tsx`, type: 'registry:component' })
+  const nested = uiSrc.match(/from ['"]\.\/([^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
+  if (nested) for (const n of nested) if (!uiImports.includes(n)) nestedRegistryDeps.add(n)
+}
 mkdirSync(outDir, { recursive: true })
 let content = src
 content = content
@@ -44,10 +60,11 @@ await write(
           content: await read('src/monokai-lite.ts'),
           path: 'lib/monokai-lite.ts',
           type: 'registry:lib'
-        }
+        },
+        ...uiFiles
       ],
       name: 'idecn',
-      registryDependencies: [...new Set(src.match(/from '\.\/ui\/(?:[^']+)'/gu)?.map(m => m.slice(10, -1)))],
+      registryDependencies: [...nestedRegistryDeps],
       title: 'idecn',
       type: 'registry:component'
     },
@@ -55,4 +72,4 @@ await write(
     2
   )
 )
-console.log('Built r/idecn.json (3 files)')
+console.log(`Built r/idecn.json (${3 + uiFiles.length} files, ${nestedRegistryDeps.size} nested deps)`)
