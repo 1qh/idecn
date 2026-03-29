@@ -12,6 +12,22 @@ bunx shadcn@latest add https://idecn.vercel.app/r/idecn.json
 bun add idecn
 ```
 
+## Features
+
+- Tabbed editor with dockview (drag, reorder, split, pin, context menu)
+- File tree with material icons, keyboard navigation, expand/collapse
+- Monaco editor with shiki syntax highlighting (lazy-loaded languages)
+- Quick file open (`Cmd+P`) with fuzzy search
+- Breadcrumbs with path navigation
+- Virtual files (activity logs, previews) with reactive content
+- Tab history (`Alt+Left/Right`), undo close (`Alt+T`)
+- Preview mode (single-click), pinned tabs (double-click)
+- Status bar with cursor position, language, word wrap toggle
+- Keyboard shortcuts (`Cmd+B` sidebar, `Cmd+W` close, `Alt+E` cycle)
+- Dark mode with Monokai Lite / GitHub Light themes
+- Skeleton loading states
+- Activity logging for all interactions
+
 ## FileTree
 
 ```tsx
@@ -61,7 +77,8 @@ const ref = useRef<WorkspaceRef>(null)
 | `tree`            | `TreeDataItem[]`                           | -                           |
 | `onOpenFile`      | `(item) => string \| null \| Promise<...>` | -                           |
 | `expandDepth`     | `number`                                   | `0`                         |
-| `sidebarSize`     | `string \| number`                         | `'250px'`                   |
+| `expandExclude`   | `string[]`                                 | -                           |
+| `sidebarSize`     | `string \| number`                         | `'16%'`                     |
 | `sidebarPosition` | `'left' \| 'right'`                        | `'left'`                    |
 | `sidebar`         | `boolean`                                  | -                           |
 | `defaultSidebar`  | `boolean`                                  | `true`                      |
@@ -69,17 +86,26 @@ const ref = useRef<WorkspaceRef>(null)
 | `editorOptions`   | `Record<string, unknown>`                  | -                           |
 | `theme`           | `string \| { dark, light }`                | monokai-lite / github-light |
 | `initialFiles`    | `string[]`                                 | -                           |
+| `files`           | `VirtualFile[]`                            | -                           |
 | `onFilesChange`   | `(files: string[]) => void`                | -                           |
+| `onTabChange`     | `(id: string) => void`                     | -                           |
+| `activityLog`     | `(line: string) => void`                   | -                           |
+| `shortcuts`       | `boolean`                                  | `true`                      |
 | `renderLoading`   | `(item) => ReactNode`                      | -                           |
 | `ref`             | `Ref<WorkspaceRef>`                        | -                           |
 
-<details> <summary>Notes on sizing</summary>
+### VirtualFile
 
-- `'250px'` - pixels (string)
-- `'20%'` or `'20'` - percentage (string)
-- `250` - pixels (number)
-
-</details>
+```ts
+interface VirtualFile {
+  content: string
+  name: string
+  language?: string
+  icon?: ComponentType<{ className?: string }>
+  open?: boolean
+  pin?: 'top' | 'bottom'
+}
+```
 
 ### WorkspaceRef
 

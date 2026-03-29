@@ -195,58 +195,69 @@ const iconsReady =
           iconSvgs = mod.icons.svgs
         })
       : Promise.resolve(),
+  CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const,
+  ALL_LANGS = [
+    'css',
+    'go',
+    'html',
+    'javascript',
+    'json',
+    'jsx',
+    'markdown',
+    'python',
+    'rust',
+    'shell',
+    'sql',
+    'toml',
+    'tsx',
+    'typescript',
+    'yaml'
+  ] as const,
+  defineThemes = (
+    highlighter: Awaited<ReturnType<typeof createHighlighter>>,
+    m: { editor: { defineTheme: (name: string, data: unknown) => void } }
+  ) => {
+    for (const name of highlighter.getLoadedThemes()) {
+      const resolved = highlighter.getTheme(name),
+        converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
+        isDark = resolved.type === 'dark'
+      if (isDark) {
+        converted.colors['editor.background'] = '#00000077'
+        converted.colors['editor.lineHighlightBackground'] = '#00000000'
+        converted.colors['editorLineNumber.foreground'] = '#ffffff22'
+        converted.colors['minimap.background'] = '#000000'
+        converted.colors['minimapSlider.background'] = '#ffffff15'
+        converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
+        converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
+      } else converted.colors['minimap.background'] = '#ffffff'
+      converted.colors['scrollbar.shadow'] = '#00000000'
+      converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
+      converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
+      converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff50' : '#00000050'
+      m.editor.defineTheme(name, converted)
+    }
+  },
   shikiSetup =
     'location' in globalThis
       ? (async () => {
           const mod = await import('./monokai-lite'),
             theme = mod.monokaiLite,
             highlighter = await createHighlighter({
-              langs: [
-                'css',
-                'go',
-                'html',
-                'javascript',
-                'json',
-                'jsx',
-                'markdown',
-                'python',
-                'rust',
-                'shell',
-                'sql',
-                'toml',
-                'tsx',
-                'typescript',
-                'yaml'
-              ],
+              langs: [...CORE_LANGS],
               themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
             }),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
-          const m = monaco as {
-            editor: { defineTheme: (name: string, data: unknown) => void }
-          }
-          for (const name of highlighter.getLoadedThemes()) {
-            const resolved = highlighter.getTheme(name),
-              converted = textmateThemeToMonacoTheme(resolved) as {
-                colors: Record<string, string>
-              },
-              isDark = resolved.type === 'dark'
-            if (isDark) {
-              converted.colors['editor.background'] = '#00000077'
-              converted.colors['editor.lineHighlightBackground'] = '#00000000'
-              converted.colors['editorLineNumber.foreground'] = '#ffffff22'
-              converted.colors['minimap.background'] = '#000000'
-              converted.colors['minimapSlider.background'] = '#ffffff15'
-              converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
-              converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
-            } else converted.colors['minimap.background'] = '#ffffff'
-            converted.colors['scrollbar.shadow'] = '#00000000'
-            converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
-            converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
-            converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff50' : '#00000050'
-            m.editor.defineTheme(name, converted)
-          }
+          defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
+          const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
+          if (remaining.length > 0)
+            highlighter
+              .loadLanguage(...remaining)
+              .then(() => {
+                shikiToMonaco(highlighter, monaco)
+              })
+              .catch(() => undefined)
         })()
       : null,
   getSvg = (name: string): string => iconSvgs[name] ?? (iconManifest ? (iconSvgs[iconManifest.file] ?? '') : ''),
@@ -1531,11 +1542,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useEffect(() => {
       const { api } = stateRef.current
       if (!(api && files)) return
-      for (const file of files) {
-        const id = virtualFileId(file.name),
-          panel = api.panels.find(p => p.id === id)
-        if (panel) panel.api.updateParameters({ content: file.content })
-      }
+      const tid = setTimeout(() => {
+        for (const file of files) {
+          const id = virtualFileId(file.name),
+            panel = api.panels.find(p => p.id === id)
+          if (panel) panel.api.updateParameters({ content: file.content })
+        }
+      }, 100)
+      return () => clearTimeout(tid)
     }, [files])
     const handleReady = (event: DockviewReadyEvent) => {
         stateRef.current.api = event.api
