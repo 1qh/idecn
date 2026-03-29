@@ -16,6 +16,7 @@ import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
+import { Command as Cmdk } from 'cmdk'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
@@ -26,6 +27,7 @@ import {
   ClipboardCopy,
   Pin,
   PinOff,
+  Search,
   SplitSquareHorizontal,
   Trash,
   Trash2,
@@ -55,7 +57,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from './ui/breadcrumb'
-import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from './ui/command'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -64,6 +65,7 @@ import {
   ContextMenuShortcut,
   ContextMenuTrigger
 } from './ui/context-menu'
+import { Dialog, DialogContent } from './ui/dialog'
 import { Skeleton } from './ui/skeleton'
 import { Toaster } from './ui/sonner'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
@@ -175,7 +177,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     '.dv-reset .dv-watermark{background:transparent}',
     String.raw`.dv-reset .dv-tab:has([data-preview]) .group\/tab{font-style:italic}`,
     '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
-    '[data-slot=dialog-overlay]{background:transparent!important}'
+    '[data-slot=dialog-overlay]{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
   ].join(''),
   cursorAtom = atom({ col: 1, line: 1 }),
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
@@ -1042,32 +1044,43 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     tree: TreeDataItem[]
   }) => {
     const setOpen = useSetAtom(quickOpenAtom),
-      flatFiles = useMemo(() => flattenTree(tree), [tree])
+      flatFiles = useMemo(() => flattenTree(tree), [tree]),
+      onChange = (v: boolean) => {
+        setOpen(v)
+        if (!v) logFn('Quick open closed')
+      }
     return (
-      <CommandDialog
-        onOpenChange={(v: boolean) => {
-          setOpen(v)
-          if (!v) logFn('Quick open closed')
-        }}
-        open={open}>
-        <CommandInput placeholder='Search files...' />
-        <CommandList>
-          <CommandEmpty>No files found</CommandEmpty>
-          {flatFiles.map(f => (
-            <CommandItem
-              key={f.id}
-              onSelect={() => {
-                logFn(`Quick open: ${f.name}`)
-                onOpenFile(f)
-                setOpen(false)
-              }}
-              value={f.name}>
-              <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
-              <span className='truncate'>{f.name}</span>
-            </CommandItem>
-          ))}
-        </CommandList>
-      </CommandDialog>
+      <Dialog onOpenChange={onChange} open={open}>
+        <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
+          <Cmdk className='flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5'>
+            <div className='flex items-center border-b px-3'>
+              <Search className='mr-2 size-4 shrink-0 opacity-50' />
+              <Cmdk.Input
+                className='flex h-10 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground'
+                placeholder='Search files...'
+              />
+            </div>
+            <Cmdk.List className='max-h-[300px] overflow-x-hidden overflow-y-auto'>
+              <Cmdk.Empty className='py-6 text-center text-sm'>No files found</Cmdk.Empty>
+              {flatFiles.map(f => (
+                <Cmdk.Item
+                  className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
+                  key={f.id}
+                  onSelect={() => {
+                    logFn(`Quick open: ${f.name}`)
+                    onOpenFile(f)
+                    setOpen(false)
+                  }}
+                  value={`${f.name} ${f.path}`}>
+                  <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
+                  <span className='min-w-0 truncate'>{f.name}</span>
+                  <span className='ml-auto truncate text-xs text-muted-foreground'>{f.path}</span>
+                </Cmdk.Item>
+              ))}
+            </Cmdk.List>
+          </Cmdk>
+        </DialogContent>
+      </Dialog>
     )
   },
   Workspace = ({
