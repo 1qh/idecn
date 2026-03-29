@@ -185,8 +185,7 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
-  quickOpenAtom = atom(false),
-  editorViewStates = new Map<string, unknown>()
+  quickOpenAtom = atom(false)
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
   cachedMonoFont: string | undefined
@@ -743,8 +742,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     loading?: ReactNode
     theme?: string | { dark: string; light: string }
   }>) => {
-    type MonacoEditor = Parameters<NonNullable<EditorProps['onMount']>>[0]
-    const editorRef = useRef<MonacoEditor | null>(null),
+    const editorRef = useRef<null | { revealLine: (line: number) => void }>(null),
       isVirtual = api.id.startsWith(VIRTUAL_PREFIX),
       [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
@@ -761,12 +759,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       })
       return () => observer.disconnect()
     }, [])
-    useEffect(
-      () => () => {
-        if (editorRef.current) editorViewStates.set(api.id, editorRef.current.saveViewState())
-      },
-      [api.id]
-    )
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
         const p = e as {
@@ -835,12 +827,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         </Breadcrumb>
         <Editor
           className='flex-1'
-          keepCurrentModel={false}
           language={language}
           onMount={editor => {
             editorRef.current = editor
-            const saved = editorViewStates.get(api.id)
-            if (saved) editor.restoreViewState(saved as Parameters<MonacoEditor['restoreViewState']>[0])
             const update = () => {
               const pos = editor.getPosition()
               if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
@@ -854,7 +843,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             ...editorOpts
           }}
           path={api.id}
-          saveViewState={false}
           theme={
             typeof params.theme === 'string'
               ? params.theme
@@ -1123,8 +1111,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
-      [savedOpenFiles, setOpenFiles] = useAtom(openFilesAtom),
-      savedOpenFilesRef = useRef(savedOpenFiles),
+      setOpenFiles = useSetAtom(openFilesAtom),
       pinnedTabsValue = useAtomValue(pinnedTabsAtom),
       pinnedTabsRef = useRef(pinnedTabsValue),
       historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
@@ -1180,7 +1167,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       themeRef.current = theme
       filesRef.current = files
       previewIdRef.current = currentPreviewId
-      savedOpenFilesRef.current = savedOpenFiles
       pinnedTabsRef.current = pinnedTabsValue
       onTabChangeRef.current = onTabChange
     })
@@ -1566,8 +1552,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               log(`Virtual file: ${f.name}`)
             }
         requestAnimationFrame(() => {
-          const saved = savedOpenFilesRef.current,
-            filesToOpen = saved.length > 0 ? saved : initialFiles
+          let saved: string[] = []
+          try {
+            const raw = localStorage.getItem('idecn:openFiles')
+            if (raw) saved = JSON.parse(raw) as string[]
+          } catch {
+            /* No localStorage */
+          }
+          const filesToOpen = saved.length > 0 ? saved : initialFiles
           if (filesToOpen) {
             log(`Opening files: ${filesToOpen.join(', ')}`)
             for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
