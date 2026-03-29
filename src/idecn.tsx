@@ -981,7 +981,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       flatFiles = useMemo(() => flattenTree(tree), [tree])
     return (
       <CommandDialog
-        onOpenChange={v => {
+        onOpenChange={(v: boolean) => {
           setOpen(v)
           if (!v) logFn('Quick open closed')
         }}
