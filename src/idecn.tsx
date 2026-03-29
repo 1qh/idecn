@@ -4,7 +4,8 @@
 /** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: dockview manages tab interactions */
 /** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: quick open backdrop dismiss */
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, react/no-danger */
+/** biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: nav with tree role for keyboard nav */
+/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
@@ -17,6 +18,7 @@ import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 import {
   ArrowRightToLine,
   ChevronRight,
@@ -173,6 +175,11 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ].join(''),
   cursorAtom = atom({ col: 1, line: 1 }),
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
+  closedTabsAtom = atom<string[]>([]),
+  tabHistoryAtom = atom<string[]>([]),
+  tabHistoryIndexAtom = atom(-1),
+  fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
+  wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
   quickOpenAtom = atom(false)
 let iconManifest: IconManifest | null = null,
@@ -453,11 +460,28 @@ const TreeContext = createContext<TreeContextValue>({
       <TreeContext value={ctx}>
         <nav
           aria-label='File tree'
+          role='tree'
           {...props}
           className={cn(
             'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
             props.className
-          )}>
+          )}
+          onKeyDown={e => {
+            const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]')
+            if (items.length === 0) return
+            const active = document.activeElement as HTMLElement,
+              idx = [...items].indexOf(active)
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              items[Math.min(idx + 1, items.length - 1)]?.focus()
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              items[Math.max(idx - 1, 0)]?.focus()
+            } else if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              active.click()
+            }
+          }}>
           {children}
         </nav>
       </TreeContext>
@@ -518,6 +542,7 @@ const TreeContext = createContext<TreeContextValue>({
                   props.className
                 )}
                 onClick={select}
+                role='treeitem'
                 style={{ paddingLeft: pl }}>
                 <FolderIcon className={iconClass} name={name} open={isOpen} />
                 {name}
@@ -568,6 +593,7 @@ const TreeContext = createContext<TreeContextValue>({
       <ContextMenu>
         <ContextMenuTrigger>
           <button
+            role='treeitem'
             type='button'
             {...props}
             className={cn(
@@ -1053,13 +1079,16 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [activeFileId, setActiveFileId] = useState<null | string>(null),
       [treeCollapsed, setTreeCollapsed] = useState(false),
       [treeKey, setTreeKey] = useState(0),
-      [internalWordWrap, setInternalWordWrap] = useState(false),
+      [internalWordWrap, setInternalWordWrap] = useAtom(wordWrapAtom),
       [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null),
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
+      [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
+      [tabHistory, setTabHistory] = useAtom(tabHistoryAtom),
+      [tabHistoryIdx, setTabHistoryIdx] = useAtom(tabHistoryIndexAtom),
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
-      [fontSizeDelta, setFontSizeDelta] = useState(0),
+      [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom),
       log = useCallback(
         (msg: string) => {
           activityLog?.(msg)
@@ -1194,12 +1223,45 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             log(`Closed all ${String(count)} tabs`)
           },
           hotkey: 'Mod+Shift+W'
+        },
+        {
+          callback: () => {
+            const lastPath = closedTabs.at(-1)
+            if (!lastPath) return
+            setClosedTabs(prev => prev.slice(0, -1))
+            const name = lastPath.split('/').pop() ?? lastPath
+            pinFile({ id: lastPath, name, path: lastPath })
+            log(`Reopened: ${lastPath}`)
+          },
+          hotkey: 'Mod+Shift+T'
         }
       ],
       { enabled: shortcuts, preventDefault: true }
     )
     useAltKeys(
       {
+        ArrowLeft: () => {
+          if (tabHistoryIdx <= 0) return
+          const newIdx = tabHistoryIdx - 1,
+            panelId = tabHistory[newIdx]
+          setTabHistoryIdx(newIdx)
+          const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
+          if (panel) {
+            panel.focus()
+            log(`Back: ${panel.title ?? panel.id}`)
+          }
+        },
+        ArrowRight: () => {
+          if (tabHistoryIdx >= tabHistory.length - 1) return
+          const newIdx = tabHistoryIdx + 1,
+            panelId = tabHistory[newIdx]
+          setTabHistoryIdx(newIdx)
+          const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
+          if (panel) {
+            panel.focus()
+            log(`Forward: ${panel.title ?? panel.id}`)
+          }
+        },
         KeyE: () => {
           const { api } = stateRef.current
           if (!api) return
@@ -1462,6 +1524,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               setPreviewId(null)
               previewIdRef.current = null
             }
+            if (!e.id.startsWith(VIRTUAL_PREFIX)) setClosedTabs(prev => [...prev.slice(-19), e.id])
             log(`Closed: ${e.title ?? e.id}`)
             notifyFiles()
           }),
@@ -1473,6 +1536,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             if (e?.id) {
               setActiveFileId(e.id)
               onTabChangeRef.current?.(e.id)
+              setTabHistory(prev => {
+                const trimmed = prev.slice(0, tabHistoryIdx + 1)
+                return [...trimmed, e.id]
+              })
+              setTabHistoryIdx(prev => prev + 1)
               log(`Focused: ${e.title ?? e.id}`)
             }
           })

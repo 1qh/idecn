@@ -19,6 +19,47 @@
 
 ---
 
+## Phase 4 — Tree keyboard nav, tab history, layout, viewer polish
+
+### Tree
+
+- [ ] Keyboard navigation (arrow keys to move, enter to open/toggle folders/files)
+- [ ] Tree search/filter (type to filter visible items)
+
+### Tabs
+
+- [ ] Undo close tab `Ctrl+Shift+T` (closed tabs stack)
+- [ ] Tab history back/forward `Alt+Left` / `Alt+Right`
+- [ ] Remember scroll position per file when switching tabs
+- [ ] Pinned tabs (double-click to pin, distinct style, always leftmost, no close button)
+- [ ] Open/close tab transitions
+- [ ] Tab scroll into view when activated programmatically
+
+### Navigation
+
+- [ ] Breadcrumb dropdown (click segment shows siblings in popover)
+- [ ] Command palette `Ctrl+Shift+P` (all actions searchable, not just files)
+- [ ] Go back / go forward `Alt+Left` / `Alt+Right`
+
+### Panels
+
+- [ ] Sidebar accordion sections (explorer, search, outline in one sidebar)
+- [ ] Activity bar (leftmost icon strip — files, search)
+- [ ] Notification toasts via shadcn sonner (copy path success, errors)
+
+### Performance
+
+- [ ] Lazy Monaco instantiation (only load when tab focused)
+- [ ] Code splitting for shiki languages (load on demand)
+- [ ] Debounce virtual file content updates
+
+### State
+
+- [ ] Layout persistence (open tabs, sidebar width) via localStorage
+- [ ] Recently opened files list
+
+---
+
 ## Phase 3 — Breadcrumbs, shadcn leverage, preview mode, polish (completed)
 
 Breadcrumbs, skeleton loading, preview mode, tree context menu, virtual file auto-scroll, expandExclude prop, dark mode auto-detection via MutationObserver.
