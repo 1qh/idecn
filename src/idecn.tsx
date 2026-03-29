@@ -24,6 +24,8 @@ import {
   ChevronRight,
   ChevronsDownUp,
   ClipboardCopy,
+  Pin,
+  PinOff,
   SplitSquareHorizontal,
   Trash,
   Trash2,
@@ -43,6 +45,7 @@ import {
 } from 'react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
+import { toast } from 'sonner'
 import { cn } from './lib/utils'
 import {
   Breadcrumb,
@@ -62,6 +65,7 @@ import {
   ContextMenuTrigger
 } from './ui/context-menu'
 import { Skeleton } from './ui/skeleton'
+import { Toaster } from './ui/sonner'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
   ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
@@ -176,6 +180,8 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   cursorAtom = atom({ col: 1, line: 1 }),
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
   closedTabsAtom = atom<string[]>([]),
+  pinnedTabsAtom = atom<string[]>([]),
+  openFilesAtom = atomWithStorage<string[]>('idecn:openFiles', []),
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
@@ -546,7 +552,10 @@ const TreeContext = createContext<TreeContextValue>({
             <ContextMenuContent>
               <ContextMenuItem
                 onClick={() => {
-                  navigator.clipboard.writeText(path ?? name).catch(() => undefined)
+                  navigator.clipboard
+                    .writeText(path ?? name)
+                    .then(() => toast('Copied to clipboard'))
+                    .catch(() => undefined)
                 }}>
                 <ClipboardCopy /> Copy Path
               </ContextMenuItem>
@@ -615,7 +624,10 @@ const TreeContext = createContext<TreeContextValue>({
         <ContextMenuContent>
           <ContextMenuItem
             onClick={() => {
-              navigator.clipboard.writeText(path ?? name).catch(() => undefined)
+              navigator.clipboard
+                .writeText(path ?? name)
+                .then(() => toast('Copied to clipboard'))
+                .catch(() => undefined)
             }}>
             <ClipboardCopy /> Copy Path
           </ContextMenuItem>
@@ -830,6 +842,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             fontFamily: monoFont() || undefined,
             ...editorOpts
           }}
+          path={api.id}
           theme={
             typeof params.theme === 'string'
               ? params.theme
@@ -856,9 +869,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           },
       dv = use(DockviewApiContext),
       previewId = useAtomValue(previewPanelAtom),
+      [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom),
       isPreview = previewId === api.id,
+      isPinned = pinnedTabs.includes(api.id),
       showIcon = p?.icon !== false,
-      closable = p?.closable !== false,
+      closable = p?.closable !== false && !isPinned,
       [active, setActive] = useState(api.isActive)
     useEffect(() => {
       const d = api.onDidActiveChange(e => setActive(e.isActive))
@@ -937,9 +952,16 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             <ContextMenuSeparator />
             <ContextMenuItem
               onClick={() => {
-                navigator.clipboard.writeText(api.id).catch(() => undefined)
+                navigator.clipboard
+                  .writeText(api.id)
+                  .then(() => toast('Copied to clipboard'))
+                  .catch(() => undefined)
               }}>
               <ClipboardCopy /> Copy Path
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => setPinnedTabs(prev => (isPinned ? prev.filter(id => id !== api.id) : [...prev, api.id]))}>
+              {isPinned ? <PinOff /> : <Pin />} {isPinned ? 'Unpin' : 'Pin'}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -1079,6 +1101,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
+      [savedOpenFiles, setOpenFiles] = useAtom(openFilesAtom),
       historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
         entries: [],
         index: -1,
@@ -1513,17 +1536,21 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               openVirtualFile(f)
               log(`Virtual file: ${f.name}`)
             }
-        if (initialFiles) {
-          log(`Initial files: ${initialFiles.join(', ')}`)
-          for (const path of initialFiles) pinFile({ id: path, name: path.split('/').at(-1) ?? path, path })
+        const filesToOpen = initialFiles ?? (savedOpenFiles.length > 0 ? savedOpenFiles : undefined)
+        if (filesToOpen) {
+          log(`Opening files: ${filesToOpen.join(', ')}`)
+          for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
           requestAnimationFrame(() => {
-            const first = event.api.panels.find(p => p.id === initialFiles[0])
+            const first = event.api.panels.find(p => p.id === filesToOpen[0])
             if (first) first.focus()
           })
         }
         log('Workspace ready')
         const notifyFiles = () => {
-          if (stateRef.current.ready && onFilesChangeRef.current) onFilesChangeRef.current([...stateRef.current.fileIds])
+          if (!stateRef.current.ready) return
+          const fileList = [...stateRef.current.fileIds]
+          onFilesChangeRef.current?.(fileList)
+          setOpenFiles(fileList)
         }
         stateRef.current.disposables.push(
           event.api.onDidRemovePanel(e => {
@@ -1668,6 +1695,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           open={quickOpenVisible}
           tree={mergedTree ?? EMPTY_TREE}
         />
+        <Toaster />
       </Group>
     )
   }
