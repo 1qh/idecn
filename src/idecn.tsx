@@ -850,7 +850,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                 ? (params.theme?.dark ?? 'monokai-lite')
                 : (params.theme?.light ?? 'github-light')
           }
-          value={content}
+          {...(isVirtual ? { value: content } : { defaultValue: content })}
         />
       </div>
     )
@@ -899,7 +899,15 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           }}>
           {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
           {api.title}
-          {closable ? (
+          {isPinned ? (
+            <Pin
+              className='-ml-1 size-4 rotate-45 p-0.5 opacity-50 hover:p-0 hover:cursor-pointer hover:opacity-100 transition-all'
+              onClick={e => {
+                e.stopPropagation()
+                setPinnedTabs(prev => prev.filter(id => id !== api.id))
+              }}
+            />
+          ) : closable ? (
             <X
               className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
               onClick={e => {
@@ -1536,7 +1544,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               openVirtualFile(f)
               log(`Virtual file: ${f.name}`)
             }
-        const filesToOpen = initialFiles ?? (savedOpenFiles.length > 0 ? savedOpenFiles : undefined)
+        const filesToOpen = savedOpenFiles.length > 0 ? savedOpenFiles : initialFiles
         if (filesToOpen) {
           log(`Opening files: ${filesToOpen.join(', ')}`)
           for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
