@@ -2,6 +2,8 @@
 
 Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc`
 
+**Architecture constraint:** Dockview recreates panel components on tab switch. Monaco editor state (scroll position, cursor, folds) does not persist across tab switches. Features requiring persistent editor state per file need a single-editor-multiple-models refactor.
+
 ---
 
 # Topics (what the user sees)
@@ -12,17 +14,12 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 - Compact style when many tabs open `css`
 - Open/close transitions `css`
 - Tab sticky scroll (tab bar stays visible when editor scrolls) `css`
-- Close all tabs `logic`
 - Tab scroll into view when activated programmatically `logic`
-- Undo close tab `Ctrl+Shift+T` `logic`
 - Maximize tab (double-click to fill workspace) `logic`
-- Remember scroll position per file `logic`
-- Tab history back/forward `logic`
 - Drag tab out to create new split `logic`
 - Dirty/modified dot indicator `css` `logic`
 - Tab progress indicator (loading spinner while file fetches) `css` `logic`
 - Colorized tab border by file type `css` `logic`
-- Pinned tabs `css` `logic` `prop`
 - Tab groups/colors per folder `css` `logic` `prop`
 - Tab width min/max constraints `css` `prop`
 - Tab icon-only mode (no label, just icon) `css` `prop`
@@ -128,7 +125,6 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 - Transform to uppercase/lowercase `logic`
 - Sort lines ascending/descending `logic`
 - Join lines `logic`
-- Editor scroll sync between split views `logic`
 - Editor group layout (2x1, 1x2, 2x2 presets) `logic` `prop`
 - Encoding indicator + change encoding `component` `logic` `prop`
 - End-of-line indicator (LF/CRLF) + toggle `component` `logic` `prop`
@@ -252,7 +248,6 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 - Save diff (show changes before saving) `component` `logic`
 - Compare with saved (diff edits vs disk) `component` `logic`
 - Partial save (save selected lines only) `logic`
-- Hot exit (restore unsaved after browser close) `logic`
 - Autosave indicator in status bar `component` `css`
 - Collaborative editing lock (lock file while editing) `logic` `prop`
 - File history timeline (consumer provides version list) `component` `logic` `prop`
@@ -342,11 +337,8 @@ Effort: `css` `monaco` `dep` `component` `logic` `prop` `fix` `perf` `test` `doc
 ## State management
 
 - Sidebar width persistence `logic` `fix`
-- Editor view state persistence (cursor, folds, scroll per file) `logic`
 - Last active tab persistence `logic`
 - Pinned files persistence (survive page reload) `logic`
-- Scroll position persistence per file across reloads `logic`
-- Fold state persistence per file `logic`
 - Layout persistence (open tabs, sidebar width, splits) `logic` `prop`
 - Recently opened files list `logic` `component`
 - Workspace sessions (save/restore) `logic` `prop`

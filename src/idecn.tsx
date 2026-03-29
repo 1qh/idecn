@@ -181,7 +181,6 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
   closedTabsAtom = atom<string[]>([]),
   pinnedTabsAtom = atom<string[]>([]),
-  openFilesAtom = atomWithStorage<string[]>('idecn:openFiles', []),
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
@@ -850,7 +849,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                 ? (params.theme?.dark ?? 'monokai-lite')
                 : (params.theme?.light ?? 'github-light')
           }
-          {...(isVirtual ? { value: content } : { defaultValue: content })}
+          value={content}
         />
       </div>
     )
@@ -1111,7 +1110,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
-      setOpenFiles = useSetAtom(openFilesAtom),
       pinnedTabsValue = useAtomValue(pinnedTabsAtom),
       pinnedTabsRef = useRef(pinnedTabsValue),
       historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
@@ -1552,14 +1550,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               log(`Virtual file: ${f.name}`)
             }
         requestAnimationFrame(() => {
-          let saved: string[] = []
-          try {
-            const raw = localStorage.getItem('idecn:openFiles')
-            if (raw) saved = JSON.parse(raw) as string[]
-          } catch {
-            /* No localStorage */
-          }
-          const filesToOpen = saved.length > 0 ? saved : initialFiles
+          const filesToOpen = initialFiles
           if (filesToOpen) {
             log(`Opening files: ${filesToOpen.join(', ')}`)
             for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
@@ -1574,7 +1565,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           if (!stateRef.current.ready) return
           const fileList = [...stateRef.current.fileIds]
           onFilesChangeRef.current?.(fileList)
-          setOpenFiles(fileList)
         }
         stateRef.current.disposables.push(
           event.api.onDidRemovePanel(e => {
@@ -1608,9 +1598,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             }
           })
         )
-        requestAnimationFrame(() => {
-          stateRef.current.ready = true
-        })
+        stateRef.current.ready = true
       },
       mergedTree = useMemo(() => {
         if (!(tree || (files && files.length > 0))) return tree
