@@ -538,6 +538,18 @@ const TreeContext = createContext<TreeContextValue>({
                   props.className
                 )}
                 onClick={select}
+                onKeyDown={e => {
+                  if (['ArrowDown', 'ArrowUp'].includes(e.key)) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const nav = (e.currentTarget as HTMLElement).closest('[role=tree]')
+                    if (!nav) return
+                    const items = nav.querySelectorAll<HTMLElement>('[role=treeitem]'),
+                      idx = [...items].indexOf(e.currentTarget as HTMLElement)
+                    if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
+                    else items[Math.max(idx - 1, 0)]?.focus()
+                  }
+                }}
                 role='treeitem'
                 style={{ paddingLeft: pl }}>
                 <FolderIcon className={iconClass} name={name} open={isOpen} />
@@ -1080,8 +1092,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
-      [tabHistory, setTabHistory] = useAtom(tabHistoryAtom),
-      [tabHistoryIdx, setTabHistoryIdx] = useAtom(tabHistoryIndexAtom),
+      setTabHistory = useSetAtom(tabHistoryAtom),
+      setTabHistoryIdx = useSetAtom(tabHistoryIndexAtom),
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
       [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom),
@@ -1237,26 +1249,39 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useAltKeys(
       {
         ArrowLeft: () => {
-          if (tabHistoryIdx <= 0) return
-          const newIdx = tabHistoryIdx - 1,
-            panelId = tabHistory[newIdx]
-          setTabHistoryIdx(newIdx)
-          const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
-          if (panel) {
-            panel.focus()
-            log(`Back: ${panel.title ?? panel.id}`)
-          }
+          setTabHistoryIdx(prevIdx => {
+            if (prevIdx <= 0) return prevIdx
+            const newIdx = prevIdx - 1
+            setTabHistory(prev => {
+              const panelId = prev[newIdx]
+              if (panelId) {
+                const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
+                if (panel) {
+                  panel.focus()
+                  log(`Back: ${panel.title ?? panel.id}`)
+                }
+              }
+              return prev
+            })
+            return newIdx
+          })
         },
         ArrowRight: () => {
-          if (tabHistoryIdx >= tabHistory.length - 1) return
-          const newIdx = tabHistoryIdx + 1,
-            panelId = tabHistory[newIdx]
-          setTabHistoryIdx(newIdx)
-          const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
-          if (panel) {
-            panel.focus()
-            log(`Forward: ${panel.title ?? panel.id}`)
-          }
+          setTabHistoryIdx(prevIdx => {
+            setTabHistory(prev => {
+              if (prevIdx >= prev.length - 1) return prev
+              const panelId = prev[prevIdx + 1]
+              if (panelId) {
+                const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
+                if (panel) {
+                  panel.focus()
+                  log(`Forward: ${panel.title ?? panel.id}`)
+                }
+              }
+              return prev
+            })
+            return prevIdx >= 0 ? prevIdx + 1 : prevIdx
+          })
         },
         KeyE: () => {
           const { api } = stateRef.current
@@ -1540,11 +1565,10 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             if (e?.id) {
               setActiveFileId(e.id)
               onTabChangeRef.current?.(e.id)
-              setTabHistory(prev => {
-                const trimmed = prev.slice(0, tabHistoryIdx + 1)
-                return [...trimmed, e.id]
+              setTabHistoryIdx(prevIdx => {
+                setTabHistory(prev => [...prev.slice(0, prevIdx + 1), e.id])
+                return prevIdx + 1
               })
-              setTabHistoryIdx(prev => prev + 1)
               log(`Focused: ${e.title ?? e.id}`)
             }
           })
