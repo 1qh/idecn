@@ -467,20 +467,16 @@ const TreeContext = createContext<TreeContextValue>({
             props.className
           )}
           onKeyDown={e => {
+            if (![' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return
+            e.preventDefault()
+            e.stopPropagation()
             const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]')
             if (items.length === 0) return
             const active = document.activeElement as HTMLElement,
               idx = [...items].indexOf(active)
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
-              items[Math.min(idx + 1, items.length - 1)]?.focus()
-            } else if (e.key === 'ArrowUp') {
-              e.preventDefault()
-              items[Math.max(idx - 1, 0)]?.focus()
-            } else if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              active.click()
-            }
+            if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
+            else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
+            else active.click()
           }}>
           {children}
         </nav>
@@ -1272,6 +1268,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             next = panels[(idx + 1) % panels.length]
           next.focus()
           log(`Cycle tab: ${next.title ?? next.id}`)
+        },
+        KeyT: () => {
+          const lastPath = closedTabs.at(-1)
+          if (!lastPath) return
+          setClosedTabs(prev => prev.slice(0, -1))
+          const name = lastPath.split('/').pop() ?? lastPath
+          pinFile({ id: lastPath, name, path: lastPath })
+          log(`Reopened: ${lastPath}`)
         },
         KeyW: () => {
           const panel = stateRef.current.api?.activePanel
