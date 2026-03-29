@@ -60,6 +60,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from './ui/breadcrumb'
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -216,7 +217,9 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
-  quickOpenAtom = atom(false)
+  quickOpenAtom = atom(false),
+  treeAtom = atom<TreeDataItem[]>([]),
+  openFileAtom = atom<((item: TreeDataItem) => void) | null>(null)
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
   cachedMonoFont: string | undefined
@@ -278,7 +281,6 @@ const iconsReady =
               langs: [...CORE_LANGS],
               themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
             }),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             monaco = await loader.init()
           shikiToMonaco(highlighter, monaco)
           defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
@@ -874,13 +876,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               const items: ReactNode[] = []
               if (i > 0) items.push(<BreadcrumbSeparator key={`sep-${part}`} />)
               items.push(
-                <BreadcrumbItem key={part}>
-                  {i === pathParts.length - 1 ? (
-                    <BreadcrumbPage>{part}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink className='cursor-default'>{part}</BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
+                <BreadcrumbSegment depth={i} isLast={i === pathParts.length - 1} key={part} name={part} pathParts={pathParts} />
               )
               return items
             })}
@@ -1081,6 +1077,86 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       else result.push({ ...item, name: `${prefix}${item.name}` })
     return result
   },
+  findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number): TreeDataItem[] => {
+    let nodes = tree
+    for (let i = 0; i < depth; i++) {
+      const match = nodes.find(n => n.name === pathParts[i])
+      if (!match?.children) return []
+      nodes = match.children
+    }
+    return nodes
+  },
+  BreadcrumbPickerItem = ({
+    close,
+    indent,
+    item,
+    openFileFn
+  }: {
+    close: () => void
+    indent: number
+    item: TreeDataItem
+    openFileFn: ((i: TreeDataItem) => void) | null
+  }) => {
+    const [expanded, setExpanded] = useState(false)
+    return (
+      <>
+        <button
+          className='flex w-full items-center gap-1 text-left text-xs hover:bg-accent [&>:first-child]:mr-[-4px]'
+          onClick={() => {
+            if (item.children) setExpanded(e => !e)
+            else if (openFileFn) {
+              openFileFn(item)
+              close()
+            }
+          }}
+          style={{ height: 22, paddingLeft: indent * 8 + 2 }}
+          type='button'>
+          {item.children ? (
+            <ChevronRight className={cn('size-3 shrink-0 transition-transform', expanded && 'rotate-90')} />
+          ) : (
+            <span className='size-3 shrink-0' />
+          )}
+          {item.children ? (
+            <FolderIcon className={ICON_CLASS} name={item.name} />
+          ) : (
+            <FileIcon className={ICON_CLASS} name={item.name} />
+          )}
+          <span className='truncate'>{item.name}</span>
+        </button>
+        {expanded && item.children
+          ? item.children.map(c => (
+              <BreadcrumbPickerItem close={close} indent={indent + 1} item={c} key={c.id} openFileFn={openFileFn} />
+            ))
+          : null}
+      </>
+    )
+  },
+  BreadcrumbSegment = ({ depth, isLast, name, pathParts }: { depth: number; isLast: boolean; name: string; pathParts: string[] }) => {
+    const tree = useAtomValue(treeAtom),
+      openFileFn = useAtomValue(openFileAtom),
+      [open, setOpen] = useState(false),
+      siblings = useMemo(() => findSiblings(tree, pathParts, depth), [tree, pathParts, depth])
+    if (siblings.length === 0)
+      return (
+        <BreadcrumbItem>
+          {isLast ? <BreadcrumbPage>{name}</BreadcrumbPage> : <BreadcrumbLink className='cursor-default'>{name}</BreadcrumbLink>}
+        </BreadcrumbItem>
+      )
+    return (
+      <BreadcrumbItem>
+        <Popover onOpenChange={setOpen} open={open}>
+          <PopoverTrigger className='cursor-pointer text-xs hover:text-foreground'>
+            {name}
+          </PopoverTrigger>
+          <PopoverContent align='start' className='max-h-64 w-52 gap-0 overflow-y-auto p-0'>
+            {siblings.map(s => (
+              <BreadcrumbPickerItem close={() => setOpen(false)} indent={0} item={s} key={s.id} openFileFn={openFileFn} />
+            ))}
+          </PopoverContent>
+        </Popover>
+      </BreadcrumbItem>
+    )
+  },
   QuickOpenDialog = ({
     log: logFn,
     onOpenFile,
@@ -1193,6 +1269,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       }),
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
+      setTreeData = useSetAtom(treeAtom),
+      setOpenFileFn = useSetAtom(openFileAtom),
       [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom),
       log = useCallback(
         (msg: string) => {
@@ -1624,6 +1702,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       ),
       openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel]),
       pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
+    useEffect(() => { setTreeData(tree ?? EMPTY_TREE) }, [tree, setTreeData])
+    useEffect(() => { setOpenFileFn(() => pinFile) }, [pinFile, setOpenFileFn])
     useImperativeHandle(
       ref,
       () => ({
@@ -1706,7 +1786,6 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             stateRef.current.fileIds.delete(e.id)
             stateRef.current.onCloseMap.get(e.id)?.()
             stateRef.current.onCloseMap.delete(e.id)
-
             loader
               .init()
               .then(monaco => {
