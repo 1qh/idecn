@@ -32,7 +32,8 @@ echo "-> Adding idecn from registry"
 bunx shadcn@latest add "http://localhost:$PORT/r/idecn.json" -s 2>&1 | tail -3
 
 echo "-> Installing extra deps"
-bun add @tailwindcss/typography tw-animate-css dockview-core cmdk jotai 2>&1 | tail -1
+DEPS=$(cd "$IDECN" && bun -e "const p = JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log(Object.keys(p.dependencies).join(' '))")
+bun add $DEPS 2>&1 | tail -1
 
 echo "-> Copying demo app"
 rm -rf app
