@@ -5,8 +5,10 @@
 /** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: quick open backdrop dismiss */
 /** biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: nav with tree role for keyboard nav */
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
+/** biome-ignore-all lint/performance/noImgElement: image preview panel */
+/** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
+/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
@@ -36,6 +38,7 @@ import {
 import {
   Children,
   createContext,
+  createElement,
   isValidElement,
   use,
   useCallback,
@@ -140,6 +143,33 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
     yaml: 'yaml',
     yml: 'yaml'
   },
+  IMAGE_EXTS = new Set(['apng', 'avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp']),
+  BINARY_EXTS = new Set([
+    '7z',
+    'bin',
+    'bz2',
+    'dat',
+    'db',
+    'dll',
+    'dylib',
+    'eot',
+    'exe',
+    'gz',
+    'otf',
+    'pdf',
+    'rar',
+    'so',
+    'sqlite',
+    'tar',
+    'ttf',
+    'wasm',
+    'woff',
+    'woff2',
+    'xz',
+    'zip'
+  ]),
+  FILE_SIZE_WARN = 500_000,
+  extOf = (path: string) => path.split('.').at(-1)?.toLowerCase() ?? '',
   RESET_CSS = [
     '.dv-reset{',
     '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
@@ -745,6 +775,24 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     }, [api])
     return <div className='h-full overflow-auto'>{content}</div>
   },
+  ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
+    const [src, setSrc] = useState(params.src)
+    useEffect(() => {
+      const d = api.onDidParametersChange(e => {
+        const p = e as { src?: string }
+        if (p.src !== undefined) setSrc(p.src)
+      })
+      return () => {
+        d.dispose()
+      }
+    }, [api])
+    if (!src) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
+    return (
+      <div className={cn(CENTER, 'h-full overflow-auto p-4')}>
+        <img alt={api.title ?? ''} className='max-h-full max-w-full object-contain' src={src} />
+      </div>
+    )
+  },
   FilePanel = ({
     api,
     params
@@ -849,6 +897,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             }
             update()
             editor.onDidChangeCursorPosition(update)
+            api.onDidDimensionsChange(() => editor.layout())
           }}
           options={{
             ...EDITOR_OPTIONS,
@@ -1008,7 +1057,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     )
   },
   WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>,
-  COMPONENTS = { custom: ContentPanel, file: FilePanel },
+  COMPONENTS = { custom: ContentPanel, file: FilePanel, image: ImagePanel },
   TAB_COMPONENTS = { default: TabHeader },
   StatusBar = () => {
     const cursor = useAtomValue(cursorAtom),
@@ -1466,6 +1515,52 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           stateRef.current.fileIds.add(item.path)
           setPreviewId(preview ? item.path : null)
           previewIdRef.current = preview ? item.path : null
+          const ext = extOf(item.path),
+            isImage = IMAGE_EXTS.has(ext),
+            isBinary = BINARY_EXTS.has(ext),
+            title = deduplicateTitle(item.name, item.path, api.panels)
+          if (isBinary) {
+            api.addPanel({
+              component: 'custom',
+              id: item.path,
+              params: {
+                content: createElement(
+                  'div',
+                  { className: cn(CENTER, 'h-full text-sm text-muted-foreground') },
+                  'Binary file — cannot display'
+                ),
+                iconName: item.name
+              },
+              position,
+              tabComponent: 'default',
+              title
+            })
+            log(`Binary: ${item.path}`)
+            return
+          }
+          if (isImage) {
+            const result = onOpen(item),
+              addImagePanel = (src: string) => {
+                api.addPanel({
+                  component: 'image',
+                  id: item.path,
+                  params: { iconName: item.name, src },
+                  position,
+                  tabComponent: 'default',
+                  title
+                })
+                log(`Image: ${item.path}`)
+              }
+            if (result === null) return
+            if (typeof result === 'string') addImagePanel(result)
+            else
+              result
+                .then(r => {
+                  if (r) addImagePanel(r)
+                })
+                .catch(() => undefined)
+            return
+          }
           const added = api.addPanel({
               component: 'file',
               id: item.path,
@@ -1479,7 +1574,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               },
               position,
               tabComponent: 'default',
-              title: deduplicateTitle(item.name, item.path, api.panels)
+              title
             }),
             result = onOpen(item)
           if (result === null) {
@@ -1487,6 +1582,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             return
           }
           if (typeof result === 'string') {
+            if (result.length > FILE_SIZE_WARN)
+              log(`Large file: ${item.path} (${String(Math.round(result.length / 1024))} KB)`)
             added.api.updateParameters({ content: result, loading: undefined })
             log(`Loaded: ${item.path} (${String(result.length)} chars)`)
           } else {
@@ -1500,6 +1597,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
                     api.removePanel(p)
                     log(`Load failed: ${panelPath}`)
                   } else {
+                    if (fileContent.length > FILE_SIZE_WARN)
+                      log(`Large file: ${panelPath} (${String(Math.round(fileContent.length / 1024))} KB)`)
                     p.api.updateParameters({
                       content: fileContent,
                       loading: undefined
@@ -1557,6 +1656,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       const { api } = stateRef.current
       if (!(api && files)) return
       const tid = setTimeout(() => {
+        const activeIds = new Set(files.map(f => virtualFileId(f.name)))
+        for (const panel of api.panels)
+          if (panel.id.startsWith(VIRTUAL_PREFIX) && !activeIds.has(panel.id))
+            try {
+              api.removePanel(panel)
+            } catch {
+              /* Already removed */
+            }
         for (const file of files) {
           const id = virtualFileId(file.name),
             panel = api.panels.find(p => p.id === id)
@@ -1599,6 +1706,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             stateRef.current.fileIds.delete(e.id)
             stateRef.current.onCloseMap.get(e.id)?.()
             stateRef.current.onCloseMap.delete(e.id)
+
+            loader
+              .init()
+              .then(monaco => {
+                const model = monaco.editor.getModel(monaco.Uri.parse(e.id))
+                if (model) model.dispose()
+              })
+              .catch(() => undefined)
             if (previewIdRef.current === e.id) {
               setPreviewId(null)
               previewIdRef.current = null

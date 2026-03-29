@@ -84,15 +84,39 @@ const jsdelivrToTree = (files: JsdelivrFile[], prefix = ''): TreeItem[] => {
     const d = (await r.json()) as { files?: JsdelivrFile[] }
     return d.files ? jsdelivrToTree(d.files) : []
   },
+  IMAGE_EXTS = new Set(['apng', 'avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp']),
+  MIME: Record<string, string> = {
+    apng: 'image/apng',
+    avif: 'image/avif',
+    bmp: 'image/bmp',
+    gif: 'image/gif',
+    ico: 'image/x-icon',
+    jpeg: 'image/jpeg',
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    svg: 'image/svg+xml',
+    webp: 'image/webp'
+  },
   fetchFile = async (repo: string, path: string): Promise<null | string> => {
+    const ext = path.split('.').at(-1)?.toLowerCase() ?? ''
     if (repo === DEFAULT_REPO) {
       const full = resolve(root, path)
       if (!full.startsWith(root)) return null
       try {
+        if (IMAGE_EXTS.has(ext)) {
+          const buf = readFileSync(full)
+          return `data:${MIME[ext] ?? 'application/octet-stream'};base64,${buf.toString('base64')}`
+        }
         return readFileSync(full, 'utf8')
       } catch {
         return null
       }
+    }
+    if (IMAGE_EXTS.has(ext)) {
+      const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
+      if (!r.ok) return null
+      const buf = Buffer.from(await r.arrayBuffer())
+      return `data:${MIME[ext] ?? 'application/octet-stream'};base64,${buf.toString('base64')}`
     }
     const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
     return r.ok ? r.text() : null
