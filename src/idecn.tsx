@@ -60,7 +60,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from './ui/breadcrumb'
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -70,6 +69,7 @@ import {
   ContextMenuTrigger
 } from './ui/context-menu'
 import { Dialog, DialogContent } from './ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Skeleton } from './ui/skeleton'
 import { Toaster } from './ui/sonner'
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
@@ -876,7 +876,13 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               const items: ReactNode[] = []
               if (i > 0) items.push(<BreadcrumbSeparator key={`sep-${part}`} />)
               items.push(
-                <BreadcrumbSegment depth={i} isLast={i === pathParts.length - 1} key={part} name={part} pathParts={pathParts} />
+                <BreadcrumbSegment
+                  depth={i}
+                  isLast={i === pathParts.length - 1}
+                  key={part}
+                  name={part}
+                  pathParts={pathParts}
+                />
               )
               return items
             })}
@@ -1079,7 +1085,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
   },
   findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number): TreeDataItem[] => {
     let nodes = tree
-    for (let i = 0; i < depth; i++) {
+    for (let i = 0; i < depth; i += 1) {
       const match = nodes.find(n => n.name === pathParts[i])
       if (!match?.children) return []
       nodes = match.children
@@ -1131,7 +1137,17 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       </>
     )
   },
-  BreadcrumbSegment = ({ depth, isLast, name, pathParts }: { depth: number; isLast: boolean; name: string; pathParts: string[] }) => {
+  BreadcrumbSegment = ({
+    depth,
+    isLast,
+    name,
+    pathParts
+  }: {
+    depth: number
+    isLast: boolean
+    name: string
+    pathParts: string[]
+  }) => {
     const tree = useAtomValue(treeAtom),
       openFileFn = useAtomValue(openFileAtom),
       [open, setOpen] = useState(false),
@@ -1139,15 +1155,17 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     if (siblings.length === 0)
       return (
         <BreadcrumbItem>
-          {isLast ? <BreadcrumbPage>{name}</BreadcrumbPage> : <BreadcrumbLink className='cursor-default'>{name}</BreadcrumbLink>}
+          {isLast ? (
+            <BreadcrumbPage>{name}</BreadcrumbPage>
+          ) : (
+            <BreadcrumbLink className='cursor-default'>{name}</BreadcrumbLink>
+          )}
         </BreadcrumbItem>
       )
     return (
       <BreadcrumbItem>
         <Popover onOpenChange={setOpen} open={open}>
-          <PopoverTrigger className='cursor-pointer text-xs hover:text-foreground'>
-            {name}
-          </PopoverTrigger>
+          <PopoverTrigger className='cursor-pointer text-xs hover:text-foreground'>{name}</PopoverTrigger>
           <PopoverContent align='start' className='max-h-64 w-52 gap-0 overflow-y-auto p-0'>
             {siblings.map(s => (
               <BreadcrumbPickerItem close={() => setOpen(false)} indent={0} item={s} key={s.id} openFileFn={openFileFn} />
@@ -1702,8 +1720,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       ),
       openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel]),
       pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
-    useEffect(() => { setTreeData(tree ?? EMPTY_TREE) }, [tree, setTreeData])
-    useEffect(() => { setOpenFileFn(() => pinFile) }, [pinFile, setOpenFileFn])
+    useEffect(() => {
+      setTreeData(tree ?? EMPTY_TREE)
+    }, [tree, setTreeData])
+    useEffect(() => {
+      setOpenFileFn(() => pinFile)
+    }, [pinFile, setOpenFileFn])
     useImperativeHandle(
       ref,
       () => ({
