@@ -16,6 +16,7 @@
 - Never style what shadcn already styles — no manual icon sizing, spacing, or colors on shadcn primitives
 - Read shadcn component source before using — understand DOM structure and usage patterns
 - Every new interaction must have activityLog — exhaustive verbose logging for all features
+- Memory overflow avoidance — cap arrays, use refs for high-frequency state, no unbounded growth
 
 ---
 
