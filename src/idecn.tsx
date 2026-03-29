@@ -256,6 +256,7 @@ const iconsReady =
               .loadLanguage(...remaining)
               .then(() => {
                 shikiToMonaco(highlighter, monaco)
+                defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
               })
               .catch(() => undefined)
         })()
