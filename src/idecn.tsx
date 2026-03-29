@@ -185,7 +185,8 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
-  quickOpenAtom = atom(false)
+  quickOpenAtom = atom(false),
+  editorViewStates = new Map<string, unknown>()
 let iconManifest: IconManifest | null = null,
   iconSvgs: Record<string, string> = {},
   cachedMonoFont: string | undefined
@@ -742,7 +743,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     loading?: ReactNode
     theme?: string | { dark: string; light: string }
   }>) => {
-    const editorRef = useRef<null | { revealLine: (line: number) => void }>(null),
+    type MonacoEditor = Parameters<NonNullable<EditorProps['onMount']>>[0]
+    const editorRef = useRef<MonacoEditor | null>(null),
       isVirtual = api.id.startsWith(VIRTUAL_PREFIX),
       [content, setContent] = useState(params.content),
       [language, setLanguage] = useState(params.language),
@@ -759,6 +761,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       })
       return () => observer.disconnect()
     }, [])
+    useEffect(
+      () => () => {
+        if (editorRef.current) editorViewStates.set(api.id, editorRef.current.saveViewState())
+      },
+      [api.id]
+    )
     useEffect(() => {
       const d = api.onDidParametersChange(e => {
         const p = e as {
@@ -827,9 +835,12 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         </Breadcrumb>
         <Editor
           className='flex-1'
+          keepCurrentModel={false}
           language={language}
           onMount={editor => {
             editorRef.current = editor
+            const saved = editorViewStates.get(api.id)
+            if (saved) editor.restoreViewState(saved as Parameters<MonacoEditor['restoreViewState']>[0])
             const update = () => {
               const pos = editor.getPosition()
               if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
@@ -843,6 +854,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             ...editorOpts
           }}
           path={api.id}
+          saveViewState={false}
           theme={
             typeof params.theme === 'string'
               ? params.theme
@@ -925,7 +937,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             <ContextMenuItem
               onClick={() => {
                 for (const pnl of dv.panels)
-                  if (pnl.id !== api.id)
+                  if (pnl.id !== api.id && !pinnedTabs.includes(pnl.id))
                     try {
                       pnl.api.close()
                     } catch {
@@ -938,22 +950,24 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               onClick={() => {
                 const idx = dv.panels.findIndex(pnl => pnl.id === api.id)
                 for (let i = dv.panels.length - 1; i > idx; i -= 1)
-                  try {
-                    dv.panels[i].api.close()
-                  } catch {
-                    /* Removed */
-                  }
+                  if (!pinnedTabs.includes(dv.panels[i].id))
+                    try {
+                      dv.panels[i].api.close()
+                    } catch {
+                      /* Removed */
+                    }
               }}>
               <ArrowRightToLine /> Close to the Right
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => {
                 for (let i = dv.panels.length - 1; i >= 0; i -= 1)
-                  try {
-                    dv.panels[i].api.close()
-                  } catch {
-                    /* Removed */
-                  }
+                  if (!pinnedTabs.includes(dv.panels[i].id))
+                    try {
+                      dv.panels[i].api.close()
+                    } catch {
+                      /* Removed */
+                    }
               }}>
               <Trash2 /> Close All
             </ContextMenuItem>
@@ -1110,6 +1124,9 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
       [savedOpenFiles, setOpenFiles] = useAtom(openFilesAtom),
+      savedOpenFilesRef = useRef(savedOpenFiles),
+      pinnedTabsValue = useAtomValue(pinnedTabsAtom),
+      pinnedTabsRef = useRef(pinnedTabsValue),
       historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
         entries: [],
         index: -1,
@@ -1163,6 +1180,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       themeRef.current = theme
       filesRef.current = files
       previewIdRef.current = currentPreviewId
+      savedOpenFilesRef.current = savedOpenFiles
+      pinnedTabsRef.current = pinnedTabsValue
       onTabChangeRef.current = onTabChange
     })
     useEffect(() => {
@@ -1242,14 +1261,16 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           callback: () => {
             const { api } = stateRef.current
             if (!api) return
-            const count = api.panels.length
-            for (let panelIdx = count - 1; panelIdx >= 0; panelIdx -= 1)
-              try {
-                api.panels[panelIdx].api.close()
-              } catch {
-                /* Already removed */
-              }
-            log(`Closed all ${String(count)} tabs`)
+            let closed = 0
+            for (let panelIdx = api.panels.length - 1; panelIdx >= 0; panelIdx -= 1)
+              if (!pinnedTabsRef.current.includes(api.panels[panelIdx].id))
+                try {
+                  api.panels[panelIdx].api.close()
+                  closed += 1
+                } catch {
+                  /* Already removed */
+                }
+            log(`Closed ${String(closed)} tabs (${String(pinnedTabsRef.current.length)} pinned kept)`)
           },
           hotkey: 'Mod+Shift+W'
         },
@@ -1544,15 +1565,18 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
               openVirtualFile(f)
               log(`Virtual file: ${f.name}`)
             }
-        const filesToOpen = savedOpenFiles.length > 0 ? savedOpenFiles : initialFiles
-        if (filesToOpen) {
-          log(`Opening files: ${filesToOpen.join(', ')}`)
-          for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
-          requestAnimationFrame(() => {
-            const first = event.api.panels.find(p => p.id === filesToOpen[0])
-            if (first) first.focus()
-          })
-        }
+        requestAnimationFrame(() => {
+          const saved = savedOpenFilesRef.current,
+            filesToOpen = saved.length > 0 ? saved : initialFiles
+          if (filesToOpen) {
+            log(`Opening files: ${filesToOpen.join(', ')}`)
+            for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
+            requestAnimationFrame(() => {
+              const first = event.api.panels.find(p => p.id === filesToOpen[0])
+              if (first) first.focus()
+            })
+          }
+        })
         log('Workspace ready')
         const notifyFiles = () => {
           if (!stateRef.current.ready) return
