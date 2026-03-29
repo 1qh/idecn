@@ -176,8 +176,6 @@ const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
   cursorAtom = atom({ col: 1, line: 1 }),
   activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
   closedTabsAtom = atom<string[]>([]),
-  tabHistoryAtom = atom<string[]>([]),
-  tabHistoryIndexAtom = atom(-1),
   fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
   wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
   previewPanelAtom = atom<null | string>(null),
@@ -466,17 +464,18 @@ const TreeContext = createContext<TreeContextValue>({
             'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
             props.className
           )}
-          onKeyDown={e => {
+          onKeyDownCapture={e => {
             if (![' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return
+            const target = e.target as HTMLElement
+            if (!target.closest('[role=treeitem]')) return
             e.preventDefault()
             e.stopPropagation()
-            const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]')
-            if (items.length === 0) return
-            const active = document.activeElement as HTMLElement,
-              idx = [...items].indexOf(active)
+            const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]'),
+              treeItem = target.closest('[role=treeitem]'),
+              idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
             if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
             else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
-            else active.click()
+            else target.click()
           }}>
           {children}
         </nav>
@@ -538,18 +537,6 @@ const TreeContext = createContext<TreeContextValue>({
                   props.className
                 )}
                 onClick={select}
-                onKeyDown={e => {
-                  if (['ArrowDown', 'ArrowUp'].includes(e.key)) {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    const nav = (e.currentTarget as HTMLElement).closest('[role=tree]')
-                    if (!nav) return
-                    const items = nav.querySelectorAll<HTMLElement>('[role=treeitem]'),
-                      idx = [...items].indexOf(e.currentTarget as HTMLElement)
-                    if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
-                    else items[Math.max(idx - 1, 0)]?.focus()
-                  }
-                }}
                 role='treeitem'
                 style={{ paddingLeft: pl }}>
                 <FolderIcon className={iconClass} name={name} open={isOpen} />
@@ -1092,8 +1079,11 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
       previewIdRef = useRef(currentPreviewId),
       [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
-      setTabHistory = useSetAtom(tabHistoryAtom),
-      setTabHistoryIdx = useSetAtom(tabHistoryIndexAtom),
+      historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
+        entries: [],
+        index: -1,
+        navigating: false
+      }),
       quickOpenVisible = useAtomValue(quickOpenAtom),
       setQuickOpen = useSetAtom(quickOpenAtom),
       [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom),
@@ -1249,39 +1239,30 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
     useAltKeys(
       {
         ArrowLeft: () => {
-          setTabHistoryIdx(prevIdx => {
-            if (prevIdx <= 0) return prevIdx
-            const newIdx = prevIdx - 1
-            setTabHistory(prev => {
-              const panelId = prev[newIdx]
-              if (panelId) {
-                const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
-                if (panel) {
-                  panel.focus()
-                  log(`Back: ${panel.title ?? panel.id}`)
-                }
-              }
-              return prev
-            })
-            return newIdx
-          })
+          const h = historyRef.current
+          if (h.index <= 0) return
+          h.index -= 1
+          h.navigating = true
+          const panelId = h.entries[h.index],
+            panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
+          if (panel) {
+            panel.focus()
+            log(`Back: ${panel.title ?? panel.id}`)
+          }
+          h.navigating = false
         },
         ArrowRight: () => {
-          setTabHistoryIdx(prevIdx => {
-            setTabHistory(prev => {
-              if (prevIdx >= prev.length - 1) return prev
-              const panelId = prev[prevIdx + 1]
-              if (panelId) {
-                const panel = stateRef.current.api?.panels.find(p => p.id === panelId)
-                if (panel) {
-                  panel.focus()
-                  log(`Forward: ${panel.title ?? panel.id}`)
-                }
-              }
-              return prev
-            })
-            return prevIdx >= 0 ? prevIdx + 1 : prevIdx
-          })
+          const h = historyRef.current
+          if (h.index >= h.entries.length - 1) return
+          h.index += 1
+          h.navigating = true
+          const panelId = h.entries[h.index],
+            panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
+          if (panel) {
+            panel.focus()
+            log(`Forward: ${panel.title ?? panel.id}`)
+          }
+          h.navigating = false
         },
         KeyE: () => {
           const { api } = stateRef.current
@@ -1565,10 +1546,13 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
             if (e?.id) {
               setActiveFileId(e.id)
               onTabChangeRef.current?.(e.id)
-              setTabHistoryIdx(prevIdx => {
-                setTabHistory(prev => [...prev.slice(0, prevIdx + 1), e.id])
-                return prevIdx + 1
-              })
+              if (!historyRef.current.navigating) {
+                const h = historyRef.current
+                if (h.entries[h.index] !== e.id) {
+                  h.entries = [...h.entries.slice(0, h.index + 1), e.id].slice(-50)
+                  h.index = h.entries.length - 1
+                }
+              }
               log(`Focused: ${e.title ?? e.id}`)
             }
           })
