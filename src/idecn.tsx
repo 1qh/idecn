@@ -1354,7 +1354,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         observer.disconnect()
         for (const d of stateRef.current.disposables) d.dispose()
         stateRef.current = {
-          api: null,
+          ...stateRef.current,
           disposables: [],
           fileIds: new Set(),
           onCloseMap: new Map(),
@@ -1573,7 +1573,14 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
         (item: TreeDataItem, preview: boolean) => {
           const { api } = stateRef.current,
             onOpen = onOpenFileRef.current
-          if (!(api && onOpen)) return
+          if (!api) {
+            log('openFileInPanel: no api')
+            return
+          }
+          if (!onOpen) {
+            log('openFileInPanel: no onOpenFile callback')
+            return
+          }
           const existing = api.panels.find(p => p.id === item.path)
           if (existing) {
             existing.focus()
