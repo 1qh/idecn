@@ -1,0 +1,13 @@
+{
+  "extends": "lintmax/tsconfig",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["bun-types"],
+    "noEmit": true,
+    "paths": {
+      "@a/ui": ["../../readonly/ui/src/lib/utils.ts"],
+      "@a/ui/*": ["../../readonly/ui/src/components/*"]
+    }
+  },
+  "include": ["src", "scripts"]
+}

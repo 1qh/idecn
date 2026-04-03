@@ -1,0 +1,24 @@
+{
+  "name": "@idecn/web",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbopack"
+  },
+  "dependencies": {
+    "@a/ui": "workspace:*",
+    "@icons-pack/react-simple-icons": "latest",
+    "@tailwindcss/typography": "latest",
+    "idecn": "workspace:*",
+    "next": "latest",
+    "next-themes": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "latest"
+  }
+}
