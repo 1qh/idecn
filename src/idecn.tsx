@@ -72,299 +72,302 @@ import { Dialog, DialogContent } from './ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Skeleton } from './ui/skeleton'
 import { Toaster } from './ui/sonner'
-const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300',
-  ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`,
-  ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`,
-  ITEM_CLASS =
-    'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent',
-  CENTER = 'flex h-full items-center justify-center',
-  EDITOR_OPTIONS: NonNullable<EditorProps['options']> = {
-    bracketPairColorization: { enabled: true },
-    cursorSmoothCaretAnimation: 'on',
-    cursorWidth: 5,
-    fontLigatures: true,
-    fontSize: 16,
-    letterSpacing: -0.8,
-    lineHeight: 1.1,
-    minimap: {
-      maxColumn: 69,
-      renderCharacters: false,
-      scale: 2,
-      showSlider: 'always'
-    },
-    readOnly: true,
-    scrollBeyondLastLine: false,
-    scrollbar: {
-      horizontal: 'hidden',
-      horizontalScrollbarSize: 1,
-      verticalScrollbarSize: 0
-    },
-    smoothScrolling: true,
-    stickyScroll: { enabled: true }
+const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
+const ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`
+const ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`
+const ITEM_CLASS =
+  'group flex w-full items-center gap-[7px] py-[1px] pr-2 text-left text-sm leading-6 cursor-pointer whitespace-nowrap hover:bg-accent'
+const CENTER = 'flex h-full items-center justify-center'
+const EDITOR_OPTIONS: NonNullable<EditorProps['options']> = {
+  bracketPairColorization: { enabled: true },
+  cursorSmoothCaretAnimation: 'on',
+  cursorWidth: 5,
+  fontLigatures: true,
+  fontSize: 16,
+  letterSpacing: -0.8,
+  lineHeight: 1.1,
+  minimap: {
+    maxColumn: 69,
+    renderCharacters: false,
+    scale: 2,
+    showSlider: 'always'
   },
-  TAB_TYPE = Symbol('idecn-tab'),
-  EXT_TO_LANG: Record<string, string> = {
-    cjs: 'javascript',
-    css: 'css',
-    go: 'go',
-    html: 'html',
-    js: 'javascript',
-    json: 'json',
-    jsx: 'javascriptreact',
-    md: 'markdown',
-    mjs: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    sh: 'shellscript',
-    sql: 'sql',
-    svelte: 'svelte',
-    toml: 'toml',
-    ts: 'typescript',
-    tsx: 'typescriptreact',
-    vue: 'vue',
-    yaml: 'yaml',
-    yml: 'yaml'
+  readOnly: true,
+  scrollBeyondLastLine: false,
+  scrollbar: {
+    horizontal: 'hidden',
+    horizontalScrollbarSize: 1,
+    verticalScrollbarSize: 0
   },
-  LANG: Record<string, string> = {
-    css: 'css',
-    go: 'go',
-    html: 'html',
-    js: 'javascript',
-    json: 'json',
-    jsx: 'javascript',
-    md: 'markdown',
-    mjs: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    sh: 'shell',
-    sql: 'sql',
-    toml: 'toml',
-    ts: 'typescript',
-    tsx: 'typescript',
-    yaml: 'yaml',
-    yml: 'yaml'
-  },
-  IMAGE_EXTS = new Set(['apng', 'avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp']),
-  BINARY_EXTS = new Set([
-    '7z',
-    'bin',
-    'bz2',
-    'dat',
-    'db',
-    'dll',
-    'dylib',
-    'eot',
-    'exe',
-    'gz',
-    'otf',
-    'pdf',
-    'rar',
-    'so',
-    'sqlite',
-    'tar',
-    'ttf',
-    'wasm',
-    'woff',
-    'woff2',
-    'xz',
-    'zip'
-  ]),
-  FILE_SIZE_WARN = 500_000,
-  extOf = (path: string) => path.split('.').at(-1)?.toLowerCase() ?? '',
-  RESET_CSS = [
-    '.dv-reset{',
-    '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
-    '--dv-activegroup-visiblepanel-tab-color:inherit;',
-    '--dv-activegroup-hiddenpanel-tab-background-color:transparent;',
-    '--dv-activegroup-hiddenpanel-tab-color:inherit;',
-    '--dv-inactivegroup-visiblepanel-tab-background-color:transparent;',
-    '--dv-inactivegroup-visiblepanel-tab-color:inherit;',
-    '--dv-inactivegroup-hiddenpanel-tab-background-color:transparent;',
-    '--dv-inactivegroup-hiddenpanel-tab-color:inherit;',
-    '--dv-tabs-and-actions-container-background-color:transparent;',
-    '--dv-tabs-and-actions-container-height:auto;',
-    '--dv-group-view-background-color:transparent;',
-    '--dv-separator-border:transparent;',
-    '--dv-tab-divider-color:transparent;',
-    '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
-    '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
-    '--dv-tab-margin:0;',
-    '--dv-border-radius:0;',
-    '--dv-active-sash-color:transparent;',
-    '--dv-sash-color:transparent;',
-    '--dv-scrollbar-background-color:transparent;',
-    '}',
-    '.dv-reset .dv-tab{padding:0;background:transparent}',
-    '.dv-reset .dv-tabs-container{gap:0}',
-    '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
-    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:var(--color-muted,var(--muted))!important}',
-    '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:1px solid var(--color-primary,var(--primary))}',
-    '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:1px solid transparent}',
-    '.dv-reset .dv-tabs-container>.dv-tab+.dv-tab{border-left:1px solid color-mix(in oklch,var(--color-border,var(--border)) 50%,transparent)}',
-    '.dv-reset .dv-tab:has([data-fill]){flex:1}',
-    '.dv-reset .dv-tabs-container{overflow-x:auto;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--color-foreground,var(--foreground)) 15%,transparent) transparent}',
-    '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
-    '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}',
-    '.dv-reset .dv-watermark{background:transparent}',
-    String.raw`.dv-reset .dv-tab:has([data-preview]) .group\/tab{font-style:italic}`,
-    '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
-    '[data-slot=dialog-overlay]{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
-  ].join(''),
-  cursorAtom = atom({ col: 1, line: 1 }),
-  activeFileInfoAtom = atom({ language: 'plaintext', path: '' }),
-  closedTabsAtom = atom<string[]>([]),
-  pinnedTabsAtom = atom<string[]>([]),
-  fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0),
-  wordWrapAtom = atomWithStorage('idecn:wordWrap', false),
-  previewPanelAtom = atom<null | string>(null),
-  quickOpenAtom = atom(false),
-  treeAtom = atom<TreeDataItem[]>([]),
-  openFileAtom = atom<((item: TreeDataItem) => void) | null>(null)
-let iconManifest: IconManifest | null = null,
-  iconSvgs: Record<string, string> = {},
-  cachedMonoFont: string | undefined
+  smoothScrolling: true,
+  stickyScroll: { enabled: true }
+}
+const TAB_TYPE = Symbol('idecn-tab')
+const EXT_TO_LANG: Record<string, string> = {
+  cjs: 'javascript',
+  css: 'css',
+  go: 'go',
+  html: 'html',
+  js: 'javascript',
+  json: 'json',
+  jsx: 'javascriptreact',
+  md: 'markdown',
+  mjs: 'javascript',
+  py: 'python',
+  rs: 'rust',
+  sh: 'shellscript',
+  sql: 'sql',
+  svelte: 'svelte',
+  toml: 'toml',
+  ts: 'typescript',
+  tsx: 'typescriptreact',
+  vue: 'vue',
+  yaml: 'yaml',
+  yml: 'yaml'
+}
+const LANG: Record<string, string> = {
+  css: 'css',
+  go: 'go',
+  html: 'html',
+  js: 'javascript',
+  json: 'json',
+  jsx: 'javascript',
+  md: 'markdown',
+  mjs: 'javascript',
+  py: 'python',
+  rs: 'rust',
+  sh: 'shell',
+  sql: 'sql',
+  toml: 'toml',
+  ts: 'typescript',
+  tsx: 'typescript',
+  yaml: 'yaml',
+  yml: 'yaml'
+}
+const IMAGE_EXTS = new Set(['apng', 'avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp'])
+const BINARY_EXTS = new Set([
+  '7z',
+  'bin',
+  'bz2',
+  'dat',
+  'db',
+  'dll',
+  'dylib',
+  'eot',
+  'exe',
+  'gz',
+  'otf',
+  'pdf',
+  'rar',
+  'so',
+  'sqlite',
+  'tar',
+  'ttf',
+  'wasm',
+  'woff',
+  'woff2',
+  'xz',
+  'zip'
+])
+const FILE_SIZE_WARN = 500_000
+const extOf = (path: string) => path.split('.').at(-1)?.toLowerCase() ?? ''
+const RESET_CSS = [
+  '.dv-reset{',
+  '--dv-activegroup-visiblepanel-tab-background-color:transparent;',
+  '--dv-activegroup-visiblepanel-tab-color:inherit;',
+  '--dv-activegroup-hiddenpanel-tab-background-color:transparent;',
+  '--dv-activegroup-hiddenpanel-tab-color:inherit;',
+  '--dv-inactivegroup-visiblepanel-tab-background-color:transparent;',
+  '--dv-inactivegroup-visiblepanel-tab-color:inherit;',
+  '--dv-inactivegroup-hiddenpanel-tab-background-color:transparent;',
+  '--dv-inactivegroup-hiddenpanel-tab-color:inherit;',
+  '--dv-tabs-and-actions-container-background-color:transparent;',
+  '--dv-tabs-and-actions-container-height:auto;',
+  '--dv-group-view-background-color:transparent;',
+  '--dv-separator-border:transparent;',
+  '--dv-tab-divider-color:transparent;',
+  '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
+  '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
+  '--dv-tab-margin:0;',
+  '--dv-border-radius:0;',
+  '--dv-active-sash-color:transparent;',
+  '--dv-sash-color:transparent;',
+  '--dv-scrollbar-background-color:transparent;',
+  '}',
+  '.dv-reset .dv-tab{padding:0;background:transparent}',
+  '.dv-reset .dv-tabs-container{gap:0}',
+  '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:var(--color-muted,var(--muted))!important}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:1px solid var(--color-primary,var(--primary))}',
+  '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:1px solid transparent}',
+  '.dv-reset .dv-tabs-container>.dv-tab+.dv-tab{border-left:1px solid color-mix(in oklch,var(--color-border,var(--border)) 50%,transparent)}',
+  '.dv-reset .dv-tab:has([data-fill]){flex:1}',
+  '.dv-reset .dv-tabs-container{overflow-x:auto;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--color-foreground,var(--foreground)) 15%,transparent) transparent}',
+  '.dv-reset .monaco-editor,.dv-reset .monaco-editor .margin,.dv-reset .monaco-editor-background,.dv-reset .monaco-editor .overflow-guard{background-color:transparent}',
+  '.dv-reset .monaco-editor .current-line,.dv-reset .monaco-editor .current-line-margin{border:none!important}',
+  '.dv-reset .dv-watermark{background:transparent}',
+  String.raw`.dv-reset .dv-tab:has([data-preview]) .group\/tab{font-style:italic}`,
+  '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
+  '[data-slot=dialog-overlay]{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
+].join('')
+const cursorAtom = atom({ col: 1, line: 1 })
+const activeFileInfoAtom = atom({ language: 'plaintext', path: '' })
+const closedTabsAtom = atom<string[]>([])
+const pinnedTabsAtom = atom<string[]>([])
+const fontSizeAtom = atomWithStorage('idecn:fontSizeDelta', 0)
+const wordWrapAtom = atomWithStorage('idecn:wordWrap', false)
+const previewPanelAtom = atom<null | string>(null)
+const quickOpenAtom = atom(false)
+const treeAtom = atom<TreeDataItem[]>([])
+const openFileAtom = atom<((item: TreeDataItem) => void) | null>(null)
+let iconManifest: IconManifest | null = null
+let iconSvgs: Record<string, string> = {}
+let cachedMonoFont: string | undefined
 const iconsReady =
-    'location' in globalThis
-      ? import('./_generated/icons').then((mod: { icons: { manifest: IconManifest; svgs: Record<string, string> } }) => {
-          iconManifest = mod.icons.manifest
-          iconSvgs = mod.icons.svgs
-        })
-      : Promise.resolve(),
-  CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const,
-  ALL_LANGS = [
-    'css',
-    'go',
-    'html',
-    'javascript',
-    'json',
-    'jsx',
-    'markdown',
-    'python',
-    'rust',
-    'shell',
-    'sql',
-    'toml',
-    'tsx',
-    'typescript',
-    'yaml'
-  ] as const,
-  defineThemes = (
-    highlighter: Awaited<ReturnType<typeof createHighlighter>>,
-    m: { editor: { defineTheme: (name: string, data: unknown) => void } }
-  ) => {
-    for (const name of highlighter.getLoadedThemes()) {
-      const resolved = highlighter.getTheme(name),
-        converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> },
-        isDark = resolved.type === 'dark'
-      if (isDark) {
-        converted.colors['editor.background'] = '#00000077'
-        converted.colors['editor.lineHighlightBackground'] = '#00000000'
-        converted.colors['editorLineNumber.foreground'] = '#ffffff22'
-        converted.colors['minimap.background'] = '#000000'
-        converted.colors['minimapSlider.background'] = '#ffffff15'
-        converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
-        converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
-      } else converted.colors['minimap.background'] = '#ffffff'
-      converted.colors['scrollbar.shadow'] = '#00000000'
-      converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
-      converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
-      converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff50' : '#00000050'
-      m.editor.defineTheme(name, converted)
-    }
-  },
-  shikiSetup =
-    'location' in globalThis
-      ? (async () => {
-          const mod = await import('./monokai-lite'),
-            theme = mod.monokaiLite,
-            highlighter = await createHighlighter({
-              langs: [...CORE_LANGS],
-              themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
-            }),
-            monaco = await loader.init()
-          shikiToMonaco(highlighter, monaco)
-          defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
-          const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
-          if (remaining.length > 0)
-            highlighter
-              .loadLanguage(...remaining)
-              .then(() => {
-                shikiToMonaco(highlighter, monaco)
-                defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
-              })
-              .catch(() => undefined)
-        })()
-      : null,
-  getSvg = (name: string): string => iconSvgs[name] ?? (iconManifest ? (iconSvgs[iconManifest.file] ?? '') : ''),
-  resolveFileIcon = (filename: string): string => {
-    if (!iconManifest) return ''
-    const lower = filename.toLowerCase()
-    if (iconManifest.fileNames[lower]) return iconManifest.fileNames[lower]
-    const ext = lower.includes('.') ? lower.slice(lower.indexOf('.') + 1) : ''
-    if (ext && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
-    const lastExt = lower.split('.').at(-1) ?? ''
-    if (lastExt && iconManifest.fileExtensions[lastExt]) return iconManifest.fileExtensions[lastExt]
-    const lang = EXT_TO_LANG[lastExt]
-    if (lang && iconManifest.languageIds[lang]) return iconManifest.languageIds[lang]
-    return iconManifest.file
-  },
-  resolveFolderIcon = (folderName: string, open: boolean): string => {
-    if (!iconManifest) return ''
-    const lower = folderName.toLowerCase()
-    if (open) return iconManifest.folderNamesExpanded[lower] ?? iconManifest.folderExpanded
-    return iconManifest.folderNames[lower] ?? iconManifest.folder
-  },
-  getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename)),
-  langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext',
-  monoFont = (): string => {
-    if (cachedMonoFont !== undefined) return cachedMonoFont
-    if (typeof document === 'undefined') return ''
-    cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
-    return cachedMonoFont
-  },
-  compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
-    let current = item,
-      merged = item.name
-    while (current.children?.length === 1 && current.children[0].children) {
-      current = current.children[0]
-      merged += `/${current.name}`
-    }
-    return { children: current.children ?? [], name: merged }
-  },
-  extractTabs = (children: ReactNode): TabProps[] => {
-    const tabs: TabProps[] = []
-    Children.forEach(children, child => {
-      if (isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)
-        tabs.push(child.props as TabProps)
-    })
-    return tabs
-  },
-  getTabId = (tab: TabProps) => tab.id ?? tab.title,
-  useAltKeys = (bindings: Record<string, () => void>, enabled: boolean) => {
-    const ref = useRef(bindings)
-    useEffect(() => {
-      ref.current = bindings
-    })
-    useEffect(() => {
-      if (!enabled) return
-      const handler = (e: KeyboardEvent) => {
-        if (!e.altKey || e.metaKey || e.ctrlKey) return
-        const fn = ref.current[e.code]
-        if (fn) {
-          e.preventDefault()
-          fn()
-        }
-      }
-      document.addEventListener('keydown', handler)
-      return () => document.removeEventListener('keydown', handler)
-    }, [enabled])
-  },
-  deduplicateTitle = (name: string, path: string, existingPanels: { id: string; title: string | undefined }[]): string => {
-    const hasDupe = existingPanels.some(p => p.title === name && p.id !== path)
-    if (!hasDupe) return name
-    const parts = path.split('/')
-    return parts.length >= 2 ? `${parts.at(-2)}/${name}` : name
+  'location' in globalThis
+    ? import('./_generated/icons').then((mod: { icons: { manifest: IconManifest; svgs: Record<string, string> } }) => {
+        iconManifest = mod.icons.manifest
+        iconSvgs = mod.icons.svgs
+      })
+    : Promise.resolve()
+const CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const
+const ALL_LANGS = [
+  'css',
+  'go',
+  'html',
+  'javascript',
+  'json',
+  'jsx',
+  'markdown',
+  'python',
+  'rust',
+  'shell',
+  'sql',
+  'toml',
+  'tsx',
+  'typescript',
+  'yaml'
+] as const
+const defineThemes = (
+  highlighter: Awaited<ReturnType<typeof createHighlighter>>,
+  m: { editor: { defineTheme: (name: string, data: unknown) => void } }
+) => {
+  for (const name of highlighter.getLoadedThemes()) {
+    const resolved = highlighter.getTheme(name)
+    const converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> }
+    const isDark = resolved.type === 'dark'
+    if (isDark) {
+      converted.colors['editor.background'] = '#00000077'
+      converted.colors['editor.lineHighlightBackground'] = '#00000000'
+      converted.colors['editorLineNumber.foreground'] = '#ffffff22'
+      converted.colors['minimap.background'] = '#000000'
+      converted.colors['minimapSlider.background'] = '#ffffff15'
+      converted.colors['minimapSlider.hoverBackground'] = '#ffffff25'
+      converted.colors['minimapSlider.activeBackground'] = '#ffffff35'
+    } else converted.colors['minimap.background'] = '#ffffff'
+    converted.colors['scrollbar.shadow'] = '#00000000'
+    converted.colors['scrollbarSlider.background'] = isDark ? '#ffffff15' : '#00000015'
+    converted.colors['scrollbarSlider.hoverBackground'] = isDark ? '#ffffff30' : '#00000030'
+    converted.colors['scrollbarSlider.activeBackground'] = isDark ? '#ffffff50' : '#00000050'
+    m.editor.defineTheme(name, converted)
   }
+}
+const shikiSetup =
+  'location' in globalThis
+    ? (async () => {
+        const mod = await import('./monokai-lite')
+        const theme = mod.monokaiLite
+        const highlighter = await createHighlighter({
+          langs: [...CORE_LANGS],
+          themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
+        })
+        const monaco = await loader.init()
+        shikiToMonaco(highlighter, monaco)
+        defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
+        const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
+        if (remaining.length > 0)
+          highlighter
+            .loadLanguage(...remaining)
+            .then(() => {
+              shikiToMonaco(highlighter, monaco)
+              defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
+            })
+            .catch(() => undefined)
+      })()
+    : null
+const getSvg = (name: string): string => iconSvgs[name] ?? (iconManifest ? (iconSvgs[iconManifest.file] ?? '') : '')
+const resolveFileIcon = (filename: string): string => {
+  if (!iconManifest) return ''
+  const lower = filename.toLowerCase()
+  if (iconManifest.fileNames[lower]) return iconManifest.fileNames[lower]
+  const ext = lower.includes('.') ? lower.slice(lower.indexOf('.') + 1) : ''
+  if (ext && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
+  const lastExt = lower.split('.').at(-1) ?? ''
+  if (lastExt && iconManifest.fileExtensions[lastExt]) return iconManifest.fileExtensions[lastExt]
+  const lang = EXT_TO_LANG[lastExt]
+  if (lang && iconManifest.languageIds[lang]) return iconManifest.languageIds[lang]
+  return iconManifest.file
+}
+const resolveFolderIcon = (folderName: string, open: boolean): string => {
+  if (!iconManifest) return ''
+  const lower = folderName.toLowerCase()
+  if (open) return iconManifest.folderNamesExpanded[lower] ?? iconManifest.folderExpanded
+  return iconManifest.folderNames[lower] ?? iconManifest.folder
+}
+const getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename))
+const langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext'
+const monoFont = (): string => {
+  if (cachedMonoFont !== undefined) return cachedMonoFont
+  if (typeof document === 'undefined') return ''
+  cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
+  return cachedMonoFont
+}
+const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
+  let current = item
+  let merged = item.name
+  while (current.children?.length === 1 && current.children[0].children) {
+    current = current.children[0]
+    merged += `/${current.name}`
+  }
+  return { children: current.children ?? [], name: merged }
+}
+const extractTabs = (children: ReactNode): TabProps[] => {
+  const tabs: TabProps[] = []
+  Children.forEach(children, child => {
+    if (isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE) tabs.push(child.props as TabProps)
+  })
+  return tabs
+}
+const getTabId = (tab: TabProps) => tab.id ?? tab.title
+const useAltKeys = (bindings: Record<string, () => void>, enabled: boolean) => {
+  const ref = useRef(bindings)
+  useEffect(() => {
+    ref.current = bindings
+  })
+  useEffect(() => {
+    if (!enabled) return
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey || e.metaKey || e.ctrlKey) return
+      const fn = ref.current[e.code]
+      if (fn) {
+        e.preventDefault()
+        fn()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [enabled])
+}
+const deduplicateTitle = (
+  name: string,
+  path: string,
+  existingPanels: { id: string; title: string | undefined }[]
+): string => {
+  const hasDupe = existingPanels.some(p => p.title === name && p.id !== path)
+  if (!hasDupe) return name
+  const parts = path.split('/')
+  return parts.length >= 2 ? `${parts.at(-2)}/${name}` : name
+}
 interface IconManifest {
   file: string
   fileExtensions: Record<string, string>
@@ -387,16 +390,16 @@ interface VirtualFile {
   open?: boolean
   pin?: 'bottom' | 'top'
 }
-const EMPTY_TREE: TreeDataItem[] = [],
-  VIRTUAL_PREFIX = '__virtual:',
-  resolveLanguageIcon = (language: string): string => {
-    if (!iconManifest) return ''
-    if (iconManifest.languageIds[language]) return iconManifest.languageIds[language]
-    for (const [ext, lang] of Object.entries(EXT_TO_LANG))
-      if (lang === language && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
-    return iconManifest.file
-  },
-  virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
+const EMPTY_TREE: TreeDataItem[] = []
+const VIRTUAL_PREFIX = '__virtual:'
+const resolveLanguageIcon = (language: string): string => {
+  if (!iconManifest) return ''
+  if (iconManifest.languageIds[language]) return iconManifest.languageIds[language]
+  for (const [ext, lang] of Object.entries(EXT_TO_LANG))
+    if (lang === language && iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext]
+  return iconManifest.file
+}
+const virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
 interface TreeContextValue {
   expandDepth: number
   expandExclude?: string[]
@@ -423,1065 +426,1010 @@ interface WorkspaceRef {
   toggleSidebar: () => void
 }
 const TreeContext = createContext<TreeContextValue>({
-    expandDepth: 0,
-    indent: 16,
-    selectedId: null,
-    setSelectedId: () => undefined
-  }),
-  DockviewApiContext = createContext<DockviewApi | null>(null),
-  DepthContext = createContext(0),
-  useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
-    const { expandDepth, expandExclude, indent, log: treeLog, onSelect, selectedId, setSelectedId } = use(TreeContext),
-      depth = use(DepthContext),
-      itemId = id ?? path ?? name,
-      isSelected = selectedId === itemId,
-      pl = `${String(depth * indent + 8)}px`,
-      select = () => {
-        setSelectedId(itemId)
-        onSelect?.({ id: itemId, name, path: path ?? name })
-      }
-    return {
-      depth,
+  expandDepth: 0,
+  indent: 16,
+  selectedId: null,
+  setSelectedId: () => undefined
+})
+const DockviewApiContext = createContext<DockviewApi | null>(null)
+const DepthContext = createContext(0)
+const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
+  const { expandDepth, expandExclude, indent, log: treeLog, onSelect, selectedId, setSelectedId } = use(TreeContext)
+  const depth = use(DepthContext)
+  const itemId = id ?? path ?? name
+  const isSelected = selectedId === itemId
+  const pl = `${String(depth * indent + 8)}px`
+  const select = () => {
+    setSelectedId(itemId)
+    onSelect?.({ id: itemId, name, path: path ?? name })
+  }
+  return {
+    depth,
+    expandDepth,
+    expandExclude,
+    iconClass: ICON_CLASS_HOVER,
+    indent,
+    isSelected,
+    itemId,
+    log: treeLog,
+    pl,
+    select
+  }
+}
+const useIconsReady = () => {
+  const [loaded, setLoaded] = useState(Boolean(iconManifest))
+  useEffect(() => {
+    if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
+  }, [loaded])
+}
+const FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
+  useIconsReady()
+  return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
+}
+const FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
+  useIconsReady()
+  return (
+    <span
+      dangerouslySetInnerHTML={{
+        __html: getSvg(resolveFolderIcon(name, open ?? false))
+      }}
+      {...props}
+    />
+  )
+}
+const Tree = ({
+  children,
+  expandDepth = 0,
+  expandExclude,
+  indent = 16,
+  log: treePropLog,
+  onSelect,
+  selectedId: controlledSelectedId,
+  ...props
+}: ComponentProps<'nav'> & {
+  expandDepth?: number
+  expandExclude?: string[]
+  indent?: number
+  log?: (msg: string) => void
+  onSelect?: (item: { id: string; name: string; path: string }) => void
+  selectedId?: null | string
+}) => {
+  const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null)
+  const selectedId = controlledSelectedId ?? internalSelectedId
+  const ctx = useMemo(
+    () => ({
       expandDepth,
       expandExclude,
-      iconClass: ICON_CLASS_HOVER,
       indent,
-      isSelected,
-      itemId,
-      log: treeLog,
-      pl,
-      select
-    }
-  },
-  useIconsReady = () => {
-    const [loaded, setLoaded] = useState(Boolean(iconManifest))
-    useEffect(() => {
-      if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
-    }, [loaded])
-  },
-  FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
-    useIconsReady()
-    return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
-  },
-  FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
-    useIconsReady()
-    return (
-      <span
-        dangerouslySetInnerHTML={{
-          __html: getSvg(resolveFolderIcon(name, open ?? false))
-        }}
+      log: treePropLog,
+      onSelect,
+      selectedId,
+      setSelectedId: setInternalSelectedId
+    }),
+    [expandDepth, expandExclude, indent, treePropLog, onSelect, selectedId]
+  )
+  return (
+    <TreeContext value={ctx}>
+      <nav
+        aria-label='File tree'
+        role='tree'
         {...props}
-      />
-    )
-  },
-  Tree = ({
-    children,
-    expandDepth = 0,
+        className={cn(
+          'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
+          props.className
+        )}
+        onKeyDownCapture={e => {
+          if (![' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return
+          const target = e.target as HTMLElement
+          if (!target.closest('[role=treeitem]')) return
+          e.preventDefault()
+          e.stopPropagation()
+          const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]')
+          const treeItem = target.closest('[role=treeitem]')
+          const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
+          if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
+          else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
+          else target.click()
+        }}>
+        {children}
+      </nav>
+    </TreeContext>
+  )
+}
+const TreeFolder = ({
+  children,
+  defaultOpen = false,
+  disabled,
+  id,
+  name,
+  path,
+  ...props
+}: {
+  children?: ReactNode
+  className?: string
+  defaultOpen?: boolean
+  disabled?: boolean
+  id?: string
+  name: string
+  path?: string
+}) => {
+  const {
+    depth,
+    expandDepth,
     expandExclude,
-    indent = 16,
-    log: treePropLog,
-    onSelect,
-    selectedId: controlledSelectedId,
-    ...props
-  }: ComponentProps<'nav'> & {
-    expandDepth?: number
-    expandExclude?: string[]
-    indent?: number
-    log?: (msg: string) => void
-    onSelect?: (item: { id: string; name: string; path: string }) => void
-    selectedId?: null | string
-  }) => {
-    const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null),
-      selectedId = controlledSelectedId ?? internalSelectedId,
-      ctx = useMemo(
-        () => ({
-          expandDepth,
-          expandExclude,
-          indent,
-          log: treePropLog,
-          onSelect,
-          selectedId,
-          setSelectedId: setInternalSelectedId
-        }),
-        [expandDepth, expandExclude, indent, treePropLog, onSelect, selectedId]
-      )
-    return (
-      <TreeContext value={ctx}>
-        <nav
-          aria-label='File tree'
-          role='tree'
-          {...props}
-          className={cn(
-            'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
-            props.className
-          )}
-          onKeyDownCapture={e => {
-            if (![' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return
-            const target = e.target as HTMLElement
-            if (!target.closest('[role=treeitem]')) return
-            e.preventDefault()
-            e.stopPropagation()
-            const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]'),
-              treeItem = target.closest('[role=treeitem]'),
-              idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
-            if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
-            else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
-            else target.click()
-          }}>
-          {children}
-        </nav>
-      </TreeContext>
-    )
-  },
-  TreeFolder = ({
-    children,
-    defaultOpen = false,
-    disabled,
+    iconClass,
+    indent,
+    log: treeLog,
+    isSelected,
+    itemId,
+    pl,
+    select
+  } = useTreeItem({
     id,
     name,
-    path,
-    ...props
-  }: {
-    children?: ReactNode
-    className?: string
-    defaultOpen?: boolean
-    disabled?: boolean
-    id?: string
-    name: string
-    path?: string
-  }) => {
-    const {
-        depth,
-        expandDepth,
-        expandExclude,
-        iconClass,
-        indent,
-        log: treeLog,
-        isSelected,
-        itemId,
-        pl,
-        select
-      } = useTreeItem({
-        id,
-        name,
-        path
-      }),
-      excluded = expandExclude?.some(ex => (path ?? name).startsWith(ex)),
-      shouldOpen = !excluded && (defaultOpen || depth < expandDepth),
-      [open, setOpen] = useState(shouldOpen ? [itemId] : []),
-      isOpen = open.includes(itemId)
-    return (
-      <Accordion.Root
-        onValueChange={v => {
-          setOpen(v as string[])
-          treeLog?.(v.length > 0 ? `Expand: ${name}` : `Collapse: ${name}`)
-        }}
-        value={open}>
-        <Accordion.Item value={itemId}>
-          <ContextMenu>
-            <ContextMenuTrigger>
-              <Accordion.Trigger
-                className={cn(
-                  ITEM_CLASS,
-                  isSelected && 'bg-accent',
-                  disabled && 'pointer-events-none opacity-50',
-                  props.className
-                )}
-                onClick={select}
-                role='treeitem'
-                style={{ paddingLeft: pl }}>
-                <FolderIcon className={iconClass} name={name} open={isOpen} />
-                {name}
-              </Accordion.Trigger>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem
-                onClick={() => {
-                  navigator.clipboard
-                    .writeText(path ?? name)
-                    .then(() => toast('Copied to clipboard'))
-                    .catch(() => undefined)
-                }}>
-                <ClipboardCopy /> Copy Path
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-          <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
-            <span
-              className='absolute top-0 bottom-0 w-px bg-accent'
-              style={{ left: `${String(depth * indent + 16)}px` }}
-            />
-            <DepthContext value={depth + 1}>{children}</DepthContext>
-          </Accordion.Panel>
-        </Accordion.Item>
-      </Accordion.Root>
-    )
-  },
-  TreeFile = ({
-    disabled,
-    icon,
-    id,
-    name,
-    path,
-    ...props
-  }: Omit<ComponentProps<'button'>, 'id'> & {
-    disabled?: boolean
-    icon?: ComponentType<{ className?: string }> | string
-    id?: string
-    name: string
-    path?: string
-  }) => {
-    const { iconClass, isSelected, pl, select } = useTreeItem({
-        id,
-        name,
-        path
-      }),
-      CustomIcon = typeof icon === 'function' ? icon : undefined
-    useIconsReady()
-    return (
-      <ContextMenu>
-        <ContextMenuTrigger>
-          <button
-            role='treeitem'
-            type='button'
-            {...props}
-            className={cn(
-              ITEM_CLASS,
-              isSelected && 'bg-accent',
-              disabled && 'pointer-events-none opacity-50',
-              props.className
-            )}
-            onClick={e => {
-              if (!disabled) select()
-              props.onClick?.(e)
-            }}
-            style={{ paddingLeft: pl, ...props.style }}>
-            {CustomIcon ? (
-              <CustomIcon className={iconClass} />
-            ) : typeof icon === 'string' ? (
-              <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
-            ) : (
-              <FileIcon className={iconClass} name={name} />
-            )}
-            {name}
-          </button>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          <ContextMenuItem
-            onClick={() => {
-              navigator.clipboard
-                .writeText(path ?? name)
-                .then(() => toast('Copied to clipboard'))
-                .catch(() => undefined)
-            }}>
-            <ClipboardCopy /> Copy Path
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-    )
-  },
-  renderItems = ({
-    items,
-    onItemClick,
-    onItemDoubleClick
-  }: {
-    items: TreeDataItem[]
-    onItemClick?: (item: TreeDataItem) => void
-    onItemDoubleClick?: (item: TreeDataItem) => void
-  }): ReactNode[] => {
-    const nodes: ReactNode[] = []
-    for (const item of items)
-      if (item.children) {
-        const { children, name } = compactFolder(item)
-        nodes.push(
-          <TreeFolder disabled={item.disabled} id={item.id} key={item.id} name={name} path={item.path}>
-            {renderItems({ items: children, onItemClick, onItemDoubleClick })}
-          </TreeFolder>
-        )
-      } else
-        nodes.push(
-          <TreeFile
-            disabled={item.disabled}
-            icon={item.icon}
-            id={item.id}
-            key={item.id}
-            name={item.name}
-            onClick={() => {
-              item.onClick?.()
-              onItemClick?.(item)
-            }}
-            onDoubleClick={() => onItemDoubleClick?.(item)}
-            path={item.path}
-          />
-        )
-    return nodes
-  },
-  FileTree = ({
-    className,
-    data,
-    expandDepth = 0,
-    expandExclude,
-    initialSelectedItemId,
-    log: fileTreeLog,
-    onDoubleClick: onDoubleClickProp,
-    onSelectChange,
-    selectedId: controlledId
-  }: {
-    className?: string
-    data: TreeDataItem | TreeDataItem[]
-    expandDepth?: number
-    expandExclude?: string[]
-    initialSelectedItemId?: string
-    log?: (msg: string) => void
-    onDoubleClick?: (item: TreeDataItem) => void
-    onSelectChange?: (item: TreeDataItem | undefined) => void
-    selectedId?: null | string
-  }) => {
-    const items = Array.isArray(data) ? data : [data]
-    return (
-      <Tree
-        className={className}
-        expandDepth={expandDepth}
-        expandExclude={expandExclude}
-        log={fileTreeLog}
-        selectedId={controlledId ?? initialSelectedItemId}>
-        <div className='min-w-max'>
-          {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
-        </div>
-      </Tree>
-    )
-  },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Tab = (_props: {
-    activeClassName?: string
-    children: ReactNode
-    closable?: boolean
-    headerClassName?: string
-    icon?: boolean
-    id?: string
-    inactiveClassName?: string
-    onClose?: () => void
-    title: string
-  }): null => null
-Tab._type = TAB_TYPE
-const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
-    const [content, setContent] = useState(params.content)
-    useEffect(() => {
-      const d = api.onDidParametersChange(e => {
-        const p = e as { content?: ReactNode }
-        if (p.content !== undefined) setContent(p.content)
-      })
-      return () => {
-        d.dispose()
-      }
-    }, [api])
-    return <div className='h-full overflow-auto'>{content}</div>
-  },
-  ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
-    const [src, setSrc] = useState(params.src)
-    useEffect(() => {
-      const d = api.onDidParametersChange(e => {
-        const p = e as { src?: string }
-        if (p.src !== undefined) setSrc(p.src)
-      })
-      return () => {
-        d.dispose()
-      }
-    }, [api])
-    if (!src) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
-    return (
-      <div className={cn(CENTER, 'h-full overflow-auto p-4')}>
-        <img alt={api.title ?? ''} className='max-h-full max-w-full object-contain' src={src} />
-      </div>
-    )
-  },
-  FilePanel = ({
-    api,
-    params
-  }: IDockviewPanelProps<{
-    content: string
-    editorOptions?: Record<string, unknown>
-    language: string
-    loading?: ReactNode
-    theme?: string | { dark: string; light: string }
-  }>) => {
-    const editorRef = useRef<null | { revealLine: (line: number) => void }>(null),
-      isVirtual = api.id.startsWith(VIRTUAL_PREFIX),
-      [content, setContent] = useState(params.content),
-      [language, setLanguage] = useState(params.language),
-      [loadingState, setLoadingState] = useState(params.loading),
-      [editorOpts, setEditorOpts] = useState(params.editorOptions),
-      [ready, setReady] = useState(!shikiSetup),
-      [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
-    useEffect(() => {
-      if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
-      const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
-      observer.observe(document.documentElement, {
-        attributeFilter: ['class'],
-        attributes: true
-      })
-      return () => observer.disconnect()
-    }, [])
-    useEffect(() => {
-      const d = api.onDidParametersChange(e => {
-        const p = e as {
-          content?: string
-          editorOptions?: Record<string, unknown>
-          language?: string
-          loading?: ReactNode
-        }
-        if (p.content !== undefined) {
-          setContent(p.content)
-          setLoadingState(undefined)
-          if (isVirtual)
-            requestAnimationFrame(() => {
-              const lineCount = (p.content ?? '').split('\n').length
-              editorRef.current?.revealLine(lineCount)
-            })
-        }
-        if (p.language !== undefined) setLanguage(p.language)
-        if (p.loading !== undefined) setLoadingState(p.loading)
-        if (p.editorOptions !== undefined) setEditorOpts(p.editorOptions)
-      })
-      return () => {
-        d.dispose()
-      }
-    }, [api, isVirtual])
-    const setCursor = useSetAtom(cursorAtom),
-      setFileInfo = useSetAtom(activeFileInfoAtom)
-    useEffect(() => {
-      if (api.isActive) setFileInfo({ language, path: api.id })
-      const d = api.onDidActiveChange(e => {
-        if (e.isActive) setFileInfo({ language, path: api.id })
-      })
-      return () => {
-        d.dispose()
-      }
-    }, [api, language, setFileInfo])
-    if (loadingState || !ready)
-      return (
-        <div className='flex h-full flex-col gap-2 p-4'>
-          <Skeleton className='h-4 w-3/4' />
-          <Skeleton className='h-4 w-1/2' />
-          <Skeleton className='h-4 w-2/3' />
-        </div>
-      )
-    if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
-    const pathParts = api.id.split('/')
-    return (
-      <div className='flex h-full flex-col'>
-        <Breadcrumb className='border-b border-border px-3 py-1'>
-          <BreadcrumbList className='flex-nowrap gap-1 text-xs sm:gap-1'>
-            {pathParts.flatMap((part, i) => {
-              const items: ReactNode[] = []
-              if (i > 0) items.push(<BreadcrumbSeparator key={`sep-${part}`} />)
-              items.push(
-                <BreadcrumbSegment
-                  depth={i}
-                  isLast={i === pathParts.length - 1}
-                  key={part}
-                  name={part}
-                  pathParts={pathParts}
-                />
-              )
-              return items
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
-        <Editor
-          className='flex-1'
-          language={language}
-          onMount={editor => {
-            editorRef.current = editor
-            const update = () => {
-              const pos = editor.getPosition()
-              if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
-            }
-            update()
-            editor.onDidChangeCursorPosition(update)
-            api.onDidDimensionsChange(() => editor.layout())
-          }}
-          options={{
-            ...EDITOR_OPTIONS,
-            fontFamily: monoFont() || undefined,
-            ...editorOpts
-          }}
-          path={api.id}
-          theme={
-            typeof params.theme === 'string'
-              ? params.theme
-              : dark
-                ? (params.theme?.dark ?? 'monokai-lite')
-                : (params.theme?.light ?? 'github-light')
-          }
-          value={content}
-        />
-      </div>
-    )
-  },
-  TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
-    const p = params as
-        | undefined
-        | {
-            activeClassName?: string
-            closable?: boolean
-            headerClassName?: string
-            icon?: boolean
-            iconName?: string
-            inactiveClassName?: string
-            preview?: boolean
-          },
-      dv = use(DockviewApiContext),
-      previewId = useAtomValue(previewPanelAtom),
-      [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom),
-      isPreview = previewId === api.id,
-      isPinned = pinnedTabs.includes(api.id),
-      showIcon = p?.icon !== false,
-      closable = p?.closable !== false && !isPinned,
-      [active, setActive] = useState(api.isActive)
-    useEffect(() => {
-      const d = api.onDidActiveChange(e => setActive(e.isActive))
-      return () => {
-        d.dispose()
-      }
-    }, [api])
-    return (
-      <ContextMenu>
-        <ContextMenuTrigger
-          className={cn(
-            'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
-            p?.headerClassName,
-            active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
-          )}
-          data-fill={p?.headerClassName ? '' : undefined}
-          data-preview={isPreview ? '' : undefined}
-          onMouseDown={e => {
-            if (e.button === 1 && closable) {
-              e.preventDefault()
-              api.close()
-            }
-          }}>
-          {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
-          {api.title}
-          {isPinned ? (
-            <Pin
-              className='-ml-1 size-4 rotate-45 p-0.5 opacity-50 hover:p-0 hover:cursor-pointer hover:opacity-100 transition-all'
-              onClick={e => {
-                e.stopPropagation()
-                setPinnedTabs(prev => prev.filter(id => id !== api.id))
-              }}
-            />
-          ) : closable ? (
-            <X
-              className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
-              onClick={e => {
-                e.stopPropagation()
-                api.close()
-              }}
-            />
-          ) : null}
-        </ContextMenuTrigger>
-        {dv ? (
+    path
+  })
+  const excluded = expandExclude?.some(ex => (path ?? name).startsWith(ex))
+  const shouldOpen = !excluded && (defaultOpen || depth < expandDepth)
+  const [open, setOpen] = useState(shouldOpen ? [itemId] : [])
+  const isOpen = open.includes(itemId)
+  return (
+    <Accordion.Root
+      onValueChange={v => {
+        setOpen(v as string[])
+        treeLog?.(v.length > 0 ? `Expand: ${name}` : `Collapse: ${name}`)
+      }}
+      value={open}>
+      <Accordion.Item value={itemId}>
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <Accordion.Trigger
+              className={cn(
+                ITEM_CLASS,
+                isSelected && 'bg-accent',
+                disabled && 'pointer-events-none opacity-50',
+                props.className
+              )}
+              onClick={select}
+              role='treeitem'
+              style={{ paddingLeft: pl }}>
+              <FolderIcon className={iconClass} name={name} open={isOpen} />
+              {name}
+            </Accordion.Trigger>
+          </ContextMenuTrigger>
           <ContextMenuContent>
-            <ContextMenuItem onClick={() => api.close()}>
-              <X /> Close <ContextMenuShortcut>⌥W</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => {
-                for (const pnl of dv.panels)
-                  if (pnl.id !== api.id && !pinnedTabs.includes(pnl.id))
-                    try {
-                      pnl.api.close()
-                    } catch {
-                      /* Removed */
-                    }
-              }}>
-              <Trash /> Close Others
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => {
-                const idx = dv.panels.findIndex(pnl => pnl.id === api.id)
-                for (let i = dv.panels.length - 1; i > idx; i -= 1)
-                  if (!pinnedTabs.includes(dv.panels[i].id))
-                    try {
-                      dv.panels[i].api.close()
-                    } catch {
-                      /* Removed */
-                    }
-              }}>
-              <ArrowRightToLine /> Close to the Right
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => {
-                for (let i = dv.panels.length - 1; i >= 0; i -= 1)
-                  if (!pinnedTabs.includes(dv.panels[i].id))
-                    try {
-                      dv.panels[i].api.close()
-                    } catch {
-                      /* Removed */
-                    }
-              }}>
-              <Trash2 /> Close All
-            </ContextMenuItem>
-            <ContextMenuSeparator />
             <ContextMenuItem
               onClick={() => {
                 navigator.clipboard
-                  .writeText(api.id)
+                  .writeText(path ?? name)
                   .then(() => toast('Copied to clipboard'))
                   .catch(() => undefined)
               }}>
               <ClipboardCopy /> Copy Path
             </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => setPinnedTabs(prev => (isPinned ? prev.filter(id => id !== api.id) : [...prev, api.id]))}>
-              {isPinned ? <PinOff /> : <Pin />} {isPinned ? 'Unpin' : 'Pin'}
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onClick={() => {
-                const found = dv.panels.find(pnl => pnl.id === api.id)
-                if (found)
-                  dv.addPanel({
-                    component: found.view.contentComponent,
-                    id: `${found.id}-split-${Date.now()}`,
-                    params: found.params,
-                    position: { direction: 'right', referencePanel: found },
-                    tabComponent: 'default',
-                    title: found.title ?? ''
-                  })
-              }}>
-              <SplitSquareHorizontal /> Split Right
-            </ContextMenuItem>
           </ContextMenuContent>
-        ) : null}
-      </ContextMenu>
-    )
-  },
-  WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>,
-  COMPONENTS = { custom: ContentPanel, file: FilePanel, image: ImagePanel },
-  TAB_COMPONENTS = { default: TabHeader },
-  StatusBar = () => {
-    const cursor = useAtomValue(cursorAtom),
-      fileInfo = useAtomValue(activeFileInfoAtom)
+        </ContextMenu>
+        <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
+          <span className='absolute top-0 bottom-0 w-px bg-accent' style={{ left: `${String(depth * indent + 16)}px` }} />
+          <DepthContext value={depth + 1}>{children}</DepthContext>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion.Root>
+  )
+}
+const TreeFile = ({
+  disabled,
+  icon,
+  id,
+  name,
+  path,
+  ...props
+}: Omit<ComponentProps<'button'>, 'id'> & {
+  disabled?: boolean
+  icon?: ComponentType<{ className?: string }> | string
+  id?: string
+  name: string
+  path?: string
+}) => {
+  const { iconClass, isSelected, pl, select } = useTreeItem({
+    id,
+    name,
+    path
+  })
+  const CustomIcon = typeof icon === 'function' ? icon : undefined
+  useIconsReady()
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <button
+          role='treeitem'
+          type='button'
+          {...props}
+          className={cn(
+            ITEM_CLASS,
+            isSelected && 'bg-accent',
+            disabled && 'pointer-events-none opacity-50',
+            props.className
+          )}
+          onClick={e => {
+            if (!disabled) select()
+            props.onClick?.(e)
+          }}
+          style={{ paddingLeft: pl, ...props.style }}>
+          {CustomIcon ? (
+            <CustomIcon className={iconClass} />
+          ) : typeof icon === 'string' ? (
+            <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
+          ) : (
+            <FileIcon className={iconClass} name={name} />
+          )}
+          {name}
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onClick={() => {
+            navigator.clipboard
+              .writeText(path ?? name)
+              .then(() => toast('Copied to clipboard'))
+              .catch(() => undefined)
+          }}>
+          <ClipboardCopy /> Copy Path
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+}
+const renderItems = ({
+  items,
+  onItemClick,
+  onItemDoubleClick
+}: {
+  items: TreeDataItem[]
+  onItemClick?: (item: TreeDataItem) => void
+  onItemDoubleClick?: (item: TreeDataItem) => void
+}): ReactNode[] => {
+  const nodes: ReactNode[] = []
+  for (const item of items)
+    if (item.children) {
+      const { children, name } = compactFolder(item)
+      nodes.push(
+        <TreeFolder disabled={item.disabled} id={item.id} key={item.id} name={name} path={item.path}>
+          {renderItems({ items: children, onItemClick, onItemDoubleClick })}
+        </TreeFolder>
+      )
+    } else
+      nodes.push(
+        <TreeFile
+          disabled={item.disabled}
+          icon={item.icon}
+          id={item.id}
+          key={item.id}
+          name={item.name}
+          onClick={() => {
+            item.onClick?.()
+            onItemClick?.(item)
+          }}
+          onDoubleClick={() => onItemDoubleClick?.(item)}
+          path={item.path}
+        />
+      )
+  return nodes
+}
+const FileTree = ({
+  className,
+  data,
+  expandDepth = 0,
+  expandExclude,
+  initialSelectedItemId,
+  log: fileTreeLog,
+  onDoubleClick: onDoubleClickProp,
+  onSelectChange,
+  selectedId: controlledId
+}: {
+  className?: string
+  data: TreeDataItem | TreeDataItem[]
+  expandDepth?: number
+  expandExclude?: string[]
+  initialSelectedItemId?: string
+  log?: (msg: string) => void
+  onDoubleClick?: (item: TreeDataItem) => void
+  onSelectChange?: (item: TreeDataItem | undefined) => void
+  selectedId?: null | string
+}) => {
+  const items = Array.isArray(data) ? data : [data]
+  return (
+    <Tree
+      className={className}
+      expandDepth={expandDepth}
+      expandExclude={expandExclude}
+      log={fileTreeLog}
+      selectedId={controlledId ?? initialSelectedItemId}>
+      <div className='min-w-max'>
+        {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
+      </div>
+    </Tree>
+  )
+}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const Tab = (_props: {
+  activeClassName?: string
+  children: ReactNode
+  closable?: boolean
+  headerClassName?: string
+  icon?: boolean
+  id?: string
+  inactiveClassName?: string
+  onClose?: () => void
+  title: string
+}): null => null
+Tab._type = TAB_TYPE
+const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
+  const [content, setContent] = useState(params.content)
+  useEffect(() => {
+    const d = api.onDidParametersChange(e => {
+      const p = e as { content?: ReactNode }
+      if (p.content !== undefined) setContent(p.content)
+    })
+    return () => {
+      d.dispose()
+    }
+  }, [api])
+  return <div className='h-full overflow-auto'>{content}</div>
+}
+const ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
+  const [src, setSrc] = useState(params.src)
+  useEffect(() => {
+    const d = api.onDidParametersChange(e => {
+      const p = e as { src?: string }
+      if (p.src !== undefined) setSrc(p.src)
+    })
+    return () => {
+      d.dispose()
+    }
+  }, [api])
+  if (!src) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
+  return (
+    <div className={cn(CENTER, 'h-full overflow-auto p-4')}>
+      <img alt={api.title ?? ''} className='max-h-full max-w-full object-contain' src={src} />
+    </div>
+  )
+}
+const FilePanel = ({
+  api,
+  params
+}: IDockviewPanelProps<{
+  content: string
+  editorOptions?: Record<string, unknown>
+  language: string
+  loading?: ReactNode
+  theme?: string | { dark: string; light: string }
+}>) => {
+  const editorRef = useRef<null | { revealLine: (line: number) => void }>(null)
+  const isVirtual = api.id.startsWith(VIRTUAL_PREFIX)
+  const [content, setContent] = useState(params.content)
+  const [language, setLanguage] = useState(params.language)
+  const [loadingState, setLoadingState] = useState(params.loading)
+  const [editorOpts, setEditorOpts] = useState(params.editorOptions)
+  const [ready, setReady] = useState(!shikiSetup)
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    if (shikiSetup) shikiSetup.then(() => setReady(true)).catch(() => setReady(true))
+    const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
+    observer.observe(document.documentElement, {
+      attributeFilter: ['class'],
+      attributes: true
+    })
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    const d = api.onDidParametersChange(e => {
+      const p = e as {
+        content?: string
+        editorOptions?: Record<string, unknown>
+        language?: string
+        loading?: ReactNode
+      }
+      if (p.content !== undefined) {
+        setContent(p.content)
+        setLoadingState(undefined)
+        if (isVirtual)
+          requestAnimationFrame(() => {
+            const lineCount = (p.content ?? '').split('\n').length
+            editorRef.current?.revealLine(lineCount)
+          })
+      }
+      if (p.language !== undefined) setLanguage(p.language)
+      if (p.loading !== undefined) setLoadingState(p.loading)
+      if (p.editorOptions !== undefined) setEditorOpts(p.editorOptions)
+    })
+    return () => {
+      d.dispose()
+    }
+  }, [api, isVirtual])
+  const setCursor = useSetAtom(cursorAtom)
+  const setFileInfo = useSetAtom(activeFileInfoAtom)
+  useEffect(() => {
+    if (api.isActive) setFileInfo({ language, path: api.id })
+    const d = api.onDidActiveChange(e => {
+      if (e.isActive) setFileInfo({ language, path: api.id })
+    })
+    return () => {
+      d.dispose()
+    }
+  }, [api, language, setFileInfo])
+  if (loadingState || !ready)
     return (
-      <div className='flex h-6 items-center justify-between border-t border-border px-3 text-xs text-muted-foreground'>
-        <span className='truncate'>{fileInfo.path}</span>
-        <div className='flex items-center gap-3'>
-          <span className='font-mono'>
-            Ln {cursor.line}, Col {cursor.col}
-          </span>
-          <span className='capitalize'>{fileInfo.language}</span>
-        </div>
+      <div className='flex h-full flex-col gap-2 p-4'>
+        <Skeleton className='h-4 w-3/4' />
+        <Skeleton className='h-4 w-1/2' />
+        <Skeleton className='h-4 w-2/3' />
       </div>
     )
-  },
-  flattenTree = (items: TreeDataItem[], prefix = ''): TreeDataItem[] => {
-    const result: TreeDataItem[] = []
-    for (const item of items)
-      if (item.children) for (const child of flattenTree(item.children, `${prefix}${item.name}/`)) result.push(child)
-      else result.push({ ...item, name: `${prefix}${item.name}` })
-    return result
-  },
-  findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number): TreeDataItem[] => {
-    let nodes = tree
-    for (let i = 0; i < depth; i += 1) {
-      const match = nodes.find(n => n.name === pathParts[i])
-      if (!match?.children) return []
-      nodes = match.children
+  if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
+  const pathParts = api.id.split('/')
+  return (
+    <div className='flex h-full flex-col'>
+      <Breadcrumb className='border-b border-border px-3 py-1'>
+        <BreadcrumbList className='flex-nowrap gap-1 text-xs sm:gap-1'>
+          {pathParts.flatMap((part, i) => {
+            const items: ReactNode[] = []
+            if (i > 0) items.push(<BreadcrumbSeparator key={`sep-${part}`} />)
+            items.push(
+              <BreadcrumbSegment
+                depth={i}
+                isLast={i === pathParts.length - 1}
+                key={part}
+                name={part}
+                pathParts={pathParts}
+              />
+            )
+            return items
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <Editor
+        className='flex-1'
+        language={language}
+        onMount={editor => {
+          editorRef.current = editor
+          const update = () => {
+            const pos = editor.getPosition()
+            if (pos) setCursor({ col: pos.column, line: pos.lineNumber })
+          }
+          update()
+          editor.onDidChangeCursorPosition(update)
+          api.onDidDimensionsChange(() => editor.layout())
+        }}
+        options={{
+          ...EDITOR_OPTIONS,
+          fontFamily: monoFont() || undefined,
+          ...editorOpts
+        }}
+        path={api.id}
+        theme={
+          typeof params.theme === 'string'
+            ? params.theme
+            : dark
+              ? (params.theme?.dark ?? 'monokai-lite')
+              : (params.theme?.light ?? 'github-light')
+        }
+        value={content}
+      />
+    </div>
+  )
+}
+const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
+  const p = params as
+    | undefined
+    | {
+        activeClassName?: string
+        closable?: boolean
+        headerClassName?: string
+        icon?: boolean
+        iconName?: string
+        inactiveClassName?: string
+        preview?: boolean
+      }
+  const dv = use(DockviewApiContext)
+  const previewId = useAtomValue(previewPanelAtom)
+  const [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom)
+  const isPreview = previewId === api.id
+  const isPinned = pinnedTabs.includes(api.id)
+  const showIcon = p?.icon !== false
+  const closable = p?.closable !== false && !isPinned
+  const [active, setActive] = useState(api.isActive)
+  useEffect(() => {
+    const d = api.onDidActiveChange(e => setActive(e.isActive))
+    return () => {
+      d.dispose()
     }
-    return nodes
-  },
-  BreadcrumbPickerItem = ({
-    close,
-    indent,
-    item,
-    openFileFn
-  }: {
-    close: () => void
-    indent: number
-    item: TreeDataItem
-    openFileFn: ((i: TreeDataItem) => void) | null
-  }) => {
-    const [expanded, setExpanded] = useState(false)
-    return (
-      <>
-        <button
-          className='flex w-full items-center gap-1 text-left text-xs hover:bg-accent [&>:first-child]:mr-[-4px]'
-          onClick={() => {
-            if (item.children) setExpanded(e => !e)
-            else if (openFileFn) {
-              openFileFn(item)
-              close()
-            }
-          }}
-          style={{ height: 22, paddingLeft: indent * 8 + 2 }}
-          type='button'>
-          {item.children ? (
-            <ChevronRight className={cn('size-3 shrink-0 transition-transform', expanded && 'rotate-90')} />
-          ) : (
-            <span className='size-3 shrink-0' />
-          )}
-          {item.children ? (
-            <FolderIcon className={ICON_CLASS} name={item.name} />
-          ) : (
-            <FileIcon className={ICON_CLASS} name={item.name} />
-          )}
-          <span className='truncate'>{item.name}</span>
-        </button>
-        {expanded && item.children
-          ? item.children.map(c => (
-              <BreadcrumbPickerItem close={close} indent={indent + 1} item={c} key={c.id} openFileFn={openFileFn} />
-            ))
-          : null}
-      </>
-    )
-  },
-  BreadcrumbSegment = ({
-    depth,
-    isLast,
-    name,
-    pathParts
-  }: {
-    depth: number
-    isLast: boolean
-    name: string
-    pathParts: string[]
-  }) => {
-    const tree = useAtomValue(treeAtom),
-      openFileFn = useAtomValue(openFileAtom),
-      [open, setOpen] = useState(false),
-      siblings = useMemo(() => findSiblings(tree, pathParts, depth), [tree, pathParts, depth])
-    if (siblings.length === 0)
-      return (
-        <BreadcrumbItem>
-          {isLast ? (
-            <BreadcrumbPage>{name}</BreadcrumbPage>
-          ) : (
-            <BreadcrumbLink className='cursor-default'>{name}</BreadcrumbLink>
-          )}
-        </BreadcrumbItem>
-      )
+  }, [api])
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger
+        className={cn(
+          'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
+          p?.headerClassName,
+          active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
+        )}
+        data-fill={p?.headerClassName ? '' : undefined}
+        data-preview={isPreview ? '' : undefined}
+        onMouseDown={e => {
+          if (e.button === 1 && closable) {
+            e.preventDefault()
+            api.close()
+          }
+        }}>
+        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
+        {api.title}
+        {isPinned ? (
+          <Pin
+            className='-ml-1 size-4 rotate-45 p-0.5 opacity-50 hover:p-0 hover:cursor-pointer hover:opacity-100 transition-all'
+            onClick={e => {
+              e.stopPropagation()
+              setPinnedTabs(prev => prev.filter(id => id !== api.id))
+            }}
+          />
+        ) : closable ? (
+          <X
+            className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
+            onClick={e => {
+              e.stopPropagation()
+              api.close()
+            }}
+          />
+        ) : null}
+      </ContextMenuTrigger>
+      {dv ? (
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => api.close()}>
+            <X /> Close <ContextMenuShortcut>⌥W</ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              for (const pnl of dv.panels)
+                if (pnl.id !== api.id && !pinnedTabs.includes(pnl.id))
+                  try {
+                    pnl.api.close()
+                  } catch {
+                    /* Removed */
+                  }
+            }}>
+            <Trash /> Close Others
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              const idx = dv.panels.findIndex(pnl => pnl.id === api.id)
+              for (let i = dv.panels.length - 1; i > idx; i -= 1)
+                if (!pinnedTabs.includes(dv.panels[i].id))
+                  try {
+                    dv.panels[i].api.close()
+                  } catch {
+                    /* Removed */
+                  }
+            }}>
+            <ArrowRightToLine /> Close to the Right
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              for (let i = dv.panels.length - 1; i >= 0; i -= 1)
+                if (!pinnedTabs.includes(dv.panels[i].id))
+                  try {
+                    dv.panels[i].api.close()
+                  } catch {
+                    /* Removed */
+                  }
+            }}>
+            <Trash2 /> Close All
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() => {
+              navigator.clipboard
+                .writeText(api.id)
+                .then(() => toast('Copied to clipboard'))
+                .catch(() => undefined)
+            }}>
+            <ClipboardCopy /> Copy Path
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => setPinnedTabs(prev => (isPinned ? prev.filter(id => id !== api.id) : [...prev, api.id]))}>
+            {isPinned ? <PinOff /> : <Pin />} {isPinned ? 'Unpin' : 'Pin'}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() => {
+              const found = dv.panels.find(pnl => pnl.id === api.id)
+              if (found)
+                dv.addPanel({
+                  component: found.view.contentComponent,
+                  id: `${found.id}-split-${Date.now()}`,
+                  params: found.params,
+                  position: { direction: 'right', referencePanel: found },
+                  tabComponent: 'default',
+                  title: found.title ?? ''
+                })
+            }}>
+            <SplitSquareHorizontal /> Split Right
+          </ContextMenuItem>
+        </ContextMenuContent>
+      ) : null}
+    </ContextMenu>
+  )
+}
+const WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>
+const COMPONENTS = { custom: ContentPanel, file: FilePanel, image: ImagePanel }
+const TAB_COMPONENTS = { default: TabHeader }
+const StatusBar = () => {
+  const cursor = useAtomValue(cursorAtom)
+  const fileInfo = useAtomValue(activeFileInfoAtom)
+  return (
+    <div className='flex h-6 items-center justify-between border-t border-border px-3 text-xs text-muted-foreground'>
+      <span className='truncate'>{fileInfo.path}</span>
+      <div className='flex items-center gap-3'>
+        <span className='font-mono'>
+          Ln {cursor.line}, Col {cursor.col}
+        </span>
+        <span className='capitalize'>{fileInfo.language}</span>
+      </div>
+    </div>
+  )
+}
+const flattenTree = (items: TreeDataItem[], prefix = ''): TreeDataItem[] => {
+  const result: TreeDataItem[] = []
+  for (const item of items)
+    if (item.children) for (const child of flattenTree(item.children, `${prefix}${item.name}/`)) result.push(child)
+    else result.push({ ...item, name: `${prefix}${item.name}` })
+  return result
+}
+const findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number): TreeDataItem[] => {
+  let nodes = tree
+  for (let i = 0; i < depth; i += 1) {
+    const match = nodes.find(n => n.name === pathParts[i])
+    if (!match?.children) return []
+    nodes = match.children
+  }
+  return nodes
+}
+const BreadcrumbPickerItem = ({
+  close,
+  indent,
+  item,
+  openFileFn
+}: {
+  close: () => void
+  indent: number
+  item: TreeDataItem
+  openFileFn: ((i: TreeDataItem) => void) | null
+}) => {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <>
+      <button
+        className='flex w-full items-center gap-1 text-left text-xs hover:bg-accent [&>:first-child]:mr-[-4px]'
+        onClick={() => {
+          if (item.children) setExpanded(e => !e)
+          else if (openFileFn) {
+            openFileFn(item)
+            close()
+          }
+        }}
+        style={{ height: 22, paddingLeft: indent * 8 + 2 }}
+        type='button'>
+        {item.children ? (
+          <ChevronRight className={cn('size-3 shrink-0 transition-transform', expanded && 'rotate-90')} />
+        ) : (
+          <span className='size-3 shrink-0' />
+        )}
+        {item.children ? (
+          <FolderIcon className={ICON_CLASS} name={item.name} />
+        ) : (
+          <FileIcon className={ICON_CLASS} name={item.name} />
+        )}
+        <span className='truncate'>{item.name}</span>
+      </button>
+      {expanded && item.children
+        ? item.children.map(c => (
+            <BreadcrumbPickerItem close={close} indent={indent + 1} item={c} key={c.id} openFileFn={openFileFn} />
+          ))
+        : null}
+    </>
+  )
+}
+const BreadcrumbSegment = ({
+  depth,
+  isLast,
+  name,
+  pathParts
+}: {
+  depth: number
+  isLast: boolean
+  name: string
+  pathParts: string[]
+}) => {
+  const tree = useAtomValue(treeAtom)
+  const openFileFn = useAtomValue(openFileAtom)
+  const [open, setOpen] = useState(false)
+  const siblings = useMemo(() => findSiblings(tree, pathParts, depth), [tree, pathParts, depth])
+  if (siblings.length === 0)
     return (
       <BreadcrumbItem>
-        <Popover onOpenChange={setOpen} open={open}>
-          <PopoverTrigger className='cursor-pointer text-xs hover:text-foreground'>{name}</PopoverTrigger>
-          <PopoverContent align='start' className='max-h-64 w-52 gap-0 overflow-y-auto p-0'>
-            {siblings.map(s => (
-              <BreadcrumbPickerItem close={() => setOpen(false)} indent={0} item={s} key={s.id} openFileFn={openFileFn} />
-            ))}
-          </PopoverContent>
-        </Popover>
+        {isLast ? (
+          <BreadcrumbPage>{name}</BreadcrumbPage>
+        ) : (
+          <BreadcrumbLink className='cursor-default'>{name}</BreadcrumbLink>
+        )}
       </BreadcrumbItem>
     )
-  },
-  QuickOpenDialog = ({
-    log: logFn,
-    onOpenFile,
-    open,
-    tree
-  }: {
-    log: (msg: string) => void
-    onOpenFile: (item: TreeDataItem) => void
-    open: boolean
-    tree: TreeDataItem[]
-  }) => {
-    const setOpen = useSetAtom(quickOpenAtom),
-      flatFiles = useMemo(() => flattenTree(tree), [tree]),
-      onChange = (v: boolean) => {
-        setOpen(v)
-        if (!v) logFn('Quick open closed')
-      }
-    return (
-      <Dialog onOpenChange={onChange} open={open}>
-        <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
-          <Cmdk className='flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5'>
-            <div className='flex items-center border-b px-3'>
-              <Search className='mr-2 size-4 shrink-0 opacity-50' />
-              <Cmdk.Input
-                className='flex h-10 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground'
-                placeholder='Search files...'
-              />
-            </div>
-            <Cmdk.List className='max-h-[300px] overflow-x-hidden overflow-y-auto'>
-              <Cmdk.Empty className='py-6 text-center text-sm'>No files found</Cmdk.Empty>
-              {flatFiles.map(f => (
-                <Cmdk.Item
-                  className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
-                  key={f.id}
-                  onSelect={() => {
-                    logFn(`Quick open: ${f.name}`)
-                    onOpenFile(f)
-                    setOpen(false)
-                  }}
-                  value={`${f.name} ${f.path}`}>
-                  <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
-                  <span className='min-w-0 truncate'>{f.name}</span>
-                  <span className='ml-auto truncate text-xs text-muted-foreground'>{f.path}</span>
-                </Cmdk.Item>
-              ))}
-            </Cmdk.List>
-          </Cmdk>
-        </DialogContent>
-      </Dialog>
-    )
-  },
-  Workspace = ({
-    activityLog,
-    children,
-    defaultSidebar = true,
-    editorOptions,
-    expandDepth = 0,
-    expandExclude,
-    files,
-    initialFiles,
-    onFilesChange,
-    onOpenFile,
-    onSidebarChange,
-    onTabChange,
-    ref,
-    renderLoading,
-    shortcuts = true,
-    sidebar: controlledSidebar,
-    sidebarPosition = 'left',
-    sidebarSize = '16%',
-    theme,
-    tree,
-    ...props
-  }: Omit<ComponentProps<'div'>, 'ref'> & {
-    activityLog?: (line: string) => void
-    defaultSidebar?: boolean
-    editorOptions?: Record<string, unknown>
-    expandDepth?: number
-    expandExclude?: string[]
-    files?: VirtualFile[]
-    initialFiles?: string[]
-    onFilesChange?: (files: string[]) => void
-    onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
-    onSidebarChange?: (visible: boolean) => void
-    onTabChange?: (id: string) => void
-    ref?: Ref<WorkspaceRef>
-    renderLoading?: (item: TreeDataItem) => ReactNode
-    shortcuts?: boolean
-    sidebar?: boolean
-    sidebarPosition?: 'left' | 'right'
-    sidebarSize?: number | string
-    theme?: string | { dark: string; light: string }
-    tree?: TreeDataItem[]
-  }) => {
-    const [mounted, setMounted] = useState(false),
-      [activeFileId, setActiveFileId] = useState<null | string>(null),
-      [treeCollapsed, setTreeCollapsed] = useState(false),
-      [treeKey, setTreeKey] = useState(0),
-      [internalWordWrap, setInternalWordWrap] = useAtom(wordWrapAtom),
-      [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null),
-      [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom),
-      previewIdRef = useRef(currentPreviewId),
-      [closedTabs, setClosedTabs] = useAtom(closedTabsAtom),
-      pinnedTabsValue = useAtomValue(pinnedTabsAtom),
-      pinnedTabsRef = useRef(pinnedTabsValue),
-      historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
-        entries: [],
-        index: -1,
-        navigating: false
-      }),
-      quickOpenVisible = useAtomValue(quickOpenAtom),
-      setQuickOpen = useSetAtom(quickOpenAtom),
-      setTreeData = useSetAtom(treeAtom),
-      setOpenFileFn = useSetAtom(openFileAtom),
-      [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom),
-      log = useCallback(
-        (msg: string) => {
-          activityLog?.(msg)
-        },
-        [activityLog]
-      ),
-      [internalSidebar, setInternalSidebar] = useState(defaultSidebar),
-      sidebarVisible = controlledSidebar ?? internalSidebar,
-      toggleSidebar = useCallback(() => {
-        const next = !sidebarVisible
-        setInternalSidebar(next)
-        onSidebarChange?.(next)
-        log(next ? 'Sidebar opened' : 'Sidebar closed')
-      }, [log, onSidebarChange, sidebarVisible]),
-      stateRef = useRef({
-        api: null as DockviewApi | null,
-        disposables: [] as { dispose: () => void }[],
-        fileIds: new Set<string>(),
-        onCloseMap: new Map<string, () => void>(),
-        prevTabIds: new Set<string>(),
-        ready: false
-      }),
-      onFilesChangeRef = useRef(onFilesChange),
-      onOpenFileRef = useRef(onOpenFile),
-      renderLoadingRef = useRef(renderLoading),
-      editorOptionsRef = useRef(editorOptions),
-      themeRef = useRef(theme),
-      filesRef = useRef(files),
-      onTabChangeRef = useRef(onTabChange),
-      mergedEditorOptions = useMemo(
-        () => ({
-          ...editorOptions,
-          fontSize: (EDITOR_OPTIONS.fontSize ?? 16) + fontSizeDelta,
-          wordWrap: (internalWordWrap ? 'on' : 'off') satisfies NonNullable<EditorProps['options']>['wordWrap']
-        }),
-        [editorOptions, fontSizeDelta, internalWordWrap]
-      )
-    useEffect(() => {
-      onFilesChangeRef.current = onFilesChange
-      onOpenFileRef.current = onOpenFile
-      renderLoadingRef.current = renderLoading
-      editorOptionsRef.current = mergedEditorOptions
-      themeRef.current = theme
-      filesRef.current = files
-      previewIdRef.current = currentPreviewId
-      pinnedTabsRef.current = pinnedTabsValue
-      onTabChangeRef.current = onTabChange
+  return (
+    <BreadcrumbItem>
+      <Popover onOpenChange={setOpen} open={open}>
+        <PopoverTrigger className='cursor-pointer text-xs hover:text-foreground'>{name}</PopoverTrigger>
+        <PopoverContent align='start' className='max-h-64 w-52 gap-0 overflow-y-auto p-0'>
+          {siblings.map(s => (
+            <BreadcrumbPickerItem close={() => setOpen(false)} indent={0} item={s} key={s.id} openFileFn={openFileFn} />
+          ))}
+        </PopoverContent>
+      </Popover>
+    </BreadcrumbItem>
+  )
+}
+const QuickOpenDialog = ({
+  log: logFn,
+  onOpenFile,
+  open,
+  tree
+}: {
+  log: (msg: string) => void
+  onOpenFile: (item: TreeDataItem) => void
+  open: boolean
+  tree: TreeDataItem[]
+}) => {
+  const setOpen = useSetAtom(quickOpenAtom)
+  const flatFiles = useMemo(() => flattenTree(tree), [tree])
+  const onChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) logFn('Quick open closed')
+  }
+  return (
+    <Dialog onOpenChange={onChange} open={open}>
+      <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
+        <Cmdk className='flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5'>
+          <div className='flex items-center border-b px-3'>
+            <Search className='mr-2 size-4 shrink-0 opacity-50' />
+            <Cmdk.Input
+              className='flex h-10 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground'
+              placeholder='Search files...'
+            />
+          </div>
+          <Cmdk.List className='max-h-[300px] overflow-x-hidden overflow-y-auto'>
+            <Cmdk.Empty className='py-6 text-center text-sm'>No files found</Cmdk.Empty>
+            {flatFiles.map(f => (
+              <Cmdk.Item
+                className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
+                key={f.id}
+                onSelect={() => {
+                  logFn(`Quick open: ${f.name}`)
+                  onOpenFile(f)
+                  setOpen(false)
+                }}
+                value={`${f.name} ${f.path}`}>
+                <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
+                <span className='min-w-0 truncate'>{f.name}</span>
+                <span className='ml-auto truncate text-xs text-muted-foreground'>{f.path}</span>
+              </Cmdk.Item>
+            ))}
+          </Cmdk.List>
+        </Cmdk>
+      </DialogContent>
+    </Dialog>
+  )
+}
+const Workspace = ({
+  activityLog,
+  children,
+  defaultSidebar = true,
+  editorOptions,
+  expandDepth = 0,
+  expandExclude,
+  files,
+  initialFiles,
+  onFilesChange,
+  onOpenFile,
+  onSidebarChange,
+  onTabChange,
+  ref,
+  renderLoading,
+  shortcuts = true,
+  sidebar: controlledSidebar,
+  sidebarPosition = 'left',
+  sidebarSize = '16%',
+  theme,
+  tree,
+  ...props
+}: Omit<ComponentProps<'div'>, 'ref'> & {
+  activityLog?: (line: string) => void
+  defaultSidebar?: boolean
+  editorOptions?: Record<string, unknown>
+  expandDepth?: number
+  expandExclude?: string[]
+  files?: VirtualFile[]
+  initialFiles?: string[]
+  onFilesChange?: (files: string[]) => void
+  onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
+  onSidebarChange?: (visible: boolean) => void
+  onTabChange?: (id: string) => void
+  ref?: Ref<WorkspaceRef>
+  renderLoading?: (item: TreeDataItem) => ReactNode
+  shortcuts?: boolean
+  sidebar?: boolean
+  sidebarPosition?: 'left' | 'right'
+  sidebarSize?: number | string
+  theme?: string | { dark: string; light: string }
+  tree?: TreeDataItem[]
+}) => {
+  const [mounted, setMounted] = useState(false)
+  const [activeFileId, setActiveFileId] = useState<null | string>(null)
+  const [treeCollapsed, setTreeCollapsed] = useState(false)
+  const [treeKey, setTreeKey] = useState(0)
+  const [internalWordWrap, setInternalWordWrap] = useAtom(wordWrapAtom)
+  const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null)
+  const [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom)
+  const previewIdRef = useRef(currentPreviewId)
+  const [closedTabs, setClosedTabs] = useAtom(closedTabsAtom)
+  const pinnedTabsValue = useAtomValue(pinnedTabsAtom)
+  const pinnedTabsRef = useRef(pinnedTabsValue)
+  const historyRef = useRef<{ entries: string[]; index: number; navigating: boolean }>({
+    entries: [],
+    index: -1,
+    navigating: false
+  })
+  const quickOpenVisible = useAtomValue(quickOpenAtom)
+  const setQuickOpen = useSetAtom(quickOpenAtom)
+  const setTreeData = useSetAtom(treeAtom)
+  const setOpenFileFn = useSetAtom(openFileAtom)
+  const [fontSizeDelta, setFontSizeDelta] = useAtom(fontSizeAtom)
+  const log = useCallback(
+    (msg: string) => {
+      activityLog?.(msg)
+    },
+    [activityLog]
+  )
+  const [internalSidebar, setInternalSidebar] = useState(defaultSidebar)
+  const sidebarVisible = controlledSidebar ?? internalSidebar
+  const toggleSidebar = useCallback(() => {
+    const next = !sidebarVisible
+    setInternalSidebar(next)
+    onSidebarChange?.(next)
+    log(next ? 'Sidebar opened' : 'Sidebar closed')
+  }, [log, onSidebarChange, sidebarVisible])
+  const stateRef = useRef({
+    api: null as DockviewApi | null,
+    disposables: [] as { dispose: () => void }[],
+    fileIds: new Set<string>(),
+    onCloseMap: new Map<string, () => void>(),
+    prevTabIds: new Set<string>(),
+    ready: false
+  })
+  const onFilesChangeRef = useRef(onFilesChange)
+  const onOpenFileRef = useRef(onOpenFile)
+  const renderLoadingRef = useRef(renderLoading)
+  const editorOptionsRef = useRef(editorOptions)
+  const themeRef = useRef(theme)
+  const filesRef = useRef(files)
+  const onTabChangeRef = useRef(onTabChange)
+  const mergedEditorOptions = useMemo(
+    () => ({
+      ...editorOptions,
+      fontSize: (EDITOR_OPTIONS.fontSize ?? 16) + fontSizeDelta,
+      wordWrap: (internalWordWrap ? 'on' : 'off') satisfies NonNullable<EditorProps['options']>['wordWrap']
+    }),
+    [editorOptions, fontSizeDelta, internalWordWrap]
+  )
+  useEffect(() => {
+    onFilesChangeRef.current = onFilesChange
+    onOpenFileRef.current = onOpenFile
+    renderLoadingRef.current = renderLoading
+    editorOptionsRef.current = mergedEditorOptions
+    themeRef.current = theme
+    filesRef.current = files
+    previewIdRef.current = currentPreviewId
+    pinnedTabsRef.current = pinnedTabsValue
+    onTabChangeRef.current = onTabChange
+  })
+  useEffect(() => {
+    const { api } = stateRef.current
+    if (!api) return
+    for (const panel of api.panels)
+      if (stateRef.current.fileIds.has(panel.id)) panel.api.updateParameters({ editorOptions: mergedEditorOptions })
+  }, [mergedEditorOptions])
+  useEffect(() => {
+    setMounted(true)
+    const observer = new MutationObserver(() => {
+      log(`Theme: ${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`)
     })
-    useEffect(() => {
-      const { api } = stateRef.current
-      if (!api) return
-      for (const panel of api.panels)
-        if (stateRef.current.fileIds.has(panel.id)) panel.api.updateParameters({ editorOptions: mergedEditorOptions })
-    }, [mergedEditorOptions])
-    useEffect(() => {
-      setMounted(true)
-      const observer = new MutationObserver(() => {
-        log(`Theme: ${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`)
-      })
-      observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
-      return () => {
-        observer.disconnect()
-        for (const d of stateRef.current.disposables) d.dispose()
-        stateRef.current = {
-          ...stateRef.current,
-          disposables: [],
-          fileIds: new Set(),
-          onCloseMap: new Map(),
-          prevTabIds: new Set(),
-          ready: false
-        }
+    observer.observe(document.documentElement, { attributeFilter: ['class'], attributes: true })
+    return () => {
+      observer.disconnect()
+      for (const d of stateRef.current.disposables) d.dispose()
+      stateRef.current = {
+        ...stateRef.current,
+        disposables: [],
+        fileIds: new Set(),
+        onCloseMap: new Map(),
+        prevTabIds: new Set(),
+        ready: false
       }
-    }, [log])
-    useHotkeys(
-      [
-        { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
-        {
-          callback: () => {
-            setQuickOpen(v => !v)
-            log('Quick open toggled')
-          },
-          hotkey: 'Mod+P'
-        },
-        {
-          callback: () => {
-            const panel = stateRef.current.api?.activePanel
-            if (panel) {
-              stateRef.current.api?.addPanel({
-                component: panel.view.contentComponent,
-                id: `${panel.id}-split-${Date.now()}`,
-                params: panel.params,
-                position: { direction: 'right', referencePanel: panel },
-                tabComponent: 'default',
-                title: panel.title ?? ''
-              })
-              log(`Split: ${panel.title ?? panel.id}`)
-            }
-          },
-          hotkey: 'Mod+\\'
-        },
-        {
-          callback: () => {
-            setFontSizeDelta(d => d + 2)
-            log('Zoom in')
-          },
-          hotkey: 'Mod+='
-        },
-        {
-          callback: () => {
-            setFontSizeDelta(d => d - 2)
-            log('Zoom out')
-          },
-          hotkey: 'Mod+-'
-        },
-        {
-          callback: () => {
-            setFontSizeDelta(0)
-            log('Zoom reset')
-          },
-          hotkey: 'Mod+0'
-        },
-        {
-          callback: () => {
-            const { api } = stateRef.current
-            if (!api) return
-            let closed = 0
-            for (let panelIdx = api.panels.length - 1; panelIdx >= 0; panelIdx -= 1)
-              if (!pinnedTabsRef.current.includes(api.panels[panelIdx].id))
-                try {
-                  api.panels[panelIdx].api.close()
-                  closed += 1
-                } catch {
-                  /* Already removed */
-                }
-            log(`Closed ${String(closed)} tabs (${String(pinnedTabsRef.current.length)} pinned kept)`)
-          },
-          hotkey: 'Mod+Shift+W'
-        },
-        {
-          callback: () => {
-            const lastPath = closedTabs.at(-1)
-            if (!lastPath) return
-            setClosedTabs(prev => prev.slice(0, -1))
-            const name = lastPath.split('/').pop() ?? lastPath
-            pinFile({ id: lastPath, name, path: lastPath })
-            log(`Reopened: ${lastPath}`)
-          },
-          hotkey: 'Mod+Shift+T'
-        }
-      ],
-      { enabled: shortcuts, preventDefault: true }
-    )
-    useAltKeys(
+    }
+  }, [log])
+  useHotkeys(
+    [
+      { callback: () => toggleSidebar(), hotkey: 'Mod+B' },
       {
-        ArrowLeft: () => {
-          const h = historyRef.current
-          if (h.index <= 0) return
-          h.index -= 1
-          h.navigating = true
-          const panelId = h.entries[h.index],
-            panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
-          if (panel) {
-            panel.focus()
-            log(`Back: ${panel.title ?? panel.id}`)
-          }
-          h.navigating = false
+        callback: () => {
+          setQuickOpen(v => !v)
+          log('Quick open toggled')
         },
-        ArrowRight: () => {
-          const h = historyRef.current
-          if (h.index >= h.entries.length - 1) return
-          h.index += 1
-          h.navigating = true
-          const panelId = h.entries[h.index],
-            panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
+        hotkey: 'Mod+P'
+      },
+      {
+        callback: () => {
+          const panel = stateRef.current.api?.activePanel
           if (panel) {
-            panel.focus()
-            log(`Forward: ${panel.title ?? panel.id}`)
+            stateRef.current.api?.addPanel({
+              component: panel.view.contentComponent,
+              id: `${panel.id}-split-${Date.now()}`,
+              params: panel.params,
+              position: { direction: 'right', referencePanel: panel },
+              tabComponent: 'default',
+              title: panel.title ?? ''
+            })
+            log(`Split: ${panel.title ?? panel.id}`)
           }
-          h.navigating = false
         },
-        KeyE: () => {
+        hotkey: 'Mod+\\'
+      },
+      {
+        callback: () => {
+          setFontSizeDelta(d => d + 2)
+          log('Zoom in')
+        },
+        hotkey: 'Mod+='
+      },
+      {
+        callback: () => {
+          setFontSizeDelta(d => d - 2)
+          log('Zoom out')
+        },
+        hotkey: 'Mod+-'
+      },
+      {
+        callback: () => {
+          setFontSizeDelta(0)
+          log('Zoom reset')
+        },
+        hotkey: 'Mod+0'
+      },
+      {
+        callback: () => {
           const { api } = stateRef.current
           if (!api) return
-          const { panels } = api
-          if (panels.length < 2) return
-          const active = api.activePanel,
-            idx = active ? panels.indexOf(active) : -1,
-            next = panels[(idx + 1) % panels.length]
-          next.focus()
-          log(`Cycle tab: ${next.title ?? next.id}`)
+          let closed = 0
+          for (let panelIdx = api.panels.length - 1; panelIdx >= 0; panelIdx -= 1)
+            if (!pinnedTabsRef.current.includes(api.panels[panelIdx].id))
+              try {
+                api.panels[panelIdx].api.close()
+                closed += 1
+              } catch {
+                /* Already removed */
+              }
+          log(`Closed ${String(closed)} tabs (${String(pinnedTabsRef.current.length)} pinned kept)`)
         },
-        KeyT: () => {
+        hotkey: 'Mod+Shift+W'
+      },
+      {
+        callback: () => {
           const lastPath = closedTabs.at(-1)
           if (!lastPath) return
           setClosedTabs(prev => prev.slice(0, -1))
@@ -1489,479 +1437,527 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
           pinFile({ id: lastPath, name, path: lastPath })
           log(`Reopened: ${lastPath}`)
         },
-        KeyW: () => {
-          const panel = stateRef.current.api?.activePanel
-          if (panel) {
-            log(`Close tab: ${panel.title ?? panel.id}`)
-            panel.api.close()
-          }
-        },
-        KeyZ: () => {
-          setInternalWordWrap(w => !w)
-          log('Word wrap toggled')
+        hotkey: 'Mod+Shift+T'
+      }
+    ],
+    { enabled: shortcuts, preventDefault: true }
+  )
+  useAltKeys(
+    {
+      ArrowLeft: () => {
+        const h = historyRef.current
+        if (h.index <= 0) return
+        h.index -= 1
+        h.navigating = true
+        const panelId = h.entries[h.index]
+        const panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
+        if (panel) {
+          panel.focus()
+          log(`Back: ${panel.title ?? panel.id}`)
+        }
+        h.navigating = false
+      },
+      ArrowRight: () => {
+        const h = historyRef.current
+        if (h.index >= h.entries.length - 1) return
+        h.index += 1
+        h.navigating = true
+        const panelId = h.entries[h.index]
+        const panel = panelId ? stateRef.current.api?.panels.find(p => p.id === panelId) : undefined
+        if (panel) {
+          panel.focus()
+          log(`Forward: ${panel.title ?? panel.id}`)
+        }
+        h.navigating = false
+      },
+      KeyE: () => {
+        const { api } = stateRef.current
+        if (!api) return
+        const { panels } = api
+        if (panels.length < 2) return
+        const active = api.activePanel
+        const idx = active ? panels.indexOf(active) : -1
+        const next = panels[(idx + 1) % panels.length]
+        next.focus()
+        log(`Cycle tab: ${next.title ?? next.id}`)
+      },
+      KeyT: () => {
+        const lastPath = closedTabs.at(-1)
+        if (!lastPath) return
+        setClosedTabs(prev => prev.slice(0, -1))
+        const name = lastPath.split('/').pop() ?? lastPath
+        pinFile({ id: lastPath, name, path: lastPath })
+        log(`Reopened: ${lastPath}`)
+      },
+      KeyW: () => {
+        const panel = stateRef.current.api?.activePanel
+        if (panel) {
+          log(`Close tab: ${panel.title ?? panel.id}`)
+          panel.api.close()
         }
       },
-      shortcuts
-    )
-    const tabs = useMemo(() => extractTabs(children), [children]),
-      sidebarChildren = useMemo(() => {
-        const items: ReactNode[] = []
-        Children.forEach(children, child => {
-          if (!(isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)) items.push(child)
-        })
-        return items
-      }, [children]),
-      addTab = useCallback((tab: TabProps) => {
-        const { api } = stateRef.current
-        if (!api) return
-        const tabId = getTabId(tab),
-          existing = api.panels.find(p => p.id === tabId)
-        if (existing) {
-          existing.api.updateParameters({ content: tab.children })
-          return
+      KeyZ: () => {
+        setInternalWordWrap(w => !w)
+        log('Word wrap toggled')
+      }
+    },
+    shortcuts
+  )
+  const tabs = useMemo(() => extractTabs(children), [children])
+  const sidebarChildren = useMemo(() => {
+    const items: ReactNode[] = []
+    Children.forEach(children, child => {
+      if (!(isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)) items.push(child)
+    })
+    return items
+  }, [children])
+  const addTab = useCallback((tab: TabProps) => {
+    const { api } = stateRef.current
+    if (!api) return
+    const tabId = getTabId(tab)
+    const existing = api.panels.find(p => p.id === tabId)
+    if (existing) {
+      existing.api.updateParameters({ content: tab.children })
+      return
+    }
+    api.addPanel({
+      component: 'custom',
+      id: tabId,
+      params: {
+        activeClassName: tab.activeClassName,
+        closable: tab.closable,
+        content: tab.children,
+        headerClassName: tab.headerClassName,
+        icon: tab.icon,
+        inactiveClassName: tab.inactiveClassName
+      },
+      tabComponent: 'default',
+      title: tab.title
+    })
+  }, [])
+  const openVirtualFile = useCallback((file: VirtualFile) => {
+    const { api } = stateRef.current
+    if (!api) return
+    const id = virtualFileId(file.name)
+    const existing = api.panels.find(p => p.id === id)
+    if (existing) {
+      existing.focus()
+      return
+    }
+    const existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id))
+    const position: PanelPosition | undefined = existingFile
+      ? {
+          direction: 'within',
+          referenceGroup: existingFile.group.id
         }
+      : undefined
+    stateRef.current.fileIds.add(id)
+    const lang = file.language ?? langOf(file.name)
+    const iconName = file.language ? `file.${file.language}` : file.name
+    api.addPanel({
+      component: 'file',
+      id,
+      params: {
+        content: file.content,
+        editorOptions: editorOptionsRef.current,
+        iconName,
+        language: lang,
+        theme: themeRef.current
+      },
+      position,
+      tabComponent: 'default',
+      title: file.name
+    })
+  }, [])
+  const openFileInPanel = useCallback(
+    (item: TreeDataItem, preview: boolean) => {
+      const { api } = stateRef.current
+      const onOpen = onOpenFileRef.current
+      if (!api) {
+        log('openFileInPanel: no api')
+        return
+      }
+      if (!onOpen) {
+        log('openFileInPanel: no onOpenFile callback')
+        return
+      }
+      const existing = api.panels.find(p => p.id === item.path)
+      if (existing) {
+        existing.focus()
+        if (!preview) {
+          setPreviewId(prev => (prev === item.path ? null : prev))
+          log(`Pinned: ${item.name}`)
+        }
+        return
+      }
+      log(`${preview ? 'Preview' : 'Open'}: ${item.path}`)
+      if (preview && previewIdRef.current) {
+        const prev = api.panels.find(p => p.id === previewIdRef.current)
+        if (prev) {
+          stateRef.current.fileIds.delete(prev.id)
+          try {
+            api.removePanel(prev)
+          } catch {
+            /* Removed */
+          }
+        }
+      }
+      const loading = renderLoadingRef.current
+      const loadingNode = loading ? (
+        loading(item)
+      ) : (
+        <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
+      )
+      const existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id))
+      const position: PanelPosition | undefined = existingFile
+        ? {
+            direction: 'within',
+            referenceGroup: existingFile.group.id
+          }
+        : undefined
+      stateRef.current.fileIds.add(item.path)
+      setPreviewId(preview ? item.path : null)
+      previewIdRef.current = preview ? item.path : null
+      const ext = extOf(item.path)
+      const isImage = IMAGE_EXTS.has(ext)
+      const isBinary = BINARY_EXTS.has(ext)
+      const title = deduplicateTitle(item.name, item.path, api.panels)
+      if (isBinary) {
         api.addPanel({
           component: 'custom',
-          id: tabId,
+          id: item.path,
           params: {
-            activeClassName: tab.activeClassName,
-            closable: tab.closable,
-            content: tab.children,
-            headerClassName: tab.headerClassName,
-            icon: tab.icon,
-            inactiveClassName: tab.inactiveClassName
-          },
-          tabComponent: 'default',
-          title: tab.title
-        })
-      }, []),
-      openVirtualFile = useCallback((file: VirtualFile) => {
-        const { api } = stateRef.current
-        if (!api) return
-        const id = virtualFileId(file.name),
-          existing = api.panels.find(p => p.id === id)
-        if (existing) {
-          existing.focus()
-          return
-        }
-        const existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
-          position: PanelPosition | undefined = existingFile
-            ? {
-                direction: 'within',
-                referenceGroup: existingFile.group.id
-              }
-            : undefined
-        stateRef.current.fileIds.add(id)
-        const lang = file.language ?? langOf(file.name),
-          iconName = file.language ? `file.${file.language}` : file.name
-        api.addPanel({
-          component: 'file',
-          id,
-          params: {
-            content: file.content,
-            editorOptions: editorOptionsRef.current,
-            iconName,
-            language: lang,
-            theme: themeRef.current
+            content: createElement(
+              'div',
+              { className: cn(CENTER, 'h-full text-sm text-muted-foreground') },
+              'Binary file — cannot display'
+            ),
+            iconName: item.name
           },
           position,
           tabComponent: 'default',
-          title: file.name
+          title
         })
-      }, []),
-      openFileInPanel = useCallback(
-        (item: TreeDataItem, preview: boolean) => {
-          const { api } = stateRef.current,
-            onOpen = onOpenFileRef.current
-          if (!api) {
-            log('openFileInPanel: no api')
-            return
-          }
-          if (!onOpen) {
-            log('openFileInPanel: no onOpenFile callback')
-            return
-          }
-          const existing = api.panels.find(p => p.id === item.path)
-          if (existing) {
-            existing.focus()
-            if (!preview) {
-              setPreviewId(prev => (prev === item.path ? null : prev))
-              log(`Pinned: ${item.name}`)
-            }
-            return
-          }
-          log(`${preview ? 'Preview' : 'Open'}: ${item.path}`)
-          if (preview && previewIdRef.current) {
-            const prev = api.panels.find(p => p.id === previewIdRef.current)
-            if (prev) {
-              stateRef.current.fileIds.delete(prev.id)
-              try {
-                api.removePanel(prev)
-              } catch {
-                /* Removed */
-              }
-            }
-          }
-          const loading = renderLoadingRef.current,
-            loadingNode = loading ? (
-              loading(item)
-            ) : (
-              <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
-            ),
-            existingFile = api.panels.find(p => stateRef.current.fileIds.has(p.id)),
-            position: PanelPosition | undefined = existingFile
-              ? {
-                  direction: 'within',
-                  referenceGroup: existingFile.group.id
-                }
-              : undefined
-          stateRef.current.fileIds.add(item.path)
-          setPreviewId(preview ? item.path : null)
-          previewIdRef.current = preview ? item.path : null
-          const ext = extOf(item.path),
-            isImage = IMAGE_EXTS.has(ext),
-            isBinary = BINARY_EXTS.has(ext),
-            title = deduplicateTitle(item.name, item.path, api.panels)
-          if (isBinary) {
-            api.addPanel({
-              component: 'custom',
-              id: item.path,
-              params: {
-                content: createElement(
-                  'div',
-                  { className: cn(CENTER, 'h-full text-sm text-muted-foreground') },
-                  'Binary file — cannot display'
-                ),
-                iconName: item.name
-              },
-              position,
-              tabComponent: 'default',
-              title
-            })
-            log(`Binary: ${item.path}`)
-            return
-          }
-          if (isImage) {
-            const result = onOpen(item),
-              addImagePanel = (src: string) => {
-                api.addPanel({
-                  component: 'image',
-                  id: item.path,
-                  params: { iconName: item.name, src },
-                  position,
-                  tabComponent: 'default',
-                  title
-                })
-                log(`Image: ${item.path}`)
-              }
-            if (result === null) return
-            if (typeof result === 'string') addImagePanel(result)
-            else
-              result
-                .then(r => {
-                  if (r) addImagePanel(r)
-                })
-                .catch(() => undefined)
-            return
-          }
-          const added = api.addPanel({
-              component: 'file',
-              id: item.path,
-              params: {
-                content: '',
-                editorOptions: editorOptionsRef.current,
-                iconName: item.name,
-                language: langOf(item.path),
-                loading: loadingNode,
-                theme: themeRef.current
-              },
-              position,
-              tabComponent: 'default',
-              title
-            }),
-            result = onOpen(item)
-          if (result === null) {
-            log(`Load returned null: ${item.path}`)
-            return
-          }
-          if (typeof result === 'string') {
-            if (result.length > FILE_SIZE_WARN)
-              log(`Large file: ${item.path} (${String(Math.round(result.length / 1024))} KB)`)
-            added.api.updateParameters({ content: result, loading: undefined })
-            log(`Loaded: ${item.path} (${String(result.length)} chars)`)
-          } else {
-            const panelPath = item.path
-            result
-              .then(fileContent => {
-                try {
-                  const p = api.panels.find(x => x.id === panelPath)
-                  if (!p) return
-                  if (fileContent === null) {
-                    api.removePanel(p)
-                    log(`Load failed: ${panelPath}`)
-                  } else {
-                    if (fileContent.length > FILE_SIZE_WARN)
-                      log(`Large file: ${panelPath} (${String(Math.round(fileContent.length / 1024))} KB)`)
-                    p.api.updateParameters({
-                      content: fileContent,
-                      loading: undefined
-                    })
-                    log(`Loaded: ${panelPath} (${String(fileContent.length)} chars)`)
-                  }
-                } catch {
-                  /* Panel already removed */
-                }
-              })
-              .catch(() => {
-                try {
-                  const p = api.panels.find(x => x.id === panelPath)
-                  if (p) api.removePanel(p)
-                  log(`Load error: ${panelPath}`)
-                } catch {
-                  /* Panel already removed */
-                }
-              })
-          }
-        },
-        [log, setPreviewId]
-      ),
-      openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel]),
-      pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
-    useEffect(() => {
-      setTreeData(tree ?? EMPTY_TREE)
-    }, [tree, setTreeData])
-    useEffect(() => {
-      setOpenFileFn(() => pinFile)
-    }, [pinFile, setOpenFileFn])
-    useImperativeHandle(
-      ref,
-      () => ({
-        focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
-        openFile: pinFile,
-        toggleSidebar
-      }),
-      [pinFile, toggleSidebar]
-    )
-    useEffect(() => {
-      const { api } = stateRef.current
-      if (!api) return
-      const currentIds = new Set(tabs.map(getTabId))
-      for (const id of stateRef.current.prevTabIds)
-        if (!currentIds.has(id)) {
-          const panel = api.panels.find(p => p.id === id)
-          if (panel) api.removePanel(panel)
-        }
-      for (const tab of tabs) {
-        const tabId = getTabId(tab)
-        if (stateRef.current.prevTabIds.has(tabId))
-          api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
-        else addTab(tab)
+        log(`Binary: ${item.path}`)
+        return
       }
-      stateRef.current.prevTabIds = currentIds
-      stateRef.current.onCloseMap.clear()
-      for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
-    }, [addTab, tabs])
-    useEffect(() => {
-      const { api } = stateRef.current
-      if (!(api && files)) return
-      const tid = setTimeout(() => {
-        const activeIds = new Set(files.map(f => virtualFileId(f.name)))
-        for (const panel of api.panels)
-          if (panel.id.startsWith(VIRTUAL_PREFIX) && !activeIds.has(panel.id))
-            try {
-              api.removePanel(panel)
-            } catch {
-              /* Already removed */
-            }
-        for (const file of files) {
-          const id = virtualFileId(file.name),
-            panel = api.panels.find(p => p.id === id)
-          if (panel) panel.api.updateParameters({ content: file.content })
+      if (isImage) {
+        const result = onOpen(item)
+        const addImagePanel = (src: string) => {
+          api.addPanel({
+            component: 'image',
+            id: item.path,
+            params: { iconName: item.name, src },
+            position,
+            tabComponent: 'default',
+            title
+          })
+          log(`Image: ${item.path}`)
         }
-      }, 100)
-      return () => clearTimeout(tid)
-    }, [files])
-    const handleReady = (event: DockviewReadyEvent) => {
-        stateRef.current.api = event.api
-        setDockviewApi(event.api)
-        for (const tab of tabs) addTab(tab)
-        stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
-        for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
-        if (filesRef.current)
-          for (const f of filesRef.current)
-            if (f.open) {
-              openVirtualFile(f)
-              log(`Virtual file: ${f.name}`)
-            }
-        requestAnimationFrame(() => {
-          const filesToOpen = initialFiles
-          if (filesToOpen) {
-            log(`Opening files: ${filesToOpen.join(', ')}`)
-            for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
-            requestAnimationFrame(() => {
-              const first = event.api.panels.find(p => p.id === filesToOpen[0])
-              if (first) first.focus()
+        if (result === null) return
+        if (typeof result === 'string') addImagePanel(result)
+        else
+          result
+            .then(r => {
+              if (r) addImagePanel(r)
             })
-          }
-        })
-        log('Workspace ready')
-        const notifyFiles = () => {
-          if (!stateRef.current.ready) return
-          const fileList = [...stateRef.current.fileIds]
-          onFilesChangeRef.current?.(fileList)
-        }
-        stateRef.current.disposables.push(
-          event.api.onDidRemovePanel(e => {
-            stateRef.current.fileIds.delete(e.id)
-            stateRef.current.onCloseMap.get(e.id)?.()
-            stateRef.current.onCloseMap.delete(e.id)
-            loader
-              .init()
-              .then(monaco => {
-                const model = monaco.editor.getModel(monaco.Uri.parse(e.id))
-                if (model) model.dispose()
-              })
-              .catch(() => undefined)
-            if (previewIdRef.current === e.id) {
-              setPreviewId(null)
-              previewIdRef.current = null
-            }
-            if (!e.id.startsWith(VIRTUAL_PREFIX)) setClosedTabs(prev => [...prev.slice(-19), e.id])
-            log(`Closed: ${e.title ?? e.id}`)
-            notifyFiles()
-          }),
-          event.api.onDidAddPanel(e => {
-            log(`Opened tab: ${e.title ?? e.id}`)
-            notifyFiles()
-          }),
-          event.api.onDidActivePanelChange(e => {
-            if (e?.id) {
-              setActiveFileId(e.id)
-              onTabChangeRef.current?.(e.id)
-              if (!historyRef.current.navigating) {
-                const h = historyRef.current
-                if (h.entries[h.index] !== e.id) {
-                  h.entries = [...h.entries.slice(0, h.index + 1), e.id].slice(-50)
-                  h.index = h.entries.length - 1
-                }
+            .catch(() => undefined)
+        return
+      }
+      const added = api.addPanel({
+        component: 'file',
+        id: item.path,
+        params: {
+          content: '',
+          editorOptions: editorOptionsRef.current,
+          iconName: item.name,
+          language: langOf(item.path),
+          loading: loadingNode,
+          theme: themeRef.current
+        },
+        position,
+        tabComponent: 'default',
+        title
+      })
+      const result = onOpen(item)
+      if (result === null) {
+        log(`Load returned null: ${item.path}`)
+        return
+      }
+      if (typeof result === 'string') {
+        if (result.length > FILE_SIZE_WARN)
+          log(`Large file: ${item.path} (${String(Math.round(result.length / 1024))} KB)`)
+        added.api.updateParameters({ content: result, loading: undefined })
+        log(`Loaded: ${item.path} (${String(result.length)} chars)`)
+      } else {
+        const panelPath = item.path
+        result
+          .then(fileContent => {
+            try {
+              const p = api.panels.find(x => x.id === panelPath)
+              if (!p) return
+              if (fileContent === null) {
+                api.removePanel(p)
+                log(`Load failed: ${panelPath}`)
+              } else {
+                if (fileContent.length > FILE_SIZE_WARN)
+                  log(`Large file: ${panelPath} (${String(Math.round(fileContent.length / 1024))} KB)`)
+                p.api.updateParameters({
+                  content: fileContent,
+                  loading: undefined
+                })
+                log(`Loaded: ${panelPath} (${String(fileContent.length)} chars)`)
               }
-              log(`Focused: ${e.title ?? e.id}`)
+            } catch {
+              /* Panel already removed */
             }
           })
-        )
-        stateRef.current.ready = true
-      },
-      mergedTree = useMemo(() => {
-        if (!(tree || (files && files.length > 0))) return tree
-        const toItem = (f: VirtualFile): TreeDataItem => ({
-            icon: f.icon ?? (f.language ? resolveLanguageIcon(f.language) : undefined),
-            id: virtualFileId(f.name),
-            name: f.name,
-            path: virtualFileId(f.name)
-          }),
-          top = files?.filter(f => f.pin === 'top').map(toItem) ?? [],
-          mid = files?.filter(f => !f.pin).map(toItem) ?? [],
-          bottom = files?.filter(f => f.pin === 'bottom').map(toItem) ?? []
-        return [...top, ...mid, ...(tree ?? []), ...bottom]
-      }, [files, tree])
-    if (!mounted) return null
-    const sidebarContent = mergedTree ? (
-        <div className='flex h-full flex-col'>
-          <div className='flex items-center justify-between px-3 py-1.5'>
-            <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
-            <button
-              className='text-muted-foreground hover:text-foreground transition-colors'
-              onClick={() => {
-                log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
-                setTreeCollapsed(c => !c)
-                setTreeKey(k => k + 1)
-              }}
-              title={treeCollapsed ? 'Expand All' : 'Collapse All'}
-              type='button'>
-              {treeCollapsed ? (
-                <ChevronRight className='stroke-1 size-4' />
-              ) : (
-                <ChevronsDownUp className='stroke-1 size-4' />
-              )}
-            </button>
-          </div>
-          <FileTree
-            className='min-h-0 flex-1 overflow-auto'
-            data={mergedTree}
-            expandDepth={treeCollapsed ? 0 : expandDepth}
-            expandExclude={expandExclude}
-            key={treeKey}
-            log={log}
-            onDoubleClick={item => {
-              if (item.children) return
-              if (!item.id.startsWith(VIRTUAL_PREFIX)) {
-                pinFile(item)
-                log(`Double-click pinned: ${item.name}`)
-              }
-            }}
-            onSelectChange={item => {
-              if (!item) return
-              if (item.children) {
-                log(`Folder: ${item.name}`)
-                return
-              }
-              if (item.id.startsWith(VIRTUAL_PREFIX)) {
-                const vf = files?.find(f => virtualFileId(f.name) === item.id)
-                if (vf) openVirtualFile(vf)
-              } else openFile(item)
-            }}
-            selectedId={activeFileId}
-          />
-        </div>
-      ) : (
-        sidebarChildren
-      ),
-      dockview = (
-        <Panel minSize={20}>
-          <div className='flex h-full flex-col'>
-            <DockviewApiContext value={dockviewApi}>
-              <DockviewReact
-                className='dv-reset flex-1'
-                components={COMPONENTS}
-                onReady={handleReady}
-                tabComponents={TAB_COMPONENTS}
-                watermarkComponent={WatermarkPanel}
-              />
-            </DockviewApiContext>
-            <StatusBar />
-          </div>
-        </Panel>
-      ),
-      sidePanel = sidebarVisible ? (
-        <>
-          {sidebarPosition === 'right' ? <Separator className='opacity-0' /> : null}
-          <Panel defaultSize={sidebarSize} minSize={5}>
-            {sidebarContent}
-          </Panel>
-          {sidebarPosition === 'left' ? <Separator className='opacity-0' /> : null}
-        </>
-      ) : null
-    return (
-      <Group orientation='horizontal' {...props}>
-        <style>{RESET_CSS}</style>
-        {sidebarPosition === 'left' ? sidePanel : null}
-        {dockview}
-        {sidebarPosition === 'right' ? sidePanel : null}
-        <QuickOpenDialog
-          log={log}
-          onOpenFile={item => {
-            if (item.id.startsWith(VIRTUAL_PREFIX)) {
-              const vf = files?.find(f => virtualFileId(f.name) === item.id)
-              if (vf) openVirtualFile(vf)
-            } else openFile(item)
-          }}
-          open={quickOpenVisible}
-          tree={mergedTree ?? EMPTY_TREE}
-        />
-        <Toaster />
-      </Group>
+          .catch(() => {
+            try {
+              const p = api.panels.find(x => x.id === panelPath)
+              if (p) api.removePanel(p)
+              log(`Load error: ${panelPath}`)
+            } catch {
+              /* Panel already removed */
+            }
+          })
+      }
+    },
+    [log, setPreviewId]
+  )
+  const openFile = useCallback((item: TreeDataItem) => openFileInPanel(item, true), [openFileInPanel])
+  const pinFile = useCallback((item: TreeDataItem) => openFileInPanel(item, false), [openFileInPanel])
+  useEffect(() => {
+    setTreeData(tree ?? EMPTY_TREE)
+  }, [tree, setTreeData])
+  useEffect(() => {
+    setOpenFileFn(() => pinFile)
+  }, [pinFile, setOpenFileFn])
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
+      openFile: pinFile,
+      toggleSidebar
+    }),
+    [pinFile, toggleSidebar]
+  )
+  useEffect(() => {
+    const { api } = stateRef.current
+    if (!api) return
+    const currentIds = new Set(tabs.map(getTabId))
+    for (const id of stateRef.current.prevTabIds)
+      if (!currentIds.has(id)) {
+        const panel = api.panels.find(p => p.id === id)
+        if (panel) api.removePanel(panel)
+      }
+    for (const tab of tabs) {
+      const tabId = getTabId(tab)
+      if (stateRef.current.prevTabIds.has(tabId))
+        api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
+      else addTab(tab)
+    }
+    stateRef.current.prevTabIds = currentIds
+    stateRef.current.onCloseMap.clear()
+    for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
+  }, [addTab, tabs])
+  useEffect(() => {
+    const { api } = stateRef.current
+    if (!(api && files)) return
+    const tid = setTimeout(() => {
+      const activeIds = new Set(files.map(f => virtualFileId(f.name)))
+      for (const panel of api.panels)
+        if (panel.id.startsWith(VIRTUAL_PREFIX) && !activeIds.has(panel.id))
+          try {
+            api.removePanel(panel)
+          } catch {
+            /* Already removed */
+          }
+      for (const file of files) {
+        const id = virtualFileId(file.name)
+        const panel = api.panels.find(p => p.id === id)
+        if (panel) panel.api.updateParameters({ content: file.content })
+      }
+    }, 100)
+    return () => clearTimeout(tid)
+  }, [files])
+  const handleReady = (event: DockviewReadyEvent) => {
+    stateRef.current.api = event.api
+    setDockviewApi(event.api)
+    for (const tab of tabs) addTab(tab)
+    stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
+    for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
+    if (filesRef.current)
+      for (const f of filesRef.current)
+        if (f.open) {
+          openVirtualFile(f)
+          log(`Virtual file: ${f.name}`)
+        }
+    requestAnimationFrame(() => {
+      const filesToOpen = initialFiles
+      if (filesToOpen) {
+        log(`Opening files: ${filesToOpen.join(', ')}`)
+        for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
+        requestAnimationFrame(() => {
+          const first = event.api.panels.find(p => p.id === filesToOpen[0])
+          if (first) first.focus()
+        })
+      }
+    })
+    log('Workspace ready')
+    const notifyFiles = () => {
+      if (!stateRef.current.ready) return
+      const fileList = [...stateRef.current.fileIds]
+      onFilesChangeRef.current?.(fileList)
+    }
+    stateRef.current.disposables.push(
+      event.api.onDidRemovePanel(e => {
+        stateRef.current.fileIds.delete(e.id)
+        stateRef.current.onCloseMap.get(e.id)?.()
+        stateRef.current.onCloseMap.delete(e.id)
+        loader
+          .init()
+          .then(monaco => {
+            const model = monaco.editor.getModel(monaco.Uri.parse(e.id))
+            if (model) model.dispose()
+          })
+          .catch(() => undefined)
+        if (previewIdRef.current === e.id) {
+          setPreviewId(null)
+          previewIdRef.current = null
+        }
+        if (!e.id.startsWith(VIRTUAL_PREFIX)) setClosedTabs(prev => [...prev.slice(-19), e.id])
+        log(`Closed: ${e.title ?? e.id}`)
+        notifyFiles()
+      }),
+      event.api.onDidAddPanel(e => {
+        log(`Opened tab: ${e.title ?? e.id}`)
+        notifyFiles()
+      }),
+      event.api.onDidActivePanelChange(e => {
+        if (e?.id) {
+          setActiveFileId(e.id)
+          onTabChangeRef.current?.(e.id)
+          if (!historyRef.current.navigating) {
+            const h = historyRef.current
+            if (h.entries[h.index] !== e.id) {
+              h.entries = [...h.entries.slice(0, h.index + 1), e.id].slice(-50)
+              h.index = h.entries.length - 1
+            }
+          }
+          log(`Focused: ${e.title ?? e.id}`)
+        }
+      })
     )
+    stateRef.current.ready = true
   }
+  const mergedTree = useMemo(() => {
+    if (!(tree || (files && files.length > 0))) return tree
+    const toItem = (f: VirtualFile): TreeDataItem => ({
+      icon: f.icon ?? (f.language ? resolveLanguageIcon(f.language) : undefined),
+      id: virtualFileId(f.name),
+      name: f.name,
+      path: virtualFileId(f.name)
+    })
+    const top = files?.filter(f => f.pin === 'top').map(toItem) ?? []
+    const mid = files?.filter(f => !f.pin).map(toItem) ?? []
+    const bottom = files?.filter(f => f.pin === 'bottom').map(toItem) ?? []
+    return [...top, ...mid, ...(tree ?? []), ...bottom]
+  }, [files, tree])
+  if (!mounted) return null
+  const sidebarContent = mergedTree ? (
+    <div className='flex h-full flex-col'>
+      <div className='flex items-center justify-between px-3 py-1.5'>
+        <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
+        <button
+          className='text-muted-foreground hover:text-foreground transition-colors'
+          onClick={() => {
+            log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
+            setTreeCollapsed(c => !c)
+            setTreeKey(k => k + 1)
+          }}
+          title={treeCollapsed ? 'Expand All' : 'Collapse All'}
+          type='button'>
+          {treeCollapsed ? <ChevronRight className='stroke-1 size-4' /> : <ChevronsDownUp className='stroke-1 size-4' />}
+        </button>
+      </div>
+      <FileTree
+        className='min-h-0 flex-1 overflow-auto'
+        data={mergedTree}
+        expandDepth={treeCollapsed ? 0 : expandDepth}
+        expandExclude={expandExclude}
+        key={treeKey}
+        log={log}
+        onDoubleClick={item => {
+          if (item.children) return
+          if (!item.id.startsWith(VIRTUAL_PREFIX)) {
+            pinFile(item)
+            log(`Double-click pinned: ${item.name}`)
+          }
+        }}
+        onSelectChange={item => {
+          if (!item) return
+          if (item.children) {
+            log(`Folder: ${item.name}`)
+            return
+          }
+          if (item.id.startsWith(VIRTUAL_PREFIX)) {
+            const vf = files?.find(f => virtualFileId(f.name) === item.id)
+            if (vf) openVirtualFile(vf)
+          } else openFile(item)
+        }}
+        selectedId={activeFileId}
+      />
+    </div>
+  ) : (
+    sidebarChildren
+  )
+  const dockview = (
+    <Panel minSize={20}>
+      <div className='flex h-full flex-col'>
+        <DockviewApiContext value={dockviewApi}>
+          <DockviewReact
+            className='dv-reset flex-1'
+            components={COMPONENTS}
+            onReady={handleReady}
+            tabComponents={TAB_COMPONENTS}
+            watermarkComponent={WatermarkPanel}
+          />
+        </DockviewApiContext>
+        <StatusBar />
+      </div>
+    </Panel>
+  )
+  const sidePanel = sidebarVisible ? (
+    <>
+      {sidebarPosition === 'right' ? <Separator className='opacity-0' /> : null}
+      <Panel defaultSize={sidebarSize} minSize={5}>
+        {sidebarContent}
+      </Panel>
+      {sidebarPosition === 'left' ? <Separator className='opacity-0' /> : null}
+    </>
+  ) : null
+  return (
+    <Group orientation='horizontal' {...props}>
+      <style>{RESET_CSS}</style>
+      {sidebarPosition === 'left' ? sidePanel : null}
+      {dockview}
+      {sidebarPosition === 'right' ? sidePanel : null}
+      <QuickOpenDialog
+        log={log}
+        onOpenFile={item => {
+          if (item.id.startsWith(VIRTUAL_PREFIX)) {
+            const vf = files?.find(f => virtualFileId(f.name) === item.id)
+            if (vf) openVirtualFile(vf)
+          } else openFile(item)
+        }}
+        open={quickOpenVisible}
+        tree={mergedTree ?? EMPTY_TREE}
+      />
+      <Toaster />
+    </Group>
+  )
+}
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
