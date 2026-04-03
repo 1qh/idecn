@@ -11,19 +11,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
 const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
-  const [repo, setRepo] = useState(DEFAULT_REPO),
-    [tree, setTree] = useState(initialTree),
-    [error, setError] = useState<null | string>(null),
-    [input, setInput] = useState(''),
-    [mounted, setMounted] = useState(false),
-    [activity, setActivity] = useState(''),
-    { resolvedTheme, setTheme } = useTheme(),
-    ref = useRef<WorkspaceRef>(null),
-    log = useCallback((msg: string) => setActivity(prev => `${prev}[${new Date().toLocaleTimeString()}] ${msg}\n`), []),
-    files = useMemo(
-      (): VirtualFile[] => [{ content: activity, language: 'log', name: 'Activity', open: true, pin: 'bottom' }],
-      [activity]
-    )
+  const [repo, setRepo] = useState(DEFAULT_REPO)
+  const [tree, setTree] = useState(initialTree)
+  const [error, setError] = useState<null | string>(null)
+  const [input, setInput] = useState('')
+  const [mounted, setMounted] = useState(false)
+  const [activity, setActivity] = useState('')
+  const { resolvedTheme, setTheme } = useTheme()
+  const ref = useRef<WorkspaceRef>(null)
+  const log = useCallback((msg: string) => setActivity(prev => `${prev}[${new Date().toLocaleTimeString()}] ${msg}\n`), [])
+  const files = useMemo(
+    (): VirtualFile[] => [{ content: activity, language: 'log', name: 'Activity', open: true, pin: 'bottom' }],
+    [activity]
+  )
   /** biome-ignore lint/correctness/useExhaustiveDependencies: mount only */
   useEffect(() => {
     setMounted(true)
@@ -65,15 +65,15 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
               )
               .then(d => {
                 if (!d.tree) throw new Error('no tree')
-                const items: TreeDataItem[] = [],
-                  dirs = new Map<string, TreeDataItem>()
+                const items: TreeDataItem[] = []
+                const dirs = new Map<string, TreeDataItem>()
                 for (const t of d.tree.toSorted((a, b) => {
                   if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
                   return a.path.localeCompare(b.path)
                 })) {
-                  const parts = t.path.split('/'),
-                    name = parts.at(-1) ?? t.path,
-                    node: TreeDataItem = { id: t.path, name, path: t.path }
+                  const parts = t.path.split('/')
+                  const name = parts.at(-1) ?? t.path
+                  const node: TreeDataItem = { id: t.path, name, path: t.path }
                   if (t.type === 'tree') {
                     node.children = []
                     dirs.set(t.path, node)

@@ -5,27 +5,27 @@
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
-const root = resolve(import.meta.dir, '..'),
-  outDir = resolve(root, 'web/public/r'),
-  read = async (path: string) => file(resolve(root, path)).text(),
-  pkg = JSON.parse(await read('package.json')) as { dependencies: Record<string, string> },
-  src = await read('src/idecn.tsx'),
-  srcImports = new Set(
-    src.match(/from '(?:[^.][^']*)'/gu)?.map(m => {
-      const dep = m.slice(6, -1)
-      return dep.startsWith('@') ? dep.split('/').slice(0, 2).join('/') : dep.split('/')[0]
-    })
-  ),
-  deps = Object.keys(pkg.dependencies).filter(d => srcImports.has(d)),
-  uiImports = [...new Set(src.match(/from '\.\/ui\/([^']+)'/gu)?.map(m => m.slice(11, -1)))],
-  uiFiles: { content: string; path: string; type: string }[] = [],
-  nestedRegistryDeps = new Set<string>()
+const root = resolve(import.meta.dir, '..')
+const outDir = resolve(root, 'web/public/r')
+const read = async (path: string) => file(resolve(root, path)).text()
+const pkg = JSON.parse(await read('package.json')) as { dependencies: Record<string, string> }
+const src = await read('src/idecn.tsx')
+const srcImports = new Set(
+  src.match(/from '(?:[^.][^']*)'/gu)?.map(m => {
+    const dep = m.slice(6, -1)
+    return dep.startsWith('@') ? dep.split('/').slice(0, 2).join('/') : dep.split('/')[0]
+  })
+)
+const deps = Object.keys(pkg.dependencies).filter(d => srcImports.has(d))
+const uiImports = [...new Set(src.match(/from '\.\/ui\/([^']+)'/gu)?.map(m => m.slice(11, -1)))]
+const uiFiles: { content: string; path: string; type: string }[] = []
+const nestedRegistryDeps = new Set<string>()
 for (const name of uiImports) {
-  const uiSrc = await read(`src/ui/${name}.tsx`),
-    uiContent = uiSrc
-      .replaceAll('../lib/utils', '@/lib/utils')
-      .replaceAll(/"\.\/([^"]+)"/gu, '"@/components/ui/$1"')
-      .replaceAll(/'\.\/([^']+)'/gu, "'@/components/ui/$1'")
+  const uiSrc = await read(`src/ui/${name}.tsx`)
+  const uiContent = uiSrc
+    .replaceAll('../lib/utils', '@/lib/utils')
+    .replaceAll(/"\.\/([^"]+)"/gu, '"@/components/ui/$1"')
+    .replaceAll(/'\.\/([^']+)'/gu, "'@/components/ui/$1'")
   uiFiles.push({ content: uiContent, path: `components/ui/${name}.tsx`, type: 'registry:component' })
   const nested = uiSrc.match(/from ['"]\.\/([^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
   if (nested) for (const n of nested) if (!uiImports.includes(n)) nestedRegistryDeps.add(n)
