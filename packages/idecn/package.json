@@ -1,0 +1,64 @@
+{
+  "name": "idecn",
+  "version": "0.0.7",
+  "private": false,
+  "description": "IDE-like workspace and file tree components for React with material icons",
+  "keywords": [
+    "react",
+    "file-tree",
+    "workspace",
+    "material-icons",
+    "shadcn",
+    "ide"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1qh/idecn.git"
+  },
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/idecn.d.mts",
+      "import": "./dist/idecn.mjs"
+    }
+  },
+  "main": "./dist/idecn.mjs",
+  "types": "./dist/idecn.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && bun run gen && bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys --deps.neverBundle cmdk --deps.neverBundle jotai --deps.neverBundle sonner",
+    "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
+    "prepublishOnly": "bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys --deps.neverBundle cmdk --deps.neverBundle jotai --deps.neverBundle sonner",
+    "test:registry": "bash scripts/test-registry.sh"
+  },
+  "dependencies": {
+    "@a/ui": "workspace:*",
+    "@base-ui/react": "latest",
+    "@icons-pack/react-simple-icons": "latest",
+    "@monaco-editor/react": "latest",
+    "@shikijs/monaco": "latest",
+    "@tailwindcss/typography": "latest",
+    "@tanstack/react-hotkeys": "latest",
+    "cmdk": "latest",
+    "dockview-core": "latest",
+    "dockview-react": "latest",
+    "jotai": "latest",
+    "lucide-react": "latest",
+    "react-resizable-panels": "latest",
+    "shiki": "latest",
+    "sonner": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "material-icon-theme": "latest",
+    "tsdown": "latest"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}
