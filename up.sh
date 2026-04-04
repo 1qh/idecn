@@ -1,1 +1,1 @@
-sh clean.sh && bun i && bun run build && bun run fix && bun run check
+sh clean.sh && bun i --silent && bun run build && bun run fix && bun run check
