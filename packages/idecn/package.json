@@ -31,8 +31,10 @@
   ],
   "scripts": {
     "build": "rm -rf dist && bun run gen && bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys --deps.neverBundle cmdk --deps.neverBundle jotai --deps.neverBundle sonner",
+    "cleanup-old-versions": "bun script/cleanup-old-versions.ts",
     "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
     "prepublishOnly": "bun x tsdown src/idecn.tsx --format esm --dts --deps.neverBundle react --deps.neverBundle react-dom --deps.neverBundle @base-ui/react --deps.neverBundle shiki --deps.neverBundle @shikijs/monaco --deps.neverBundle @monaco-editor/react --deps.neverBundle dockview-core --deps.neverBundle dockview-react --deps.neverBundle lucide-react --deps.neverBundle @tanstack/react-hotkeys --deps.neverBundle cmdk --deps.neverBundle jotai --deps.neverBundle sonner",
+    "postpublish": "bun run cleanup-old-versions",
     "test:registry": "bash scripts/test-registry.sh"
   },
   "dependencies": {
