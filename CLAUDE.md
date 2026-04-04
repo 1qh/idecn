@@ -29,15 +29,15 @@ Use these for project-specific content:
 
 ## Health Check
 
-Run `pm4ai status` to see issues in this project. Run `pm4ai fix` to sync and maintain.
+Run `bunx pm4ai@latest status` to see issues in this project. Run `bunx pm4ai@latest fix` to sync and maintain.
 
 Check states:
 
 - `check: passed 5m ago (current)` — safe to proceed
-- `check: passed 3h ago (before 2 commits)` — stale, run `pm4ai status` again and wait for refresh
+- `check: passed 3h ago (before 2 commits)` — stale, run `bunx pm4ai@latest status` again and wait for refresh
 - `check: failed 5m ago (current), 15 violations` — fix violations before proceeding
 - `check: running...` — wait, do not edit files until complete
-- `check: never run` — run `pm4ai fix` first
+- `check: never run` — run `bunx pm4ai@latest fix` first
 
 ---
 
