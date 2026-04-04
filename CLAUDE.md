@@ -221,3 +221,15 @@ NEVER use template literals for conditional classNames.
 - Co-locate components with their page; only move to `~/components` when reused
 - Explicit imports from exact file paths — no barrel `index.ts` in app code (library packages use barrels for their public API)
 - Prefer existing libraries over new dependencies
+
+## Formatting
+
+- Single quotes, no semicolons
+- No empty lines between statements
+- `node:` prefix for Node.js builtins (`import { join } from 'node:path'`)
+- Imports sorted alphabetically by source
+- `interface` over `type` when possible
+- Object/interface properties sorted alphabetically
+- No `import as` aliases — rename variables to avoid conflicts
+- No trailing commas in single-line, trailing commas in multi-line
+- `import type` for type-only imports
