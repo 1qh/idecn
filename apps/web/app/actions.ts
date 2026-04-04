@@ -1,9 +1,9 @@
 /** biome-ignore-all lint/suspicious/useAwait: server actions must be async */
 'use server'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DEFAULT_REPO } from './constants'
-const root = resolve(process.cwd(), '..')
+const root = existsSync(resolve(process.cwd(), '.gitignore')) ? process.cwd() : resolve(process.cwd(), '../..')
 const gitignore = (() => {
   try {
     return readFileSync(resolve(root, '.gitignore'), 'utf8')
@@ -17,7 +17,7 @@ const ignored = new Set([
   '.vercel',
   ...gitignore
     .split('\n')
-    .map(l => l.trim())
+    .map(l => (l.trim().endsWith('/') ? l.trim().slice(0, -1) : l.trim()))
     .filter(l => l && !l.startsWith('#'))
 ])
 interface JsdelivrFile {
