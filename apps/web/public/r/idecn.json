@@ -1,13 +1,8 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "dependencies": [
-    "cmdk",
     "dockview-react",
-    "jotai",
-    "lucide-react",
-    "react-resizable-panels",
-    "shiki",
-    "sonner"
+    "jotai"
   ],
   "description": "Full IDE layout with file tree, tabbed editor, and async file loading.",
   "files": [

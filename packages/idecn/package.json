@@ -37,20 +37,13 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
-    "@base-ui/react": "latest",
     "@icons-pack/react-simple-icons": "latest",
     "@monaco-editor/react": "latest",
     "@shikijs/monaco": "latest",
-    "@tailwindcss/typography": "latest",
     "@tanstack/react-hotkeys": "latest",
-    "cmdk": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
-    "jotai": "latest",
-    "lucide-react": "latest",
-    "react-resizable-panels": "latest",
-    "shiki": "latest",
-    "sonner": "latest"
+    "jotai": "latest"
   },
   "devDependencies": {
     "@playwright/test": "latest",
