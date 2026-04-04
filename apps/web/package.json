@@ -7,18 +7,11 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
-    "@icons-pack/react-simple-icons": "latest",
-    "@tailwindcss/typography": "latest",
     "idecn": "workspace:*",
-    "next": "latest",
-    "next-themes": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "next": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "latest",
     "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "tailwindcss": "latest"
+    "@types/react-dom": "latest"
   }
 }
