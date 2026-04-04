@@ -7,7 +7,7 @@
     "readonly/*"
   ],
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --output-logs=errors-only",
     "check": "lintmax check",
     "clean": "sh clean.sh",
     "fix": "lintmax fix",
