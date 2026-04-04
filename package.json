@@ -18,11 +18,16 @@
     "pre-commit": "sh up.sh && git add -u"
   },
   "devDependencies": {
+    "@playwright/test": "latest",
     "@types/bun": "latest",
     "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
     "lintmax": "latest",
+    "material-icon-theme": "latest",
     "sherif": "latest",
     "simple-git-hooks": "latest",
+    "tsdown": "latest",
     "turbo": "latest",
     "typescript": "latest"
   },

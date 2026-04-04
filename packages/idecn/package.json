@@ -45,11 +45,6 @@
     "dockview-react": "latest",
     "jotai": "latest"
   },
-  "devDependencies": {
-    "@playwright/test": "latest",
-    "material-icon-theme": "latest",
-    "tsdown": "latest"
-  },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
