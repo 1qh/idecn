@@ -1,4 +1,3 @@
-"use client"
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 import { cn } from "@a/ui/lib/utils"
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"

@@ -1,5 +1,3 @@
-"use client"
-import * as React from "react"
 import { Slider as SliderPrimitive } from "@base-ui/react/slider"
 import { cn } from "@a/ui/lib/utils"
 function Slider({
@@ -10,15 +8,11 @@ function Slider({
   max = 100,
   ...props
 }: SliderPrimitive.Root.Props) {
-  const _values = React.useMemo(
-    () =>
-      Array.isArray(value)
-        ? value
-        : Array.isArray(defaultValue)
-          ? defaultValue
-          : [min, max],
-    [value, defaultValue, min, max]
-  )
+  const _values = Array.isArray(value)
+    ? value
+    : Array.isArray(defaultValue)
+      ? defaultValue
+      : [min, max]
   return (
     <SliderPrimitive.Root
       className={cn("data-horizontal:w-full data-vertical:h-full", className)}
