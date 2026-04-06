@@ -72,6 +72,11 @@ Check states:
 - For deps that must be pinned, pin major version only (e.g. `"eslint": "9"`)
 - No lockfile committed (`bun.lock` in `.gitignore`)
 
+## Bun APIs
+
+- Always `import { X } from 'bun'` — never use `Bun.X` global (triggers `noUndeclaredVariables` in biome)
+- `import { $, file, write, Glob, spawn } from 'bun'`
+
 ## Scripts
 
 - `sh clean.sh` — nuke all artifacts (node_modules, lockfile, caches, dist, .next)
@@ -139,6 +144,8 @@ lintmax is our own max-strict lint/format orchestrator. We own it — read the s
 5. NEVER 5+ per-line ignores for the same rule — use file-level
 
 - File-level directives go at absolute file top, above any imports/code (including `'use client'`/`'use node'`).
+- Per-line directives go on the line ABOVE the code, NEVER inline on the same line (triggers `no-inline-comments`).
+- When 2+ linters flag the same line, use file-level for one and per-line for the other — don’t stack multiple per-line directives above one line.
 - Remove duplicate directives; keep one canonical directive block.
 - Use one top `eslint-disable` line per file; combine multiple rules with commas.
 
@@ -147,6 +154,17 @@ lintmax is our own max-strict lint/format orchestrator. We own it — read the s
 - 2 linters with the same rule (biome `noAwaitInLoops` + oxlint `no-await-in-loop`) = double enforcement, NOT a conflict. Never disable one because the other covers it.
 - To suppress a shared eslint/oxlint rule: suppress eslint’s version — oxlint auto-picks up eslint rules and is faster.
 - oxlint `eslint/sort-keys` conflicts with perfectionist (ASCII vs natural sort) — disabled in lintmax.
+
+### Never-ignore Rules
+
+These rules exist to catch real bugs. Suppressing them is NEVER acceptable — fix the code instead:
+
+- `@typescript-eslint/no-unsafe-*` (no-unsafe-assignment, no-unsafe-call, no-unsafe-member-access, no-unsafe-return, no-unsafe-argument) — use proper types, never suppress type safety
+- `@typescript-eslint/no-explicit-any` — define the actual type
+- `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck` — fix the type error
+- `@typescript-eslint/no-non-null-assertion` — handle the null case
+
+If an agent suppresses any of these, the code must be rewritten to satisfy the rule.
 
 ### Safe-to-ignore Rules
 
