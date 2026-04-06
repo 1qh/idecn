@@ -11,6 +11,7 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, react-perf/jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, import/no-unassigned-import, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
+import type { Monaco } from '@monaco-editor/loader'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
@@ -230,6 +231,7 @@ const iconsReady =
         iconSvgs = mod.icons.svgs
       })
     : Promise.resolve()
+const initMonaco = async (): Promise<Monaco> => loader.init()
 const CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const
 const ALL_LANGS = [
   'css',
@@ -281,7 +283,7 @@ const shikiSetup =
           langs: [...CORE_LANGS],
           themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
         })
-        const monaco = await loader.init()
+        const monaco = await initMonaco()
         shikiToMonaco(highlighter, monaco)
         defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
         const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
@@ -1817,8 +1819,7 @@ const Workspace = ({
         stateRef.current.fileIds.delete(e.id)
         stateRef.current.onCloseMap.get(e.id)?.()
         stateRef.current.onCloseMap.delete(e.id)
-        loader
-          .init()
+        initMonaco()
           .then(monaco => {
             const model = monaco.editor.getModel(monaco.Uri.parse(e.id))
             if (model) model.dispose()
