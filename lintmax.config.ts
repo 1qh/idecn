@@ -1,4 +1,4 @@
 import { defineConfig } from 'lintmax'
 export default defineConfig({
-  ignores: ['apps/web/app/globals.css', 'readonly/ui/**']
+  ignores: ['apps/web/app/globals.css', 'packages/idecn/src/_generated/**', 'readonly/ui/**']
 })
