@@ -20,10 +20,7 @@
   },
   "devDependencies": {
     "@playwright/test": "latest",
-    "@types/bun": "latest",
     "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
     "lintmax": "latest",
     "material-icon-theme": "latest",
     "sherif": "latest",
