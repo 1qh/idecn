@@ -12,9 +12,6 @@
     "./lib/*": "./src/lib/*.ts",
     "./postcss.config": "./postcss.config.mjs"
   },
-  "scripts": {
-    "typecheck": "echo 'skip: generated package'"
-  },
   "dependencies": {
     "@base-ui/react": "latest",
     "@radix-ui/react-use-controllable-state": "latest",
