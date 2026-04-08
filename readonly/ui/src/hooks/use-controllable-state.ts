@@ -9,7 +9,7 @@ const useUncontrolledState = <T>({ defaultProp, onChange }: { defaultProp?: T; o
   }, [onChange])
   useEffect(() => {
     if (prevValueRef.current !== value) {
-      onChangeRef.current?.(value as T)
+      if (value !== undefined) onChangeRef.current?.(value)
       prevValueRef.current = value
     }
   }, [value])
@@ -33,7 +33,7 @@ const useControllableState = <T>({
   const setValue = useCallback(
     (nextValue: ((prev: T) => T) | T) => {
       if (isControlled) {
-        const resolved = typeof nextValue === 'function' ? (nextValue as (prev: T) => T)(prop as T) : nextValue
+        const resolved = typeof nextValue === 'function' ? (nextValue as (prev: T) => T)(prop) : nextValue
         if (resolved !== prop) onChangeRef.current?.(resolved)
       } else setUncontrolledProp(nextValue as T | undefined)
     },
