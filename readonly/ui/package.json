@@ -13,6 +13,7 @@
     "./postcss.config": "./postcss.config.mjs"
   },
   "scripts": {
+    "clean": "rm -rf .cache .turbo dist node_modules",
     "typecheck": "echo 'skip: generated package'"
   },
   "dependencies": {
