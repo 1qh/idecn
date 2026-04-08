@@ -17,6 +17,7 @@ For full documentation: `curl https://pm4ai.vercel.app/llms-full.txt`
 These files are auto-generated and synced by pm4ai. Never edit them directly:
 
 - `CLAUDE.md` — generated from rules based on project dependencies
+- `.github/workflows/ci.yml` — universal CI workflow
 - `clean.sh` — universal cleanup script
 - `up.sh` — universal maintenance cycle (clean + install + build + fix + check)
 - `bunfig.toml` — bun configuration
