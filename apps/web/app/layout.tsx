@@ -1,14 +1,19 @@
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { cn } from '@a/ui'
 // oxlint-disable-next-line import/no-unassigned-import
-import './globals.css'
+import './global.css'
 import { mono, sans } from './fonts'
 import { Providers } from './providers'
-const RootLayout = ({ children }: { children: ReactNode }) => (
+const metadata: Metadata = {
+  title: 'idecn'
+}
+const Layout = ({ children }: { children: ReactNode }) => (
   <html className={cn('font-sans tracking-[-0.02em]', sans.variable, mono.variable)} lang='en' suppressHydrationWarning>
     <body className='min-h-screen antialiased'>
       <Providers>{children}</Providers>
     </body>
   </html>
 )
-export default RootLayout
+export { metadata }
+export default Layout
