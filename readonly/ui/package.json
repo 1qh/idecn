@@ -50,5 +50,16 @@
     "use-stick-to-bottom": "latest",
     "vaul": "latest",
     "zod": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@tailwindcss/typography": "latest",
+    "@turbo/gen": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "^9.39.2",
+    "tailwindcss": "latest",
+    "typescript": "^5.9.3"
   }
 }
