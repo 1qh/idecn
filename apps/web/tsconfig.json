@@ -5,9 +5,15 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": false,
     "paths": {
-      "idecn": ["../../packages/idecn/src/idecn.tsx"],
-      "@a/ui": ["../../readonly/ui/src/lib/utils.ts"],
-      "@a/ui/*": ["../../readonly/ui/src/components/*"]
+      "idecn": [
+        "../../packages/idecn/src/idecn.tsx"
+      ],
+      "@a/ui": [
+        "../../readonly/ui/src/lib/utils.ts"
+      ],
+      "@a/ui/*": [
+        "../../readonly/ui/src/components/*"
+      ]
     },
     "plugins": [
       {
@@ -15,6 +21,7 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
