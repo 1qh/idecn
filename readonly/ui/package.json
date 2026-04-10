@@ -9,8 +9,7 @@
     "./components/*": "./src/components/*.tsx",
     "./globals.css": "./src/styles/globals.css",
     "./hooks/*": "./src/hooks/*.ts",
-    "./lib/*": "./src/lib/*.ts",
-    "./postcss.config": "./postcss.config.ts"
+    "./lib/*": "./src/lib/*.ts"
   },
   "dependencies": {
     "@base-ui/react": "latest",
