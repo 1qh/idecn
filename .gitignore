@@ -6,6 +6,7 @@
 .env.local
 .next/
 .source/
+.stdb-test-token.json
 .turbo/
 .vercel
 bun.lock
