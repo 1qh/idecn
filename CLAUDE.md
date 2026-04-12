@@ -126,7 +126,23 @@ Before writing any new code, verify:
 
 ## Lintmax
 
-lintmax is our own max-strict lint/format orchestrator. We own it — read the source code to understand the pipeline, and feel free to suggest improvements that bring better strictness or better defaults.
+lintmax combines biome, oxlint, eslint, prettier, and sort-package-json into one command. We own it.
+
+### CLI — agents MUST read this
+
+`lintmax fix` fixes everything, then runs a full verification internally (all 5 linters run twice — once to fix, once to check). Silent on success. Exit 0 = fully clean.
+
+**The ONLY command you run is `bun run fix`.** That’s it. If it exits silently, the code is clean. Nothing else to do.
+
+`bun run check` / `lintmax check` is **CI-only** — it checks without modifying files. Agents must NEVER run it. It is redundant after `fix` because `fix` already verified internally. Running `check` after `fix` wastes 2+ minutes re-running 5 linters for zero new information.
+
+On failure, lintmax outputs diagnostics **already optimized for agents** — grouped by file → linter → rule, with compressed line numbers, deduplicated across all 5 linters. Read the output directly. Do not reformat, grep, or filter it.
+
+**NEVER:**
+
+- Run `bun run check` — use `bun run fix` instead
+- Add `| tail` or `| head` to any lintmax command — empty output IS success, failure output is already agent-formatted
+- Run `lintmax check --human` to “see violations” — run `bun run fix` and read its output on failure
 
 ### Ignore Syntax
 
