@@ -19,9 +19,6 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
-// ============================================================================
-// Types
-// ============================================================================
 export type AttachmentData =
   | (FileUIPart & { id: string })
   | (SourceDocumentUIPart & { id: string });
@@ -41,9 +38,6 @@ const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
   unknown: PaperclipIcon,
   video: VideoIcon,
 };
-// ============================================================================
-// Utility Functions
-// ============================================================================
 export const getMediaCategory = (
   data: AttachmentData
 ): AttachmentMediaCategory => {
@@ -94,9 +88,6 @@ const renderAttachmentImage = (
       width={20}
     />
   );
-// ============================================================================
-// Contexts
-// ============================================================================
 interface AttachmentsContextValue {
   variant: AttachmentVariant;
 }
@@ -108,9 +99,6 @@ interface AttachmentContextValue {
   variant: AttachmentVariant;
 }
 const AttachmentContext = createContext<AttachmentContextValue | null>(null);
-// ============================================================================
-// Hooks
-// ============================================================================
 export const useAttachmentsContext = () =>
   useContext(AttachmentsContext) ?? { variant: "grid" as const };
 export const useAttachmentContext = () => {
@@ -120,9 +108,6 @@ export const useAttachmentContext = () => {
   }
   return ctx;
 };
-// ============================================================================
-// Attachments - Container
-// ============================================================================
 export type AttachmentsProps = HTMLAttributes<HTMLDivElement> & {
   variant?: AttachmentVariant;
 };
@@ -149,9 +134,6 @@ export const Attachments = ({
     </AttachmentsContext.Provider>
   );
 };
-// ============================================================================
-// Attachment - Item
-// ============================================================================
 export type AttachmentProps = HTMLAttributes<HTMLDivElement> & {
   data: AttachmentData;
   onRemove?: () => void;
@@ -194,9 +176,6 @@ export const Attachment = ({
     </AttachmentContext.Provider>
   );
 };
-// ============================================================================
-// AttachmentPreview - Media preview
-// ============================================================================
 export type AttachmentPreviewProps = HTMLAttributes<HTMLDivElement> & {
   fallbackIcon?: ReactNode;
 };
@@ -235,9 +214,6 @@ export const AttachmentPreview = ({
     </div>
   );
 };
-// ============================================================================
-// AttachmentInfo - Name and type display
-// ============================================================================
 export type AttachmentInfoProps = HTMLAttributes<HTMLDivElement> & {
   showMediaType?: boolean;
 };
@@ -262,9 +238,6 @@ export const AttachmentInfo = ({
     </div>
   );
 };
-// ============================================================================
-// AttachmentRemove - Remove button
-// ============================================================================
 export type AttachmentRemoveProps = ComponentProps<typeof Button> & {
   label?: string;
 };
@@ -314,9 +287,6 @@ export const AttachmentRemove = ({
     </Button>
   );
 };
-// ============================================================================
-// AttachmentHoverCard - Hover preview
-// ============================================================================
 export type AttachmentHoverCardProps = ComponentProps<typeof HoverCard>;
 export const AttachmentHoverCard = ({
   ...props
@@ -343,9 +313,6 @@ export const AttachmentHoverCardContent = ({
     {...props}
   />
 );
-// ============================================================================
-// AttachmentEmpty - Empty state
-// ============================================================================
 export type AttachmentEmptyProps = HTMLAttributes<HTMLDivElement>;
 export const AttachmentEmpty = ({
   className,

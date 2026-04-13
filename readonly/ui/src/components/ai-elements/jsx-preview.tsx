@@ -62,13 +62,11 @@ const matchJsxTag = (code: string) => {
   };
 };
 const stripIncompleteTag = (text: string) => {
-  // Find the last '<' that isn't part of a complete tag
   const lastOpen = text.lastIndexOf("<");
   if (lastOpen === -1) {
     return text;
   }
   const afterOpen = text.slice(lastOpen);
-  // If there's no closing '>' after the last '<', it's an incomplete tag
   if (!afterOpen.includes(">")) {
     return text.slice(0, lastOpen);
   }
@@ -81,12 +79,10 @@ const completeJsxTag = (code: string) => {
   while (currentPosition < code.length) {
     const match = matchJsxTag(code.slice(currentPosition));
     if (!match) {
-      // No more tags found, strip any trailing incomplete tag
       result += stripIncompleteTag(code.slice(currentPosition));
       break;
     }
     const { tagName, type, endIndex } = match;
-    // Include any text content before this tag
     result += code.slice(currentPosition, currentPosition + endIndex);
     if (type === "opening") {
       stack.push(tagName);
@@ -124,7 +120,6 @@ export const JSXPreview = memo(
     const [prevJsx, setPrevJsx] = useState(jsx);
     const [error, setError] = useState<Error | null>(null);
     const [_lastGoodJsx, setLastGoodJsx] = useState("");
-    // Clear error when jsx changes (derived state pattern)
     if (jsx !== prevJsx) {
       setPrevJsx(jsx);
       setError(null);
@@ -181,19 +176,16 @@ export const JSXPreviewContent = memo(
     const errorReportedRef = useRef<string | null>(null);
     const lastGoodJsxRef = useRef("");
     const [hadError, setHadError] = useState(false);
-    // Reset error tracking when jsx changes
     useEffect(() => {
       errorReportedRef.current = null;
       setHadError(false);
     }, [processedJsx]);
     const handleError = useCallback(
       (err: Error) => {
-        // Prevent duplicate error reports for the same jsx
         if (errorReportedRef.current === processedJsx) {
           return;
         }
         errorReportedRef.current = processedJsx;
-        // During streaming, suppress errors and fall back to last good JSX
         if (isStreaming) {
           setHadError(true);
           return;
@@ -203,14 +195,12 @@ export const JSXPreviewContent = memo(
       },
       [processedJsx, isStreaming, onErrorProp, setError]
     );
-    // Track the last JSX that rendered without error
     useEffect(() => {
       if (!errorReportedRef.current) {
         lastGoodJsxRef.current = processedJsx;
         setLastGoodJsx(processedJsx);
       }
     }, [processedJsx, setLastGoodJsx]);
-    // During streaming, if the current JSX errored, re-render with last good version
     const displayJsx =
       isStreaming && hadError ? lastGoodJsxRef.current : processedJsx;
     return (
