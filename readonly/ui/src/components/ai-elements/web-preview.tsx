@@ -122,6 +122,7 @@ export const WebPreviewUrl = ({
   const { url, setUrl } = useWebPreview();
   const [prevUrl, setPrevUrl] = useState(url);
   const [inputValue, setInputValue] = useState(url);
+  // Sync input value with context URL when it changes externally (derived state pattern)
   if (url !== prevUrl) {
     setPrevUrl(url);
     setInputValue(url);

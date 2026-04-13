@@ -11,6 +11,9 @@ import {
 } from "@rive-app/react-webgl2";
 import type { FC, ReactNode } from "react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+// Delays Rive initialization by one frame so that React Strict Mode's
+// immediate unmount cycle never creates a WebGL2 context. Only the
+// second (real) mount will initialise, avoiding context exhaustion.
 const useStrictModeSafeInit = () => {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -39,6 +42,7 @@ interface PersonaProps {
   className?: string;
   variant?: keyof typeof sources;
 }
+// The state machine name is always 'default' for Elements AI visuals
 const stateMachine = "default";
 const sources = {
   command: {
@@ -92,9 +96,11 @@ const getCurrentTheme = (): "light" | "dark" => {
 const useTheme = (enabled: boolean) => {
   const [theme, setTheme] = useState<"light" | "dark">(getCurrentTheme);
   useEffect(() => {
+    // Skip if not enabled (avoids unnecessary observers for non-dynamic-color variants)
     if (!enabled) {
       return;
     }
+    // Watch for classList changes
     const observer = new MutationObserver(() => {
       setTheme(getCurrentTheme());
     });
@@ -102,6 +108,7 @@ const useTheme = (enabled: boolean) => {
       attributeFilter: ["class"],
       attributes: true,
     });
+    // Watch for OS-level theme changes
     let mql: MediaQueryList | null = null;
     const handleMediaChange = () => {
       setTheme(getCurrentTheme());
@@ -170,6 +177,7 @@ export const Persona: FC<PersonaProps> = memo(
     if (!source) {
       throw new Error(`Invalid variant: ${variant}`);
     }
+    // Stabilize callbacks to prevent useRive from reinitializing
     const callbacksRef = useRef({
       onLoad,
       onLoadError,
@@ -208,6 +216,8 @@ export const Persona: FC<PersonaProps> = memo(
       }),
       []
     );
+    // Delay initialisation by one frame to avoid creating (and leaking)
+    // a WebGL2 context during React Strict Mode's first throw-away mount.
     const ready = useStrictModeSafeInit();
     const { rive, RiveComponent } = useRive(
       ready
@@ -232,6 +242,8 @@ export const Persona: FC<PersonaProps> = memo(
     const thinkingInput = useStateMachineInput(rive, stateMachine, "thinking");
     const speakingInput = useStateMachineInput(rive, stateMachine, "speaking");
     const asleepInput = useStateMachineInput(rive, stateMachine, "asleep");
+    // Rive state machine inputs are mutable objects that must be set via direct
+    // property assignment — this is the intended Rive API, not a React anti-pattern.
     useEffect(() => {
       if (listeningInput) {
         listeningInput.value = state === "listening";
