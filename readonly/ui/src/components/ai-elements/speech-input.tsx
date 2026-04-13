@@ -93,10 +93,8 @@ export const SpeechInput = ({
   >(onTranscriptionChange);
   const onAudioRecordedRef =
     useRef<SpeechInputProps["onAudioRecorded"]>(onAudioRecorded);
-  // Keep refs in sync
   onTranscriptionChangeRef.current = onTranscriptionChange;
   onAudioRecordedRef.current = onAudioRecorded;
-  // Initialize Speech Recognition when mode is speech-recognition
   useEffect(() => {
     if (mode !== "speech-recognition") {
       return;
@@ -149,7 +147,6 @@ export const SpeechInput = ({
       setIsRecognitionReady(false);
     };
   }, [mode, lang]);
-  // Cleanup MediaRecorder and stream on unmount
   useEffect(
     () => () => {
       if (mediaRecorderRef.current?.state === "recording") {
@@ -163,7 +160,6 @@ export const SpeechInput = ({
     },
     []
   );
-  // Start MediaRecorder recording
   const startMediaRecorder = useCallback(async () => {
     if (!onAudioRecordedRef.current) {
       return;
@@ -217,7 +213,6 @@ export const SpeechInput = ({
       setIsListening(false);
     }
   }, []);
-  // Stop MediaRecorder recording
   const stopMediaRecorder = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
@@ -239,7 +234,6 @@ export const SpeechInput = ({
       }
     }
   }, [mode, isListening, startMediaRecorder, stopMediaRecorder]);
-  // Determine if button should be disabled
   const isDisabled =
     mode === "none" ||
     (mode === "speech-recognition" && !isRecognitionReady) ||
