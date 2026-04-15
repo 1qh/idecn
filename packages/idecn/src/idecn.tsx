@@ -7,8 +7,10 @@
 /** biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: nav with tree role for keyboard nav */
 /** biome-ignore-all lint/performance/noImgElement: image preview panel */
 /** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element */
+/** biome-ignore-all lint/suspicious/noAlert: rename prompt in context menu */
+/** biome-ignore-all lint/nursery/noComponentHookFactories: hooks returning component data */
+/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, no-alert */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element, eslint(no-alert) */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { Monaco } from '@monaco-editor/loader'
@@ -49,6 +51,10 @@ import {
   ChevronRight,
   ChevronsDownUp,
   ClipboardCopy,
+  Download,
+  FilePlus,
+  FolderPlus,
+  Pencil,
   Pin,
   PinOff,
   Search,
@@ -404,14 +410,29 @@ const resolveLanguageIcon = (language: string): string => {
   return iconManifest.file
 }
 const virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
+interface FileActions {
+  onCreateFile?: (parentPath: string, name: string) => Promise<void> | void
+  onCreateFolder?: (parentPath: string, name: string) => Promise<void> | void
+  onDelete?: (paths: string[]) => Promise<void> | void
+  onDownload?: (path: string) => Promise<void> | void
+  onRename?: (path: string, newName: string) => Promise<void> | void
+  onUpload?: (parentPath: string, files: FileList) => Promise<void> | void
+}
 interface TreeContextValue {
+  creatingIn: null | { parentPath: string; type: 'file' | 'folder' }
   expandDepth: number
   expandExclude?: string[]
+  fileActions?: FileActions
   indent: number
   log?: (msg: string) => void
+  navRef: React.RefObject<HTMLElement | null>
   onSelect?: (item: { id: string; name: string; path: string }) => void
   selectedId: null | string
+  selectedIds: Set<string>
+  setCreatingIn: (state: null | { parentPath: string; type: 'file' | 'folder' }) => void
   setSelectedId: (id: string) => void
+  setSelectedIds: (ids: Set<string>) => void
+  triggerUpload?: (parentPath: string) => void
 }
 interface TreeDataItem {
   actions?: ReactNode
@@ -420,6 +441,7 @@ interface TreeDataItem {
   disabled?: boolean
   icon?: ComponentType<{ className?: string }> | string
   id: string
+  mutable?: boolean
   name: string
   onClick?: () => void
   path: string
@@ -429,35 +451,82 @@ interface WorkspaceRef {
   openFile: (item: TreeDataItem) => void
   toggleSidebar: () => void
 }
+const EMPTY_SET = new Set<string>()
 const TreeContext = createContext<TreeContextValue>({
+  creatingIn: null,
   expandDepth: 0,
   indent: 16,
+  navRef: { current: null },
   selectedId: null,
-  setSelectedId: () => undefined
+  selectedIds: EMPTY_SET,
+  setCreatingIn: () => undefined,
+  setSelectedId: () => undefined,
+  setSelectedIds: () => undefined
 })
 const DockviewApiContext = createContext<DockviewApi | null>(null)
 const DepthContext = createContext(0)
 const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
-  const { expandDepth, expandExclude, indent, log: treeLog, onSelect, selectedId, setSelectedId } = use(TreeContext)
+  const {
+    creatingIn,
+    expandDepth,
+    expandExclude,
+    fileActions,
+    indent,
+    log: treeLog,
+    onSelect,
+    selectedId,
+    navRef,
+    selectedIds,
+    setCreatingIn,
+    setSelectedId,
+    setSelectedIds,
+    triggerUpload
+  } = use(TreeContext)
   const depth = use(DepthContext)
   const itemId = id ?? path ?? name
-  const isSelected = selectedId === itemId
+  const isSelected = selectedIds.size > 0 ? selectedIds.has(itemId) : selectedId === itemId
+  const isMultiSelected = selectedIds.has(itemId)
   const pl = `${String(depth * indent + 8)}px`
-  const select = () => {
-    setSelectedId(itemId)
-    onSelect?.({ id: itemId, name, path: path ?? name })
+  const select = (e?: { metaKey?: boolean; shiftKey?: boolean }) => {
+    if (e?.metaKey) {
+      const next = new Set(selectedIds)
+      if (next.size === 0 && selectedId) next.add(selectedId)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      setSelectedIds(next)
+    } else if (e?.shiftKey && selectedId && navRef.current) {
+      const els = navRef.current.querySelectorAll<HTMLElement>('[data-item-id]')
+      const ids = [...els].map(el => el.dataset.itemId ?? '')
+      const fromIdx = ids.indexOf(selectedId)
+      const toIdx = ids.indexOf(itemId)
+      if (fromIdx !== -1 && toIdx !== -1) {
+        const start = Math.min(fromIdx, toIdx)
+        const end = Math.max(fromIdx, toIdx)
+        setSelectedIds(new Set(ids.slice(start, end + 1)))
+      }
+    } else {
+      setSelectedIds(EMPTY_SET)
+      setSelectedId(itemId)
+      onSelect?.({ id: itemId, name, path: path ?? name })
+    }
   }
   return {
+    creatingIn,
     depth,
     expandDepth,
     expandExclude,
+    fileActions,
     iconClass: ICON_CLASS_HOVER,
     indent,
+    isMultiSelected,
     isSelected,
     itemId,
     log: treeLog,
     pl,
-    select
+    select,
+    selectedIds,
+    setCreatingIn,
+    triggerUpload
   }
 }
 const useIconsReady = () => {
@@ -485,37 +554,63 @@ const Tree = ({
   children,
   expandDepth = 0,
   expandExclude,
+  fileActions,
   indent = 16,
   log: treePropLog,
   onSelect,
   selectedId: controlledSelectedId,
+  triggerUpload,
   ...props
 }: ComponentProps<'nav'> & {
   expandDepth?: number
   expandExclude?: string[]
+  fileActions?: FileActions
   indent?: number
   log?: (msg: string) => void
   onSelect?: (item: { id: string; name: string; path: string }) => void
   selectedId?: null | string
+  triggerUpload?: (parentPath: string) => void
 }) => {
   const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null)
+  const [creatingIn, setCreatingIn] = useState<null | { parentPath: string; type: 'file' | 'folder' }>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(EMPTY_SET)
+  const navRef = useRef<HTMLElement>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
   const ctx = useMemo(
     () => ({
+      creatingIn,
       expandDepth,
       expandExclude,
+      fileActions,
       indent,
       log: treePropLog,
+      navRef,
       onSelect,
       selectedId,
-      setSelectedId: setInternalSelectedId
+      selectedIds,
+      setCreatingIn,
+      setSelectedId: setInternalSelectedId,
+      setSelectedIds,
+      triggerUpload
     }),
-    [expandDepth, expandExclude, indent, treePropLog, onSelect, selectedId]
+    [
+      creatingIn,
+      expandDepth,
+      expandExclude,
+      fileActions,
+      indent,
+      treePropLog,
+      onSelect,
+      selectedId,
+      selectedIds,
+      triggerUpload
+    ]
   )
   return (
     <TreeContext value={ctx}>
       <nav
         aria-label='File tree'
+        ref={navRef}
         role='tree'
         {...props}
         className={cn(
@@ -540,11 +635,58 @@ const Tree = ({
     </TreeContext>
   )
 }
+const InlineInput = ({
+  depth,
+  indent,
+  onCancel,
+  onSubmit,
+  type
+}: {
+  depth: number
+  indent: number
+  onCancel: () => void
+  onSubmit: (name: string) => void
+  type: 'file' | 'folder'
+}) => {
+  const [value, setValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
+  const submit = () => {
+    const trimmed = value.trim()
+    if (trimmed) onSubmit(trimmed)
+    else onCancel()
+  }
+  return (
+    <div className={cn(ITEM_CLASS, 'gap-1')} style={{ paddingLeft: `${String(depth * indent + 8)}px` }}>
+      {type === 'folder' ? (
+        <FolderIcon className={ICON_CLASS} name='new' />
+      ) : (
+        <FileIcon className={ICON_CLASS} name={value || 'untitled'} />
+      )}
+      <input
+        className='min-w-0 flex-1 bg-transparent text-sm outline-none border border-primary/50 px-1 rounded-sm'
+        onBlur={submit}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') submit()
+          if (e.key === 'Escape') onCancel()
+        }}
+        placeholder={type === 'file' ? 'filename' : 'folder name'}
+        ref={inputRef}
+        type='text'
+        value={value}
+      />
+    </div>
+  )
+}
 const TreeFolder = ({
   children,
   defaultOpen = false,
   disabled,
   id,
+  mutable,
   name,
   path,
   ...props
@@ -554,29 +696,41 @@ const TreeFolder = ({
   defaultOpen?: boolean
   disabled?: boolean
   id?: string
+  mutable?: boolean
   name: string
   path?: string
 }) => {
   const {
+    creatingIn,
     depth,
     expandDepth,
     expandExclude,
+    fileActions,
     iconClass,
     indent,
     log: treeLog,
+    isMultiSelected,
     isSelected,
     itemId,
     pl,
-    select
+    select,
+    selectedIds,
+    setCreatingIn,
+    triggerUpload
   } = useTreeItem({
     id,
     name,
     path
   })
-  const excluded = expandExclude?.some(ex => (path ?? name).startsWith(ex))
+  const folderPath = path ?? name
+  const excluded = expandExclude?.some(ex => folderPath.startsWith(ex))
   const shouldOpen = !excluded && (defaultOpen || depth < expandDepth)
   const [open, setOpen] = useState(shouldOpen ? [itemId] : [])
   const isOpen = open.includes(itemId)
+  const showingInput = creatingIn?.parentPath === folderPath
+  const ensureOpen = () => {
+    if (!isOpen) setOpen([itemId])
+  }
   return (
     <Accordion.Root
       onValueChange={v => {
@@ -590,11 +744,12 @@ const TreeFolder = ({
             <Accordion.Trigger
               className={cn(
                 ITEM_CLASS,
-                isSelected && 'bg-accent',
+                (isSelected || isMultiSelected) && 'bg-accent',
                 disabled && 'pointer-events-none opacity-50',
                 props.className
               )}
-              onClick={select}
+              data-item-id={itemId}
+              onClick={e => select(e)}
               role='treeitem'
               style={{ paddingLeft: pl }}>
               <FolderIcon className={iconClass} name={name} open={isOpen} />
@@ -602,10 +757,68 @@ const TreeFolder = ({
             </Accordion.Trigger>
           </ContextMenuTrigger>
           <ContextMenuContent>
+            {mutable && fileActions?.onCreateFile ? (
+              <ContextMenuItem
+                onClick={() => {
+                  ensureOpen()
+                  setCreatingIn({ parentPath: folderPath, type: 'file' })
+                }}>
+                <FilePlus /> New File
+              </ContextMenuItem>
+            ) : null}
+            {mutable && fileActions?.onCreateFolder ? (
+              <ContextMenuItem
+                onClick={() => {
+                  ensureOpen()
+                  setCreatingIn({ parentPath: folderPath, type: 'folder' })
+                }}>
+                <FolderPlus /> New Folder
+              </ContextMenuItem>
+            ) : null}
+            {mutable && fileActions?.onUpload && triggerUpload ? (
+              <ContextMenuItem onClick={() => triggerUpload(folderPath)}>
+                <Download className='rotate-180' /> Upload
+              </ContextMenuItem>
+            ) : null}
+            {mutable &&
+            (fileActions?.onCreateFile || fileActions?.onCreateFolder || (fileActions?.onUpload && triggerUpload)) ? (
+              <ContextMenuSeparator />
+            ) : null}
+            {mutable && fileActions?.onRename ? (
+              <ContextMenuItem
+                onClick={() => {
+                  // oxlint-disable-next-line eslint(no-alert)
+                  const newName = globalThis.prompt('Rename to:', name.split('/').at(-1))
+                  if (newName?.trim()) fileActions.onRename?.(folderPath, newName.trim())
+                }}>
+                <Pencil /> Rename
+              </ContextMenuItem>
+            ) : null}
+            {mutable && fileActions?.onDelete ? (
+              <ContextMenuItem
+                className='text-destructive focus:text-destructive'
+                onClick={() => {
+                  const paths: string[] = selectedIds.size > 1 && selectedIds.has(itemId) ? [...selectedIds] : [folderPath]
+                  fileActions.onDelete?.(paths)
+                }}>
+                <Trash2 /> Delete{selectedIds.size > 1 && selectedIds.has(itemId) ? ` (${String(selectedIds.size)})` : ''}
+              </ContextMenuItem>
+            ) : null}
+            {fileActions?.onDownload ? (
+              <ContextMenuItem
+                onClick={() => {
+                  fileActions.onDownload?.(folderPath)
+                }}>
+                <Download /> Download
+              </ContextMenuItem>
+            ) : null}
+            {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
+              <ContextMenuSeparator />
+            ) : null}
             <ContextMenuItem
               onClick={() => {
                 navigator.clipboard
-                  .writeText(path ?? name)
+                  .writeText(folderPath)
                   .then(() => toast('Copied to clipboard'))
                   .catch(() => undefined)
               }}>
@@ -615,7 +828,22 @@ const TreeFolder = ({
         </ContextMenu>
         <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
           <span className='absolute top-0 bottom-0 w-px bg-accent' style={{ left: `${String(depth * indent + 16)}px` }} />
-          <DepthContext value={depth + 1}>{children}</DepthContext>
+          <DepthContext value={depth + 1}>
+            {showingInput ? (
+              <InlineInput
+                depth={depth + 1}
+                indent={indent}
+                onCancel={() => setCreatingIn(null)}
+                onSubmit={n => {
+                  const cb = creatingIn.type === 'file' ? fileActions?.onCreateFile : fileActions?.onCreateFolder
+                  cb?.(folderPath, n)
+                  setCreatingIn(null)
+                }}
+                type={creatingIn.type}
+              />
+            ) : null}
+            {children}
+          </DepthContext>
         </Accordion.Panel>
       </Accordion.Item>
     </Accordion.Root>
@@ -625,6 +853,7 @@ const TreeFile = ({
   disabled,
   icon,
   id,
+  mutable,
   name,
   path,
   ...props
@@ -632,10 +861,11 @@ const TreeFile = ({
   disabled?: boolean
   icon?: ComponentType<{ className?: string }> | string
   id?: string
+  mutable?: boolean
   name: string
   path?: string
 }) => {
-  const { iconClass, isSelected, pl, select } = useTreeItem({
+  const { fileActions, iconClass, isMultiSelected, isSelected, itemId, pl, select, selectedIds } = useTreeItem({
     id,
     name,
     path
@@ -646,17 +876,18 @@ const TreeFile = ({
     <ContextMenu>
       <ContextMenuTrigger>
         <button
+          data-item-id={itemId}
           role='treeitem'
           type='button'
           {...props}
           className={cn(
             ITEM_CLASS,
-            isSelected && 'bg-accent',
+            (isSelected || isMultiSelected) && 'bg-accent',
             disabled && 'pointer-events-none opacity-50',
             props.className
           )}
           onClick={e => {
-            if (!disabled) select()
+            if (!disabled) select(e)
             props.onClick?.(e)
           }}
           style={{ paddingLeft: pl, ...props.style }}>
@@ -671,6 +902,38 @@ const TreeFile = ({
         </button>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        {mutable && fileActions?.onRename ? (
+          <ContextMenuItem
+            onClick={() => {
+              // oxlint-disable-next-line eslint(no-alert)
+              const newName = globalThis.prompt('Rename to:', name)
+              if (newName?.trim()) fileActions.onRename?.(path ?? name, newName.trim())
+            }}>
+            <Pencil /> Rename
+          </ContextMenuItem>
+        ) : null}
+        {fileActions?.onDownload ? (
+          <ContextMenuItem
+            onClick={() => {
+              fileActions.onDownload?.(path ?? name)
+            }}>
+            <Download /> Download
+          </ContextMenuItem>
+        ) : null}
+        {mutable && fileActions?.onDelete ? (
+          <ContextMenuItem
+            className='text-destructive focus:text-destructive'
+            onClick={() => {
+              const deletePaths: string[] =
+                selectedIds.size > 1 && selectedIds.has(itemId) ? [...selectedIds] : [path ?? name]
+              fileActions.onDelete?.(deletePaths)
+            }}>
+            <Trash2 /> Delete{selectedIds.size > 1 && selectedIds.has(itemId) ? ` (${String(selectedIds.size)})` : ''}
+          </ContextMenuItem>
+        ) : null}
+        {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
+          <ContextMenuSeparator />
+        ) : null}
         <ContextMenuItem
           onClick={() => {
             navigator.clipboard
@@ -698,7 +961,13 @@ const renderItems = ({
     if (item.children) {
       const { children, name } = compactFolder(item)
       nodes.push(
-        <TreeFolder disabled={item.disabled} id={item.id} key={item.id} name={name} path={item.path}>
+        <TreeFolder
+          disabled={item.disabled}
+          id={item.id}
+          key={item.id}
+          mutable={item.mutable}
+          name={name}
+          path={item.path}>
           {renderItems({ items: children, onItemClick, onItemDoubleClick })}
         </TreeFolder>
       )
@@ -709,6 +978,7 @@ const renderItems = ({
           icon={item.icon}
           id={item.id}
           key={item.id}
+          mutable={item.mutable}
           name={item.name}
           onClick={() => {
             item.onClick?.()
@@ -725,21 +995,25 @@ const FileTree = ({
   data,
   expandDepth = 0,
   expandExclude,
+  fileActions,
   initialSelectedItemId,
   log: fileTreeLog,
   onDoubleClick: onDoubleClickProp,
   onSelectChange,
-  selectedId: controlledId
+  selectedId: controlledId,
+  triggerUpload
 }: {
   className?: string
   data: TreeDataItem | TreeDataItem[]
   expandDepth?: number
   expandExclude?: string[]
+  fileActions?: FileActions
   initialSelectedItemId?: string
   log?: (msg: string) => void
   onDoubleClick?: (item: TreeDataItem) => void
   onSelectChange?: (item: TreeDataItem | undefined) => void
   selectedId?: null | string
+  triggerUpload?: (parentPath: string) => void
 }) => {
   const items = Array.isArray(data) ? data : [data]
   return (
@@ -747,8 +1021,10 @@ const FileTree = ({
       className={className}
       expandDepth={expandDepth}
       expandExclude={expandExclude}
+      fileActions={fileActions}
       log={fileTreeLog}
-      selectedId={controlledId ?? initialSelectedItemId}>
+      selectedId={controlledId ?? initialSelectedItemId}
+      triggerUpload={triggerUpload}>
       <div className='min-w-max'>
         {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
       </div>
@@ -1237,6 +1513,7 @@ const Workspace = ({
   editorOptions,
   expandDepth = 0,
   expandExclude,
+  fileActions,
   files,
   initialFiles,
   onFilesChange,
@@ -1258,6 +1535,7 @@ const Workspace = ({
   editorOptions?: Record<string, unknown>
   expandDepth?: number
   expandExclude?: string[]
+  fileActions?: FileActions
   files?: VirtualFile[]
   initialFiles?: string[]
   onFilesChange?: (files: string[]) => void
@@ -1867,50 +2145,157 @@ const Workspace = ({
     const bottom = files?.filter(f => f.pin === 'bottom').map(toItem) ?? []
     return [...top, ...mid, ...(tree ?? []), ...bottom]
   }, [files, tree])
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+  const [uploadTarget, setUploadTarget] = useState('')
+  const [dragOver, setDragOver] = useState(false)
+  const [rootCreating, setRootCreating] = useState<null | { type: 'file' | 'folder' }>(null)
   if (!mounted) return null
+  const handleUploadInput = (fileList: FileList | null) => {
+    if (fileList && fileActions?.onUpload) fileActions.onUpload(uploadTarget, fileList)
+  }
+  const handleDrop = (e: React.DragEvent, parentPath: string) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (e.dataTransfer.files.length > 0 && fileActions?.onUpload) fileActions.onUpload(parentPath, e.dataTransfer.files)
+  }
   const sidebarContent = mergedTree ? (
     <div className='flex h-full flex-col'>
       <div className='flex items-center justify-between px-3 py-1.5'>
         <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
-        <button
-          className='text-muted-foreground hover:text-foreground transition-colors'
-          onClick={() => {
-            log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
-            setTreeCollapsed(c => !c)
-            setTreeKey(k => k + 1)
-          }}
-          title={treeCollapsed ? 'Expand All' : 'Collapse All'}
-          type='button'>
-          {treeCollapsed ? <ChevronRight className='stroke-1 size-4' /> : <ChevronsDownUp className='stroke-1 size-4' />}
-        </button>
+        <div className='flex items-center gap-0.5'>
+          {fileActions?.onCreateFile ? (
+            <button
+              className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              onClick={() => setRootCreating({ type: 'file' })}
+              title='New File'
+              type='button'>
+              <FilePlus className='stroke-1 size-4' />
+            </button>
+          ) : null}
+          {fileActions?.onCreateFolder ? (
+            <button
+              className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              onClick={() => setRootCreating({ type: 'folder' })}
+              title='New Folder'
+              type='button'>
+              <FolderPlus className='stroke-1 size-4' />
+            </button>
+          ) : null}
+          {fileActions?.onUpload ? (
+            <button
+              className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              onClick={() => {
+                setUploadTarget('')
+                uploadInputRef.current?.click()
+              }}
+              title='Upload'
+              type='button'>
+              <Download className='stroke-1 size-4 rotate-180' />
+            </button>
+          ) : null}
+          <button
+            className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+            onClick={() => {
+              log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
+              setTreeCollapsed(c => !c)
+              setTreeKey(k => k + 1)
+            }}
+            title={treeCollapsed ? 'Expand All' : 'Collapse All'}
+            type='button'>
+            {treeCollapsed ? <ChevronRight className='stroke-1 size-4' /> : <ChevronsDownUp className='stroke-1 size-4' />}
+          </button>
+        </div>
       </div>
-      <FileTree
-        className='min-h-0 flex-1 overflow-auto'
-        data={mergedTree}
-        expandDepth={treeCollapsed ? 0 : expandDepth}
-        expandExclude={expandExclude}
-        key={treeKey}
-        log={log}
-        onDoubleClick={item => {
-          if (item.children) return
-          if (!item.id.startsWith(VIRTUAL_PREFIX)) {
-            pinFile(item)
-            log(`Double-click pinned: ${item.name}`)
-          }
+      <input
+        className='hidden'
+        multiple
+        onChange={e => {
+          handleUploadInput(e.target.files)
+          e.target.value = ''
         }}
-        onSelectChange={item => {
-          if (!item) return
-          if (item.children) {
-            log(`Folder: ${item.name}`)
-            return
-          }
-          if (item.id.startsWith(VIRTUAL_PREFIX)) {
-            const vf = files?.find(f => virtualFileId(f.name) === item.id)
-            if (vf) openVirtualFile(vf)
-          } else openFile(item)
-        }}
-        selectedId={activeFileId}
+        ref={uploadInputRef}
+        type='file'
       />
+      <ContextMenu>
+        <ContextMenuTrigger
+          className={cn('min-h-0 flex-1 overflow-auto block', dragOver && 'ring-2 ring-inset ring-primary/30')}
+          onDragLeave={() => setDragOver(false)}
+          onDragOver={e => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
+          onDrop={e => handleDrop(e, '')}>
+          {rootCreating ? (
+            <InlineInput
+              depth={0}
+              indent={16}
+              onCancel={() => setRootCreating(null)}
+              onSubmit={n => {
+                const cb = rootCreating.type === 'file' ? fileActions?.onCreateFile : fileActions?.onCreateFolder
+                cb?.('', n)
+                setRootCreating(null)
+              }}
+              type={rootCreating.type}
+            />
+          ) : null}
+          <FileTree
+            data={mergedTree}
+            expandDepth={treeCollapsed ? 0 : expandDepth}
+            expandExclude={expandExclude}
+            fileActions={fileActions}
+            key={treeKey}
+            log={log}
+            onDoubleClick={item => {
+              if (item.children) return
+              if (!item.id.startsWith(VIRTUAL_PREFIX)) {
+                pinFile(item)
+                log(`Double-click pinned: ${item.name}`)
+              }
+            }}
+            onSelectChange={item => {
+              if (!item) return
+              if (item.children) {
+                log(`Folder: ${item.name}`)
+                return
+              }
+              if (item.id.startsWith(VIRTUAL_PREFIX)) {
+                const vf = files?.find(f => virtualFileId(f.name) === item.id)
+                if (vf) openVirtualFile(vf)
+              } else openFile(item)
+            }}
+            selectedId={activeFileId}
+            triggerUpload={
+              fileActions?.onUpload
+                ? (parentPath: string) => {
+                    setUploadTarget(parentPath)
+                    uploadInputRef.current?.click()
+                  }
+                : undefined
+            }
+          />
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {fileActions?.onCreateFile ? (
+            <ContextMenuItem onClick={() => setRootCreating({ type: 'file' })}>
+              <FilePlus /> New File
+            </ContextMenuItem>
+          ) : null}
+          {fileActions?.onCreateFolder ? (
+            <ContextMenuItem onClick={() => setRootCreating({ type: 'folder' })}>
+              <FolderPlus /> New Folder
+            </ContextMenuItem>
+          ) : null}
+          {fileActions?.onUpload ? (
+            <ContextMenuItem
+              onClick={() => {
+                setUploadTarget('')
+                uploadInputRef.current?.click()
+              }}>
+              <Download className='rotate-180' /> Upload
+            </ContextMenuItem>
+          ) : null}
+        </ContextMenuContent>
+      </ContextMenu>
     </div>
   ) : (
     sidebarChildren
@@ -1964,5 +2349,5 @@ const Workspace = ({
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
-export type { FileTreeProps, TabProps, TreeDataItem, VirtualFile, WorkspaceProps, WorkspaceRef }
+export type { FileActions, FileTreeProps, TabProps, TreeDataItem, VirtualFile, WorkspaceProps, WorkspaceRef }
 export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }

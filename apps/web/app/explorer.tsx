@@ -2,14 +2,43 @@
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/catch-or-return, promise/no-nesting */
 'use client'
-import type { TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
+import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Workspace } from 'idecn'
 import { AlertTriangle, Moon, PanelLeft, Search, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchFile, fetchTree } from './actions'
+import { toast } from 'sonner'
+import { downloadFile, downloadFolder, fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
+const triggerDownload = (base64: string, filename: string) => {
+  const bytes = Uint8Array.from(atob(base64), c => c.codePointAt(0) ?? 0)
+  const blob = new Blob([bytes])
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+const zipFiles = async (files: { content: string; path: string }[], folderName: string) => {
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
+  for (const f of files) zip.file(f.path, atob(f.content), { binary: true })
+  const blob = await zip.generateAsync({ type: 'blob' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${folderName}.zip`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+const markMutable = (items: TreeDataItem[]): TreeDataItem[] =>
+  items.map(item => ({
+    ...item,
+    children: item.children ? markMutable(item.children) : undefined,
+    mutable: true
+  }))
 const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
   const [repo, setRepo] = useState(DEFAULT_REPO)
   const [tree, setTree] = useState(initialTree)
@@ -90,6 +119,49 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
           )
       )
   }, [initialTree, log, repo])
+  const demoActions: FileActions = useMemo(
+    () => ({
+      onCreateFile: (parentPath, name) => {
+        toast(`Demo: would create file "${name}" in ${parentPath || '/'}`)
+        log(`Create file: ${parentPath}/${name}`)
+      },
+      onCreateFolder: (parentPath, name) => {
+        toast(`Demo: would create folder "${name}" in ${parentPath || '/'}`)
+        log(`Create folder: ${parentPath}/${name}`)
+      },
+      onDelete: paths => {
+        toast(`Demo: would delete ${String(paths.length)} item(s)`)
+        log(`Delete: ${paths.join(', ')}`)
+      },
+      onDownload: async path => {
+        log(`Download: ${path}`)
+        const file = await downloadFile(repo, path).catch(() => null)
+        if (file) {
+          triggerDownload(file.base64, file.name)
+          toast(`Downloaded ${file.name}`)
+          log(`Downloaded file: ${file.name}`)
+          return
+        }
+        const folder = await downloadFolder(repo, path).catch(() => null)
+        if (folder) {
+          await zipFiles(folder.files, folder.name)
+          toast(`Downloaded ${folder.name}.zip`)
+          log(`Downloaded folder: ${folder.name}.zip`)
+          return
+        }
+        toast.error(`Failed to download "${path}"`)
+      },
+      onRename: (path, newName) => {
+        toast(`Demo: would rename "${path}" to "${newName}"`)
+        log(`Rename: ${path} → ${newName}`)
+      },
+      onUpload: (parentPath, fileList) => {
+        toast(`Demo: would upload ${String(fileList.length)} file(s) to ${parentPath || '/'}`)
+        log(`Upload: ${String(fileList.length)} files to ${parentPath || '/'}`)
+      }
+    }),
+    [log, repo]
+  )
   const submit = () => {
     const v = input.trim()
     if (v && v !== repo) {
@@ -170,6 +242,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
         className='flex-1'
         expandDepth={2}
         expandExclude={EXPAND_EXCLUDE}
+        fileActions={demoActions}
         files={files}
         initialFiles={DEFAULT_FILES}
         onOpenFile={async item => {
@@ -197,7 +270,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
           return null
         }}
         ref={ref}
-        tree={tree}
+        tree={markMutable(tree)}
       />
     </div>
   )
