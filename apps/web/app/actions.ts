@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/suspicious/useAwait: server actions must be async */
+/* eslint-disable @typescript-eslint/require-await */
 'use server'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -121,4 +122,46 @@ const fetchFile = async (repo: string, path: string): Promise<null | string> => 
   const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
   return r.ok ? r.text() : null
 }
-export { fetchFile, fetchTree }
+const downloadFile = async (repo: string, path: string): Promise<null | { base64: string; name: string }> => {
+  if (repo === DEFAULT_REPO) {
+    const full = resolve(root, path)
+    if (!full.startsWith(root)) return null
+    try {
+      const buf = readFileSync(full)
+      return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
+    } catch {
+      return null
+    }
+  }
+  const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
+  if (!r.ok) return null
+  const buf = Buffer.from(await r.arrayBuffer())
+  return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
+}
+const collectFiles = (dir: string, prefix: string): { content: string; path: string }[] => {
+  const results: { content: string; path: string }[] = []
+  for (const name of readdirSync(dir).toSorted())
+    if (!ignored.has(name)) {
+      const full = resolve(dir, name)
+      const rel = prefix ? `${prefix}/${name}` : name
+      if (statSync(full).isDirectory()) results.push(...collectFiles(full, rel))
+      else results.push({ content: readFileSync(full).toString('base64'), path: rel })
+    }
+  return results
+}
+const downloadFolder = async (
+  repo: string,
+  path: string
+): Promise<null | { files: { content: string; path: string }[]; name: string }> => {
+  if (repo === DEFAULT_REPO) {
+    const full = resolve(root, path)
+    if (!full.startsWith(root)) return null
+    try {
+      return { files: collectFiles(full, ''), name: path.split('/').at(-1) ?? 'folder' }
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+export { downloadFile, downloadFolder, fetchFile, fetchTree }
