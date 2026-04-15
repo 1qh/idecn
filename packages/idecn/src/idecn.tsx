@@ -7,10 +7,9 @@
 /** biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: nav with tree role for keyboard nav */
 /** biome-ignore-all lint/performance/noImgElement: image preview panel */
 /** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
-/** biome-ignore-all lint/suspicious/noAlert: rename prompt in context menu */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: hooks returning component data */
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, no-alert */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element, eslint(no-alert) */
+/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { Monaco } from '@monaco-editor/loader'
@@ -427,9 +426,11 @@ interface TreeContextValue {
   log?: (msg: string) => void
   navRef: React.RefObject<HTMLElement | null>
   onSelect?: (item: { id: string; name: string; path: string }) => void
+  renamingId: null | string
   selectedId: null | string
   selectedIds: Set<string>
   setCreatingIn: (state: null | { parentPath: string; type: 'file' | 'folder' }) => void
+  setRenamingId: (id: null | string) => void
   setSelectedId: (id: string) => void
   setSelectedIds: (ids: Set<string>) => void
   triggerUpload?: (parentPath: string) => void
@@ -457,9 +458,11 @@ const TreeContext = createContext<TreeContextValue>({
   expandDepth: 0,
   indent: 16,
   navRef: { current: null },
+  renamingId: null,
   selectedId: null,
   selectedIds: EMPTY_SET,
   setCreatingIn: () => undefined,
+  setRenamingId: () => undefined,
   setSelectedId: () => undefined,
   setSelectedIds: () => undefined
 })
@@ -477,7 +480,9 @@ const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: str
     selectedId,
     navRef,
     selectedIds,
+    renamingId,
     setCreatingIn,
+    setRenamingId,
     setSelectedId,
     setSelectedIds,
     triggerUpload
@@ -523,9 +528,11 @@ const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: str
     itemId,
     log: treeLog,
     pl,
+    renamingId,
     select,
     selectedIds,
     setCreatingIn,
+    setRenamingId,
     triggerUpload
   }
 }
@@ -574,6 +581,7 @@ const Tree = ({
   const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null)
   const [creatingIn, setCreatingIn] = useState<null | { parentPath: string; type: 'file' | 'folder' }>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(EMPTY_SET)
+  const [renamingId, setRenamingId] = useState<null | string>(null)
   const navRef = useRef<HTMLElement>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
   const ctx = useMemo(
@@ -586,9 +594,11 @@ const Tree = ({
       log: treePropLog,
       navRef,
       onSelect,
+      renamingId,
       selectedId,
       selectedIds,
       setCreatingIn,
+      setRenamingId,
       setSelectedId: setInternalSelectedId,
       setSelectedIds,
       triggerUpload
@@ -601,6 +611,7 @@ const Tree = ({
       indent,
       treePropLog,
       onSelect,
+      renamingId,
       selectedId,
       selectedIds,
       triggerUpload
@@ -681,6 +692,59 @@ const InlineInput = ({
     </div>
   )
 }
+const RenameInput = ({
+  currentName,
+  depth,
+  indent,
+  isFolder,
+  onCancel,
+  onSubmit
+}: {
+  currentName: string
+  depth: number
+  indent: number
+  isFolder: boolean
+  onCancel: () => void
+  onSubmit: (newName: string) => void
+}) => {
+  const [value, setValue] = useState(currentName)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const el = inputRef.current
+      if (!el) return
+      el.focus()
+      const dot = currentName.lastIndexOf('.')
+      el.setSelectionRange(0, dot > 0 ? dot : currentName.length)
+    })
+  }, [currentName])
+  const submit = () => {
+    const trimmed = value.trim()
+    if (trimmed && trimmed !== currentName) onSubmit(trimmed)
+    else onCancel()
+  }
+  return (
+    <div className={cn(ITEM_CLASS, 'gap-1')} style={{ paddingLeft: `${String(depth * indent + 8)}px` }}>
+      {isFolder ? (
+        <FolderIcon className={ICON_CLASS} name={value || currentName} />
+      ) : (
+        <FileIcon className={ICON_CLASS} name={value || currentName} />
+      )}
+      <input
+        className='min-w-0 flex-1 bg-transparent text-sm outline-none border border-primary/50 px-1 rounded-sm'
+        onBlur={submit}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') submit()
+          if (e.key === 'Escape') onCancel()
+        }}
+        ref={inputRef}
+        type='text'
+        value={value}
+      />
+    </div>
+  )
+}
 const TreeFolder = ({
   children,
   defaultOpen = false,
@@ -713,9 +777,11 @@ const TreeFolder = ({
     isSelected,
     itemId,
     pl,
+    renamingId,
     select,
     selectedIds,
     setCreatingIn,
+    setRenamingId,
     triggerUpload
   } = useTreeItem({
     id,
@@ -723,6 +789,7 @@ const TreeFolder = ({
     path
   })
   const folderPath = path ?? name
+  const isRenaming = renamingId === itemId
   const excluded = expandExclude?.some(ex => folderPath.startsWith(ex))
   const shouldOpen = !excluded && (defaultOpen || depth < expandDepth)
   const [open, setOpen] = useState(shouldOpen ? [itemId] : [])
@@ -739,93 +806,104 @@ const TreeFolder = ({
       }}
       value={open}>
       <Accordion.Item value={itemId}>
-        <ContextMenu>
-          <ContextMenuTrigger>
-            <Accordion.Trigger
-              className={cn(
-                ITEM_CLASS,
-                (isSelected || isMultiSelected) && 'bg-accent',
-                disabled && 'pointer-events-none opacity-50',
-                props.className
-              )}
-              data-item-id={itemId}
-              onClick={e => select(e)}
-              role='treeitem'
-              style={{ paddingLeft: pl }}>
-              <FolderIcon className={iconClass} name={name} open={isOpen} />
-              {name}
-            </Accordion.Trigger>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            {mutable && fileActions?.onCreateFile ? (
+        {isRenaming ? (
+          <RenameInput
+            currentName={name.split('/').at(-1) ?? name}
+            depth={depth}
+            indent={indent}
+            isFolder
+            onCancel={() => setRenamingId(null)}
+            onSubmit={newName => {
+              fileActions?.onRename?.(folderPath, newName)
+              setRenamingId(null)
+            }}
+          />
+        ) : (
+          <ContextMenu>
+            <ContextMenuTrigger>
+              <Accordion.Trigger
+                className={cn(
+                  ITEM_CLASS,
+                  (isSelected || isMultiSelected) && 'bg-accent',
+                  disabled && 'pointer-events-none opacity-50',
+                  props.className
+                )}
+                data-item-id={itemId}
+                onClick={e => select(e)}
+                role='treeitem'
+                style={{ paddingLeft: pl }}>
+                <FolderIcon className={iconClass} name={name} open={isOpen} />
+                {name}
+              </Accordion.Trigger>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              {mutable && fileActions?.onCreateFile ? (
+                <ContextMenuItem
+                  onClick={() => {
+                    ensureOpen()
+                    setCreatingIn({ parentPath: folderPath, type: 'file' })
+                  }}>
+                  <FilePlus /> New File
+                </ContextMenuItem>
+              ) : null}
+              {mutable && fileActions?.onCreateFolder ? (
+                <ContextMenuItem
+                  onClick={() => {
+                    ensureOpen()
+                    setCreatingIn({ parentPath: folderPath, type: 'folder' })
+                  }}>
+                  <FolderPlus /> New Folder
+                </ContextMenuItem>
+              ) : null}
+              {mutable && fileActions?.onUpload && triggerUpload ? (
+                <ContextMenuItem onClick={() => triggerUpload(folderPath)}>
+                  <Download className='rotate-180' /> Upload
+                </ContextMenuItem>
+              ) : null}
+              {mutable &&
+              (fileActions?.onCreateFile || fileActions?.onCreateFolder || (fileActions?.onUpload && triggerUpload)) ? (
+                <ContextMenuSeparator />
+              ) : null}
+              {mutable && fileActions?.onRename ? (
+                <ContextMenuItem onClick={() => setRenamingId(itemId)}>
+                  <Pencil /> Rename
+                </ContextMenuItem>
+              ) : null}
+              {mutable && fileActions?.onDelete ? (
+                <ContextMenuItem
+                  className='text-destructive focus:text-destructive'
+                  onClick={() => {
+                    const paths: string[] =
+                      selectedIds.size > 1 && selectedIds.has(itemId) ? [...selectedIds] : [folderPath]
+                    fileActions.onDelete?.(paths)
+                  }}>
+                  <Trash2 /> Delete
+                  {selectedIds.size > 1 && selectedIds.has(itemId) ? ` (${String(selectedIds.size)})` : ''}
+                </ContextMenuItem>
+              ) : null}
+              {fileActions?.onDownload ? (
+                <ContextMenuItem
+                  onClick={() => {
+                    fileActions.onDownload?.(folderPath)
+                  }}>
+                  <Download /> Download
+                </ContextMenuItem>
+              ) : null}
+              {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
+                <ContextMenuSeparator />
+              ) : null}
               <ContextMenuItem
                 onClick={() => {
-                  ensureOpen()
-                  setCreatingIn({ parentPath: folderPath, type: 'file' })
+                  navigator.clipboard
+                    .writeText(folderPath)
+                    .then(() => toast('Copied to clipboard'))
+                    .catch(() => undefined)
                 }}>
-                <FilePlus /> New File
+                <ClipboardCopy /> Copy Path
               </ContextMenuItem>
-            ) : null}
-            {mutable && fileActions?.onCreateFolder ? (
-              <ContextMenuItem
-                onClick={() => {
-                  ensureOpen()
-                  setCreatingIn({ parentPath: folderPath, type: 'folder' })
-                }}>
-                <FolderPlus /> New Folder
-              </ContextMenuItem>
-            ) : null}
-            {mutable && fileActions?.onUpload && triggerUpload ? (
-              <ContextMenuItem onClick={() => triggerUpload(folderPath)}>
-                <Download className='rotate-180' /> Upload
-              </ContextMenuItem>
-            ) : null}
-            {mutable &&
-            (fileActions?.onCreateFile || fileActions?.onCreateFolder || (fileActions?.onUpload && triggerUpload)) ? (
-              <ContextMenuSeparator />
-            ) : null}
-            {mutable && fileActions?.onRename ? (
-              <ContextMenuItem
-                onClick={() => {
-                  // oxlint-disable-next-line eslint(no-alert)
-                  const newName = globalThis.prompt('Rename to:', name.split('/').at(-1))
-                  if (newName?.trim()) fileActions.onRename?.(folderPath, newName.trim())
-                }}>
-                <Pencil /> Rename
-              </ContextMenuItem>
-            ) : null}
-            {mutable && fileActions?.onDelete ? (
-              <ContextMenuItem
-                className='text-destructive focus:text-destructive'
-                onClick={() => {
-                  const paths: string[] = selectedIds.size > 1 && selectedIds.has(itemId) ? [...selectedIds] : [folderPath]
-                  fileActions.onDelete?.(paths)
-                }}>
-                <Trash2 /> Delete{selectedIds.size > 1 && selectedIds.has(itemId) ? ` (${String(selectedIds.size)})` : ''}
-              </ContextMenuItem>
-            ) : null}
-            {fileActions?.onDownload ? (
-              <ContextMenuItem
-                onClick={() => {
-                  fileActions.onDownload?.(folderPath)
-                }}>
-                <Download /> Download
-              </ContextMenuItem>
-            ) : null}
-            {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
-              <ContextMenuSeparator />
-            ) : null}
-            <ContextMenuItem
-              onClick={() => {
-                navigator.clipboard
-                  .writeText(folderPath)
-                  .then(() => toast('Copied to clipboard'))
-                  .catch(() => undefined)
-              }}>
-              <ClipboardCopy /> Copy Path
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
+            </ContextMenuContent>
+          </ContextMenu>
+        )}
         <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
           <span className='absolute top-0 bottom-0 w-px bg-accent' style={{ left: `${String(depth * indent + 16)}px` }} />
           <DepthContext value={depth + 1}>
@@ -865,13 +943,41 @@ const TreeFile = ({
   name: string
   path?: string
 }) => {
-  const { fileActions, iconClass, isMultiSelected, isSelected, itemId, pl, select, selectedIds } = useTreeItem({
+  const {
+    depth,
+    fileActions,
+    iconClass,
+    indent,
+    isMultiSelected,
+    isSelected,
+    itemId,
+    pl,
+    renamingId,
+    select,
+    selectedIds,
+    setRenamingId
+  } = useTreeItem({
     id,
     name,
     path
   })
   const CustomIcon = typeof icon === 'function' ? icon : undefined
+  const isRenaming = renamingId === itemId
   useIconsReady()
+  if (isRenaming)
+    return (
+      <RenameInput
+        currentName={name}
+        depth={depth}
+        indent={indent}
+        isFolder={false}
+        onCancel={() => setRenamingId(null)}
+        onSubmit={newName => {
+          fileActions?.onRename?.(path ?? name, newName)
+          setRenamingId(null)
+        }}
+      />
+    )
   return (
     <ContextMenu>
       <ContextMenuTrigger>
@@ -903,12 +1009,7 @@ const TreeFile = ({
       </ContextMenuTrigger>
       <ContextMenuContent>
         {mutable && fileActions?.onRename ? (
-          <ContextMenuItem
-            onClick={() => {
-              // oxlint-disable-next-line eslint(no-alert)
-              const newName = globalThis.prompt('Rename to:', name)
-              if (newName?.trim()) fileActions.onRename?.(path ?? name, newName.trim())
-            }}>
+          <ContextMenuItem onClick={() => setRenamingId(itemId)}>
             <Pencil /> Rename
           </ContextMenuItem>
         ) : null}
