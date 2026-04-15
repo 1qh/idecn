@@ -132,9 +132,9 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
         }
         const folder = await downloadFolder(repo, path).catch(() => null)
         if (folder) {
-          triggerDownload(folder.base64, `${folder.name}.tar.gz`)
-          toast(`Downloaded ${folder.name}.tar.gz`)
-          log(`Downloaded folder: ${folder.name}.tar.gz`)
+          triggerDownload(folder.base64, `${folder.name}.zip`)
+          toast(`Downloaded ${folder.name}.zip`)
+          log(`Downloaded folder: ${folder.name}.zip`)
           return
         }
         toast.error(`Failed to download "${path}"`)

@@ -137,15 +137,27 @@ const downloadFile = async (repo: string, path: string): Promise<null | { base64
   const buf = Buffer.from(await r.arrayBuffer())
   return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
 }
+const collectFiles = (dir: string, prefix: string): { content: Buffer; path: string }[] => {
+  const results: { content: Buffer; path: string }[] = []
+  for (const name of readdirSync(dir).toSorted())
+    if (!ignored.has(name)) {
+      const full = resolve(dir, name)
+      const rel = prefix ? `${prefix}/${name}` : name
+      if (statSync(full).isDirectory()) results.push(...collectFiles(full, rel))
+      else results.push({ content: readFileSync(full), path: rel })
+    }
+  return results
+}
 const downloadFolder = async (repo: string, path: string): Promise<null | { base64: string; name: string }> => {
   if (repo === DEFAULT_REPO) {
     const full = resolve(root, path)
     if (!full.startsWith(root)) return null
     try {
       const folderName = path.split('/').at(-1) ?? 'folder'
-      const { execSync } = await import('node:child_process')
-      const tarBuf = execSync(`tar -czf - -C '${full}' .`, { maxBuffer: 50 * 1024 * 1024 })
-      return { base64: Buffer.from(tarBuf).toString('base64'), name: folderName }
+      const { downloadZip } = await import('client-zip')
+      const entries = collectFiles(full, '').map(f => ({ input: new Uint8Array(f.content), name: f.path }))
+      const buf = Buffer.from(await downloadZip(entries).arrayBuffer())
+      return { base64: buf.toString('base64'), name: folderName }
     } catch {
       return null
     }

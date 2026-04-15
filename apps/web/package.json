@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
+    "client-zip": "latest",
     "idecn": "workspace:*",
     "next": "latest"
   }
