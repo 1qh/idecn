@@ -8,7 +8,6 @@
   "dependencies": {
     "@a/ui": "workspace:*",
     "idecn": "workspace:*",
-    "jszip": "latest",
     "next": "latest"
   }
 }

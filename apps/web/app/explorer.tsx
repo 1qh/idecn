@@ -21,18 +21,6 @@ const triggerDownload = (base64: string, filename: string) => {
   a.click()
   URL.revokeObjectURL(url)
 }
-const zipFiles = async (files: { content: string; path: string }[], folderName: string) => {
-  const { default: JSZip } = await import('jszip')
-  const zip = new JSZip()
-  for (const f of files) zip.file(f.path, atob(f.content), { binary: true })
-  const blob = await zip.generateAsync({ type: 'blob' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${folderName}.zip`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 const markMutable = (items: TreeDataItem[]): TreeDataItem[] =>
   items.map(item => ({
     ...item,
@@ -144,9 +132,9 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
         }
         const folder = await downloadFolder(repo, path).catch(() => null)
         if (folder) {
-          await zipFiles(folder.files, folder.name)
-          toast(`Downloaded ${folder.name}.zip`)
-          log(`Downloaded folder: ${folder.name}.zip`)
+          triggerDownload(folder.base64, `${folder.name}.tar.gz`)
+          toast(`Downloaded ${folder.name}.tar.gz`)
+          log(`Downloaded folder: ${folder.name}.tar.gz`)
           return
         }
         toast.error(`Failed to download "${path}"`)
