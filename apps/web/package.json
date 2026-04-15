@@ -2,7 +2,8 @@
   "name": "@idecn/web",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "prebuild": "bun scripts/gen-repo.ts",
+    "build": "bun scripts/gen-repo.ts && next build",
     "dev": "next dev --turbopack"
   },
   "dependencies": {

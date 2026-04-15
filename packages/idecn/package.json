@@ -1,6 +1,6 @@
 {
   "name": "idecn",
-  "version": "0.0.9",
+  "version": "0.0.8",
   "private": false,
   "description": "IDE-like workspace and file tree components for React with material icons",
   "keywords": [

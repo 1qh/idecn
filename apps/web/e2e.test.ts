@@ -377,8 +377,12 @@ test.describe('folder context menu', () => {
 test.describe('empty space context menu', () => {
   test('right-click empty area shows New File, New Folder, Upload', async ({ page }) => {
     await waitTree(page)
+    await page.locator('button[title="Collapse All"]').click()
+    await page.waitForTimeout(300)
     const treeArea = page.locator(TREE).locator('..')
-    await treeArea.click({ button: 'right', position: { x: 10, y: 500 } })
+    const box = await treeArea.boundingBox()
+    if (!box) throw new Error('no tree area')
+    await treeArea.click({ button: 'right', position: { x: 10, y: box.height - 20 } })
     await page.waitForSelector('[role="menuitem"]', { timeout: 5000 })
     await expect(page.locator('[role="menuitem"]:has-text("New File")')).toBeVisible()
     await expect(page.locator('[role="menuitem"]:has-text("New Folder")')).toBeVisible()
