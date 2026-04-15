@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/useAwait: server actions must be async */
 'use server'
+import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DEFAULT_REPO } from './constants'
@@ -211,7 +212,6 @@ const downloadFolder = async (repo: string, path: string): Promise<null | { base
   if (repo === DEFAULT_REPO)
     try {
       const folderName = path.split('/').at(-1) ?? 'folder'
-      const { downloadZip } = await import('client-zip')
       const entries = collectLocalFiles(path).map(f => ({ input: new Uint8Array(f.content), name: f.path }))
       if (entries.length === 0) return null
       const buf = Buffer.from(await downloadZip(entries).arrayBuffer())
