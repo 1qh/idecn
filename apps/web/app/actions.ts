@@ -3,14 +3,29 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DEFAULT_REPO } from './constants'
-const root = existsSync(resolve(process.cwd(), '.gitignore')) ? process.cwd() : resolve(process.cwd(), '../..')
-const gitignore = (() => {
+const findRoot = (): null | string => {
+  const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]
+  for (const c of candidates) if (existsSync(resolve(c, '.gitignore'))) return c
+  return null
+}
+const root = findRoot()
+const bundledRepo = await (async (): Promise<Record<string, string>> => {
   try {
-    return readFileSync(resolve(root, '.gitignore'), 'utf8')
+    const mod = (await import('./_generated/repo.json')) as { default: Record<string, string> }
+    return mod.default
   } catch {
-    return ''
+    return {}
   }
 })()
+const gitignore = root
+  ? (() => {
+      try {
+        return readFileSync(resolve(root, '.gitignore'), 'utf8')
+      } catch {
+        return ''
+      }
+    })()
+  : ''
 const ignored = new Set([
   '.git',
   '.githooks',
@@ -45,39 +60,71 @@ const jsdelivrToTree = (files: JsdelivrFile[], prefix = ''): TreeItem[] => {
   }
   return items
 }
+const buildTreeFromPaths = (paths: string[]): TreeItem[] => {
+  const items: TreeItem[] = []
+  const dirs = new Map<string, TreeItem>()
+  const allPaths = new Set<string>()
+  for (const p of paths) {
+    allPaths.add(p)
+    const parts = p.split('/')
+    for (let i = 1; i < parts.length; i += 1) allPaths.add(parts.slice(0, i).join('/'))
+  }
+  const sorted = [...allPaths].toSorted((a, b) => {
+    const aIsDir = !paths.includes(a)
+    const bIsDir = !paths.includes(b)
+    if (aIsDir !== bIsDir) return aIsDir ? -1 : 1
+    return a.localeCompare(b)
+  })
+  for (const p of sorted) {
+    const parts = p.split('/')
+    const name = parts.at(-1) ?? p
+    const isDir = !paths.includes(p)
+    const node: TreeItem = { id: p, name, path: p }
+    if (isDir) {
+      node.children = []
+      dirs.set(p, node)
+    }
+    if (parts.length === 1) items.push(node)
+    else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
+  }
+  return items
+}
 const fetchTree = async (repo: string): Promise<TreeItem[]> => {
   if (repo === DEFAULT_REPO) {
-    const tree: { path: string; type: 'blob' | 'tree' }[] = []
-    const walk = (dir: string, prefix: string) => {
-      for (const name of readdirSync(dir).toSorted())
-        if (!ignored.has(name)) {
-          const full = resolve(dir, name)
-          const rel = prefix ? `${prefix}/${name}` : name
-          if (statSync(full).isDirectory()) {
-            tree.push({ path: rel, type: 'tree' })
-            walk(full, rel)
-          } else tree.push({ path: rel, type: 'blob' })
-        }
-    }
-    walk(root, '')
-    const items: TreeItem[] = []
-    const dirs = new Map<string, TreeItem>()
-    const sorted = [...tree].toSorted((a, b) => {
-      if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
-      return a.path.localeCompare(b.path)
-    })
-    for (const t of sorted) {
-      const parts = t.path.split('/')
-      const name = parts.at(-1) ?? t.path
-      const node: TreeItem = { id: t.path, name, path: t.path }
-      if (t.type === 'tree') {
-        node.children = []
-        dirs.set(t.path, node)
+    if (root) {
+      const tree: { path: string; type: 'blob' | 'tree' }[] = []
+      const walk = (dir: string, prefix: string) => {
+        for (const name of readdirSync(dir).toSorted())
+          if (!ignored.has(name)) {
+            const full = resolve(dir, name)
+            const rel = prefix ? `${prefix}/${name}` : name
+            if (statSync(full).isDirectory()) {
+              tree.push({ path: rel, type: 'tree' })
+              walk(full, rel)
+            } else tree.push({ path: rel, type: 'blob' })
+          }
       }
-      if (parts.length === 1) items.push(node)
-      else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
+      walk(root, '')
+      const items: TreeItem[] = []
+      const dirs = new Map<string, TreeItem>()
+      const sorted = [...tree].toSorted((a, b) => {
+        if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
+        return a.path.localeCompare(b.path)
+      })
+      for (const t of sorted) {
+        const parts = t.path.split('/')
+        const name = parts.at(-1) ?? t.path
+        const node: TreeItem = { id: t.path, name, path: t.path }
+        if (t.type === 'tree') {
+          node.children = []
+          dirs.set(t.path, node)
+        }
+        if (parts.length === 1) items.push(node)
+        else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
+      }
+      return items
     }
-    return items
+    return buildTreeFromPaths(Object.keys(bundledRepo))
   }
   const r = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
   if (!r.ok) throw new Error(`jsdelivr: ${String(r.status)}`)
@@ -97,20 +144,26 @@ const MIME: Record<string, string> = {
   svg: 'image/svg+xml',
   webp: 'image/webp'
 }
-const fetchFile = async (repo: string, path: string): Promise<null | string> => {
-  const ext = path.split('.').at(-1)?.toLowerCase() ?? ''
-  if (repo === DEFAULT_REPO) {
+const readLocal = (path: string): Buffer | null => {
+  if (root) {
     const full = resolve(root, path)
     if (!full.startsWith(root)) return null
     try {
-      if (IMAGE_EXTS.has(ext)) {
-        const buf = readFileSync(full)
-        return `data:${MIME[ext] ?? 'application/octet-stream'};base64,${buf.toString('base64')}`
-      }
-      return readFileSync(full, 'utf8')
+      return readFileSync(full)
     } catch {
       return null
     }
+  }
+  const b64 = bundledRepo[path]
+  return b64 ? Buffer.from(b64, 'base64') : null
+}
+const fetchFile = async (repo: string, path: string): Promise<null | string> => {
+  const ext = path.split('.').at(-1)?.toLowerCase() ?? ''
+  if (repo === DEFAULT_REPO) {
+    const buf = readLocal(path)
+    if (!buf) return null
+    if (IMAGE_EXTS.has(ext)) return `data:${MIME[ext] ?? 'application/octet-stream'};base64,${buf.toString('base64')}`
+    return buf.toString('utf8')
   }
   if (IMAGE_EXTS.has(ext)) {
     const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
@@ -123,45 +176,49 @@ const fetchFile = async (repo: string, path: string): Promise<null | string> => 
 }
 const downloadFile = async (repo: string, path: string): Promise<null | { base64: string; name: string }> => {
   if (repo === DEFAULT_REPO) {
-    const full = resolve(root, path)
-    if (!full.startsWith(root)) return null
-    try {
-      const buf = readFileSync(full)
-      return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
-    } catch {
-      return null
-    }
+    const buf = readLocal(path)
+    if (!buf) return null
+    return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
   }
   const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`)
   if (!r.ok) return null
   const buf = Buffer.from(await r.arrayBuffer())
   return { base64: buf.toString('base64'), name: path.split('/').at(-1) ?? 'file' }
 }
-const collectFiles = (dir: string, prefix: string): { content: Buffer; path: string }[] => {
+const collectLocalFiles = (prefix: string): { content: Buffer; path: string }[] => {
   const results: { content: Buffer; path: string }[] = []
-  for (const name of readdirSync(dir).toSorted())
-    if (!ignored.has(name)) {
-      const full = resolve(dir, name)
-      const rel = prefix ? `${prefix}/${name}` : name
-      if (statSync(full).isDirectory()) results.push(...collectFiles(full, rel))
-      else results.push({ content: readFileSync(full), path: rel })
+  if (root) {
+    const fullPrefix = resolve(root, prefix)
+    const walk = (dir: string, rel: string) => {
+      for (const name of readdirSync(dir).toSorted())
+        if (!ignored.has(name)) {
+          const full = resolve(dir, name)
+          const r = rel ? `${rel}/${name}` : name
+          if (statSync(full).isDirectory()) walk(full, r)
+          else results.push({ content: readFileSync(full), path: r })
+        }
     }
+    walk(fullPrefix, '')
+    return results
+  }
+  const normalizedPrefix = prefix ? `${prefix}/` : ''
+  for (const [p, b64] of Object.entries(bundledRepo))
+    if (p.startsWith(normalizedPrefix))
+      results.push({ content: Buffer.from(b64, 'base64'), path: p.slice(normalizedPrefix.length) })
   return results
 }
 const downloadFolder = async (repo: string, path: string): Promise<null | { base64: string; name: string }> => {
-  if (repo === DEFAULT_REPO) {
-    const full = resolve(root, path)
-    if (!full.startsWith(root)) return null
+  if (repo === DEFAULT_REPO)
     try {
       const folderName = path.split('/').at(-1) ?? 'folder'
       const { downloadZip } = await import('client-zip')
-      const entries = collectFiles(full, '').map(f => ({ input: new Uint8Array(f.content), name: f.path }))
+      const entries = collectLocalFiles(path).map(f => ({ input: new Uint8Array(f.content), name: f.path }))
+      if (entries.length === 0) return null
       const buf = Buffer.from(await downloadZip(entries).arrayBuffer())
       return { base64: buf.toString('base64'), name: folderName }
     } catch {
       return null
     }
-  }
   return null
 }
 export { downloadFile, downloadFolder, fetchFile, fetchTree }
