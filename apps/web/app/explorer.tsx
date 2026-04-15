@@ -123,6 +123,14 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
       },
       onDownload: async path => {
         log(`Download: ${path}`)
+        if (repo === DEFAULT_REPO) {
+          const a = document.createElement('a')
+          a.href = `/api/download?path=${encodeURIComponent(path)}`
+          a.click()
+          toast(`Downloading ${path.split('/').at(-1)}`)
+          log(`Downloaded: ${path}`)
+          return
+        }
         const file = await downloadFile(repo, path).catch(() => null)
         if (file) {
           triggerDownload(file.base64, file.name)
