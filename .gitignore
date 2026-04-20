@@ -14,7 +14,6 @@ build/
 coverage/
 dist/
 next-env.d.ts
-_generated/
 node_modules/
 out/
 playwright-report/
