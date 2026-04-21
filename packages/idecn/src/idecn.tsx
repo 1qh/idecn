@@ -634,7 +634,7 @@ const Tree = ({
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
           e.stopPropagation()
-          const items = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role=treeitem]')
+          const items = e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')
           const treeItem = target.closest('[role=treeitem]')
           const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
           if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
@@ -801,7 +801,7 @@ const TreeFolder = ({
   return (
     <Accordion.Root
       onValueChange={v => {
-        setOpen(v as string[])
+        setOpen(v)
         treeLog?.(v.length > 0 ? `Expand: ${name}` : `Collapse: ${name}`)
       }}
       value={open}>
@@ -1457,11 +1457,11 @@ const StatusBar = () => {
     </div>
   )
 }
-const flattenTree = (items: TreeDataItem[], prefix = ''): TreeDataItem[] => {
+const flattenTree = (items: TreeDataItem[]): TreeDataItem[] => {
   const result: TreeDataItem[] = []
   for (const item of items)
-    if (item.children) for (const child of flattenTree(item.children, `${prefix}${item.name}/`)) result.push(child)
-    else result.push({ ...item, name: `${prefix}${item.name}` })
+    if (item.children) for (const child of flattenTree(item.children)) result.push(child)
+    else result.push(item)
   return result
 }
 const findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number): TreeDataItem[] => {
@@ -1586,21 +1586,24 @@ const QuickOpenDialog = ({
           </div>
           <Cmdk.List className='max-h-[300px] overflow-x-hidden overflow-y-auto'>
             <Cmdk.Empty className='py-6 text-center text-sm'>No files found</Cmdk.Empty>
-            {flatFiles.map(f => (
-              <Cmdk.Item
-                className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
-                key={f.id}
-                onSelect={() => {
-                  logFn(`Quick open: ${f.name}`)
-                  onOpenFile(f)
-                  setOpen(false)
-                }}
-                value={`${f.name} ${f.path}`}>
-                <FileIcon className={ICON_CLASS} name={f.path.split('/').at(-1) ?? f.name} />
-                <span className='min-w-0 truncate'>{f.name}</span>
-                <span className='ml-auto truncate text-xs text-muted-foreground'>{f.path}</span>
-              </Cmdk.Item>
-            ))}
+            {flatFiles.map(f => {
+              const parent = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : ''
+              return (
+                <Cmdk.Item
+                  className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
+                  key={f.id}
+                  onSelect={() => {
+                    logFn(`Quick open: ${f.name}`)
+                    onOpenFile(f)
+                    setOpen(false)
+                  }}
+                  value={`${f.name} ${f.path}`}>
+                  <FileIcon className={ICON_CLASS} name={f.name} />
+                  <span className='shrink-0 truncate'>{f.name}</span>
+                  {parent ? <span className='min-w-0 truncate text-xs text-muted-foreground'>{parent}</span> : null}
+                </Cmdk.Item>
+              )
+            })}
           </Cmdk.List>
         </Cmdk>
       </DialogContent>

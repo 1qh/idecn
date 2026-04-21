@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/nursery/noPlaywrightWaitForSelector: simpler than locator chains */
 /** biome-ignore-all lint/nursery/noPlaywrightWaitForTimeout: needed for debounced state save */
 /** biome-ignore-all lint/performance/useTopLevelRegex: inline regex in test assertions */
-/* oxlint-disable unicorn/no-await-expression-member */
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 const TREE = 'nav[aria-label="File tree"]'
@@ -205,6 +204,27 @@ test.describe('keyboard shortcuts', () => {
     await page.waitForSelector('.dv-tab', { timeout: 10_000 })
     await expect(page.locator('.dv-tab').first()).toBeVisible()
   })
+  test('quick open shows filename + parent dir separately (VS Code style)', async ({ page }) => {
+    await waitTree(page)
+    await page.keyboard.press('Meta+p')
+    const input = page.locator('input[placeholder="Search files..."]')
+    await input.fill('package.json')
+    await page.waitForTimeout(300)
+    const nestedItem = page.locator('[cmdk-item]').filter({ hasText: 'apps/web' })
+    await expect(nestedItem).toBeVisible({ timeout: 3000 })
+    await expect(nestedItem.locator('text=package.json').first()).toBeVisible()
+  })
+  test('quick open root file shows no parent segment', async ({ page }) => {
+    await waitTree(page)
+    await page.keyboard.press('Meta+p')
+    const input = page.locator('input[placeholder="Search files..."]')
+    await input.fill('turbo')
+    await page.waitForTimeout(300)
+    const item = page.locator('[cmdk-item]').filter({ hasText: 'turbo.json' }).first()
+    await expect(item).toBeVisible({ timeout: 3000 })
+    const text = await item.textContent()
+    expect(text?.trim()).toBe('turbo.json')
+  })
   test('Cmd+Shift+T reopens last closed tab', async ({ page }) => {
     await waitTree(page)
     await pinFile(page, 'package.json')
@@ -275,7 +295,7 @@ test.describe('file context menu', () => {
     await waitTree(page)
     await openContextMenu(page, 'button[data-item-id="package.json"]')
     await page.locator('[role="menuitem"]:has-text("Download")').click()
-    await expect(page.locator('text=Downloaded')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=Downloading')).toBeVisible({ timeout: 10_000 })
   })
   test('Rename shows inline input and submits on Enter', async ({ page }) => {
     await waitTree(page)
@@ -334,7 +354,7 @@ test.describe('folder context menu', () => {
     await waitTree(page)
     await openContextMenu(page, 'button[data-item-id="packages"]')
     await page.locator('[role="menuitem"]:has-text("Download")').click()
-    await expect(page.locator('text=Downloaded')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=Downloading')).toBeVisible({ timeout: 10_000 })
   })
   test('New File shows inline input inside folder', async ({ page }) => {
     await waitTree(page)

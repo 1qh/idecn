@@ -12,6 +12,7 @@ const ignored = new Set([
   '.git',
   '.githooks',
   '.vercel',
+  '_generated',
   ...gitignore
     .split('\n')
     .map(l => (l.trim().endsWith('/') ? l.trim().slice(0, -1) : l.trim()))
