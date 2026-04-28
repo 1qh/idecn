@@ -1,6 +1,6 @@
 {
   "name": "idecn",
-  "version": "0.0.9",
+  "version": "0.0.11",
   "private": false,
   "description": "IDE-like workspace and file tree components for React with material icons",
   "keywords": [
@@ -20,12 +20,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/idecn.d.mts",
-      "import": "./dist/idecn.mjs"
+      "types": "./dist/idecn.d.ts",
+      "import": "./dist/idecn.js"
     }
   },
-  "main": "./dist/idecn.mjs",
-  "types": "./dist/idecn.d.mts",
+  "main": "./dist/idecn.js",
+  "types": "./dist/idecn.d.ts",
   "files": [
     "dist"
   ],

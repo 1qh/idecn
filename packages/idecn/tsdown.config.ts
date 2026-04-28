@@ -4,5 +4,6 @@ export default defineConfig({
   dts: true,
   entry: ['src/idecn.tsx'],
   format: 'esm',
-  outDir: 'dist'
+  outDir: 'dist',
+  platform: 'browser'
 })
