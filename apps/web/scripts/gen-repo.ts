@@ -12,7 +12,6 @@ const ignored = new Set([
   '.git',
   '.githooks',
   '.vercel',
-  '_generated',
   ...gitignore
     .split('\n')
     .map(l => (l.trim().endsWith('/') ? l.trim().slice(0, -1) : l.trim()))
@@ -29,7 +28,7 @@ const walk = (dir: string, prefix: string) => {
     }
 }
 walk(root, '')
-const outDir = resolve(process.cwd(), 'app/_generated')
+const outDir = resolve(process.cwd(), 'app/.cache')
 mkdirSync(outDir, { recursive: true })
 writeFileSync(resolve(outDir, 'repo.json'), JSON.stringify(files))
 // eslint-disable-next-line no-console

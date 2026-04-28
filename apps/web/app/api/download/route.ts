@@ -1,7 +1,7 @@
 import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
-import bundled from '../../_generated/repo.json' with { type: 'json' }
+import bundled from '../../.cache/repo.json' with { type: 'json' }
 const bundledRepo = bundled as Record<string, string>
 const findRoot = (): null | string => {
   const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]

@@ -12,7 +12,7 @@ const findRoot = (): null | string => {
 const root = findRoot()
 const bundledRepo = await (async (): Promise<Record<string, string>> => {
   try {
-    const mod = (await import('./_generated/repo.json')) as { default: Record<string, string> }
+    const mod = (await import('./.cache/repo.json')) as { default: Record<string, string> }
     return mod.default
   } catch {
     return {}
