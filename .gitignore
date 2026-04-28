@@ -18,3 +18,4 @@ node_modules/
 out/
 playwright-report/
 test-results/
+apps/web/app/_generated/
