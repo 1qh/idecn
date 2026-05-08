@@ -259,6 +259,57 @@ Review checklist: Can I delete this node? → delete. Can `gap/space/divide` rep
 
 ---
 
+## `NEXT_PUBLIC_*` env vars are shipped to the browser
+
+Anything prefixed `NEXT_PUBLIC_` is **inlined into the client bundle** at build time and visible to anyone who views page source. The prefix exists to opt into client exposure — never use it for credentials.
+
+### Forbidden patterns
+
+- API keys: `NEXT_PUBLIC_OPENAI_API_KEY`, `NEXT_PUBLIC_TMDB_API_KEY`, `NEXT_PUBLIC_STRIPE_SECRET`, etc.
+- Tokens: `NEXT_PUBLIC_AUTH_TOKEN`, `NEXT_PUBLIC_JWT_SECRET`
+- Database secrets: `NEXT_PUBLIC_DB_PASSWORD`, `NEXT_PUBLIC_ADMIN_KEY`
+- Anything named like a secret (`*_SECRET`, `*_PASSWORD`, `*_PRIVATE_KEY`)
+
+If a credential is needed for client-side work, the call **must** go through a server action / API route / Convex action that reads the unprefixed env var server-side. Never the bundle.
+
+### Allowed `NEXT_PUBLIC_*` use
+
+- Public deployment URLs (`NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_SPACETIMEDB_URI`) where auth happens via session tokens, not the URL itself
+- Feature flags / build-time constants
+- Public OAuth client IDs (paired with PKCE/redirect URI checks server-side)
+
+### Migration
+
+If you find a `NEXT_PUBLIC_*` API key:
+
+1. Rename the env var to drop the prefix (e.g. `NEXT_PUBLIC_TMDB_API_KEY` → `TMDB_KEY`)
+2. Move the call into a Next.js server action (`'use server'`) or a Convex action
+3. The client component imports and invokes the server action; it never sees the key
+4. Add a test-mode stub on the server side (read `isStdbTestMode()` / `isCvxTestMode()`) so playwright stays hermetic without the real key
+
+## Server-only env vars
+
+Read via `process.env.X` inside files marked with one of:
+
+- `'use server'` (Next.js server actions)
+- `'use node'` (Convex actions)
+- Files under `convex/` (Convex runtime)
+- Files under `backend/spacetimedb/` (stdb reducers)
+- API routes (`app/api/*/route.ts`)
+
+Never read server-only env vars from a `'use client'` component.
+
+## Audit checklist
+
+Before merging a PR that touches env vars:
+
+- [ ] No `NEXT_PUBLIC_*` name contains “key”, “secret”, “token”, “password”, “private”
+- [ ] Any new client-side data fetch goes through a server boundary
+- [ ] Server actions reading credentials check test-mode and short-circuit with stub data
+- [ ] `.env.example` (if present) marks server-only vars without `NEXT_PUBLIC_` prefix
+
+---
+
 ## shadcn — Native Look, No Overrides
 
 Use shadcn components as-is. No custom color overrides, no inline style hacks.
