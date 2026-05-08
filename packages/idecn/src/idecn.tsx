@@ -831,7 +831,8 @@ const TreeFolder = ({
                 data-item-id={itemId}
                 onClick={e => select(e)}
                 role='treeitem'
-                style={{ paddingLeft: pl }}>
+                style={{ paddingLeft: pl }}
+                tabIndex={0}>
                 <FolderIcon className={iconClass} name={name} open={isOpen} />
                 {name}
               </Accordion.Trigger>
