@@ -619,7 +619,7 @@ const Tree = ({
   )
   return (
     <TreeContext value={ctx}>
-      <nav
+      <div
         aria-label='File tree'
         ref={navRef}
         role='tree'
@@ -642,7 +642,7 @@ const Tree = ({
           else target.click()
         }}>
         {children}
-      </nav>
+      </div>
     </TreeContext>
   )
 }
