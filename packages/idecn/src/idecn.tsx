@@ -424,7 +424,7 @@ interface TreeContextValue {
   fileActions?: FileActions
   indent: number
   log?: (msg: string) => void
-  navRef: React.RefObject<HTMLElement | null>
+  navRef: React.RefObject<HTMLDivElement | null>
   onSelect?: (item: { id: string; name: string; path: string }) => void
   renamingId: null | string
   selectedId: null | string
@@ -568,7 +568,7 @@ const Tree = ({
   selectedId: controlledSelectedId,
   triggerUpload,
   ...props
-}: ComponentProps<'nav'> & {
+}: ComponentProps<'div'> & {
   expandDepth?: number
   expandExclude?: string[]
   fileActions?: FileActions
@@ -582,7 +582,7 @@ const Tree = ({
   const [creatingIn, setCreatingIn] = useState<null | { parentPath: string; type: 'file' | 'folder' }>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(EMPTY_SET)
   const [renamingId, setRenamingId] = useState<null | string>(null)
-  const navRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLDivElement>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
   const ctx = useMemo(
     () => ({
