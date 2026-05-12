@@ -8,5 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - run: sudo apt-get install -y zsh
       - uses: oven-sh/setup-bun@v2
       - run: bun action
