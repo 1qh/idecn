@@ -184,6 +184,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
           }}
         />
         <input
+          aria-label='Search'
           autoComplete='off'
           className='min-w-0 flex-1 bg-transparent text-sm outline-none'
           onChange={e => setInput(e.target.value)}

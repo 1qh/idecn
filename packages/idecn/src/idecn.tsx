@@ -678,6 +678,7 @@ const InlineInput = ({
         <FileIcon className={ICON_CLASS} name={value || 'untitled'} />
       )}
       <input
+        aria-label='Rename'
         className='min-w-0 flex-1 bg-transparent text-sm outline-none border border-primary/50 px-1 rounded-sm'
         onBlur={submit}
         onChange={e => setValue(e.target.value)}
@@ -732,6 +733,7 @@ const RenameInput = ({
         <FileIcon className={ICON_CLASS} name={value || currentName} />
       )}
       <input
+        aria-label='Rename new'
         className='min-w-0 flex-1 bg-transparent text-sm outline-none border border-primary/50 px-1 rounded-sm'
         onBlur={submit}
         onChange={e => setValue(e.target.value)}
@@ -2313,6 +2315,7 @@ const Workspace = ({
         </div>
       </div>
       <input
+        aria-label='Upload files'
         className='hidden'
         multiple
         onChange={e => {
