@@ -4,6 +4,7 @@ import { cn } from '@a/ui'
 import './global.css'
 import { mono, sans } from './fonts'
 import { Providers } from './providers'
+
 const metadata: Metadata = {
   title: 'idecn'
 }

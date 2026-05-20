@@ -3,6 +3,7 @@
 /** biome-ignore-all lint/performance/useTopLevelRegex: inline regex in test assertions */
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+
 const TREE = 'nav[aria-label="File tree"]'
 const waitTree = async (page: Page) => {
   await page.goto('/')

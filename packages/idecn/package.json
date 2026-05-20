@@ -33,7 +33,7 @@
     "build": "tsdown",
     "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
     "prepublishOnly": "bun run build",
-    "postpublish": "bunx pm4ai@latest cleanup",
+    "postpublish": "bun ../../tools/prune-versions.ts",
     "test:registry": "bash scripts/test-registry.sh"
   },
   "dependencies": {

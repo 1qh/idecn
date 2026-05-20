@@ -78,6 +78,7 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
+
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
 const ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`
 const ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`

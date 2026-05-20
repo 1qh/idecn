@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { downloadFile, downloadFolder, fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
+
 const triggerDownload = (base64: string, filename: string) => {
   const bytes = Uint8Array.from(atob(base64), c => c.codePointAt(0) ?? 0)
   const blob = new Blob([bytes])

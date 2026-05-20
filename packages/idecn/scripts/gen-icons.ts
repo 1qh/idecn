@@ -2,6 +2,7 @@
 import { generateManifest } from 'material-icon-theme'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 const manifest = generateManifest()
 const iconsDir = resolve(import.meta.resolve('material-icon-theme').replace('file://', ''), '../../../icons')
 const usedIcons = new Set<string>(

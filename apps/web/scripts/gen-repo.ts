@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 const root = existsSync(resolve(process.cwd(), '.gitignore')) ? process.cwd() : resolve(process.cwd(), '../..')
 const gitignore = (() => {
   try {

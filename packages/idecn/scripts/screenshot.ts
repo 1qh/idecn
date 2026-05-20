@@ -3,6 +3,7 @@
 /* eslint-disable no-console */
 import { chromium } from '@playwright/test'
 import { resolve } from 'node:path'
+
 const url = process.argv[2]
 if (!url) throw new Error('Usage: bun scripts/screenshot.ts <url>')
 const browser = await chromium.launch()

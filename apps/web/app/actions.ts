@@ -4,6 +4,7 @@ import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DEFAULT_REPO } from './constants'
+
 const findRoot = (): null | string => {
   const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]
   for (const c of candidates) if (existsSync(resolve(c, '.gitignore'))) return c

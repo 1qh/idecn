@@ -5,6 +5,7 @@
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 const root = resolve(import.meta.dir, '..')
 const repoRoot = resolve(root, '../..')
 const outDir = resolve(repoRoot, 'apps/web/public/r')
