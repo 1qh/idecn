@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/performance/noAwaitInLoops: sequential file reads */
 /** biome-ignore-all lint/nursery/useNamedCaptureGroup: simple extraction */
 /* eslint-disable no-console, no-await-in-loop, prefer-named-capture-group */
-/* oxlint-disable no-await-in-loop */
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'

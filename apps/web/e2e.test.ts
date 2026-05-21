@@ -1,6 +1,5 @@
 /** biome-ignore-all lint/nursery/noPlaywrightWaitForSelector: simpler than locator chains */
 /** biome-ignore-all lint/nursery/noPlaywrightWaitForTimeout: needed for debounced state save */
-/** biome-ignore-all lint/performance/useTopLevelRegex: inline regex in test assertions */
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
