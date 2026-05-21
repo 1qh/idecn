@@ -3,11 +3,10 @@
 /** biome-ignore-all lint/performance/noImgElement: image preview panel */
 /** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: hooks returning component data */
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
-import type { Monaco } from '@monaco-editor/loader'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
@@ -232,7 +231,17 @@ const iconsReady =
         iconSvgs = mod.icons.svgs
       })
     : Promise.resolve()
-const initMonaco = async (): Promise<Monaco> => loader.init()
+interface MonacoApi {
+  editor: {
+    defineTheme: (themeName: string, themeData: unknown) => void
+    getModel: (uri: unknown) => null | { dispose: () => void }
+  }
+  Uri: { parse: (value: string) => unknown }
+}
+const initMonaco = async (): Promise<MonacoApi> => {
+  const instance: unknown = await loader.init()
+  return instance as MonacoApi
+}
 const CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const
 const ALL_LANGS = [
   'css',
@@ -286,14 +295,14 @@ const shikiSetup =
         })
         const monaco = await initMonaco()
         shikiToMonaco(highlighter, monaco)
-        defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
+        defineThemes(highlighter, monaco)
         const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
         if (remaining.length > 0)
           highlighter
             .loadLanguage(...remaining)
             .then(() => {
               shikiToMonaco(highlighter, monaco)
-              defineThemes(highlighter, monaco as { editor: { defineTheme: (name: string, data: unknown) => void } })
+              defineThemes(highlighter, monaco)
             })
             .catch(() => undefined)
       })()
