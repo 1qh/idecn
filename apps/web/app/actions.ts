@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/suspicious/useAwait: server actions must be async */
 'use server'
 import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'

@@ -1,15 +1,10 @@
 /** biome-ignore-all lint/security/noDangerouslySetInnerHtml: trusted SVG from material-icon-theme */
-/** biome-ignore-all lint/nursery/noInlineStyles: dynamic indent from depth */
-/** biome-ignore-all lint/a11y/noStaticElementInteractions: dockview manages tab interactions */
-/** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: dockview manages tab interactions */
 /** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
-/** biome-ignore-all lint/a11y/useKeyWithClickEvents: quick open backdrop dismiss */
-/** biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: nav with tree role for keyboard nav */
 /** biome-ignore-all lint/performance/noImgElement: image preview panel */
 /** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
 /** biome-ignore-all lint/nursery/noComponentHookFactories: hooks returning component data */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, no-img-element */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await, no-img-element */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
 import type { Monaco } from '@monaco-editor/loader'

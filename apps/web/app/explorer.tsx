@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/nursery/noNestedPromises: server action fallback to client fetch */
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/catch-or-return, promise/no-nesting */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/no-nesting */
 'use client'
 import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
 import { SiGithub } from '@icons-pack/react-simple-icons'
