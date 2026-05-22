@@ -18,4 +18,5 @@ next-env.d.ts
 node_modules/
 out/
 playwright-report/
+secrets/
 test-results/
