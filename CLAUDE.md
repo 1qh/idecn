@@ -5,6 +5,7 @@ pm4ai manages every repo with lintmax in deps — syncs configs, generates `CLAU
 - Read root `README.md` first WHEN it exists. Why: project-specific entry.
 - Determine role via `gh auth status`: owner (`1qh`) may edit pm4ai rules/checks directly; otherwise edit only companion files. Why: managed files are regenerated.
 - Put project-specific content in companion files — `LEARNING.md` (gotchas), `RULES.md` (project-only rules), `PROGRESS.md` (ongoing), `PLAN.md` (architecture). Why: managed files get overwritten.
+- Capture a gotcha into `LEARNING.md` the moment it surfaces, committed with the work that taught it. Why: an uncaptured surprise re-costs the same hour every few weeks; one home per fact, never duplicated.
 - Owner adds a universal rule → `.mdx` in pm4ai `apps/docs/content/rules/` with `infer` frontmatter; a new check → `packages/pm4ai/src/{audit,checks}.ts`. Why: rules generate CLAUDE.md, checks run in status.
 - Note any cross-project discovery for pm4ai. Why: a lesson hit on many projects becomes a universal rule/check.
 - Act only on a current check: proceed on `check: passed` (current); wait on `check: running...` (don’t edit); fix violations on `check: failed`; re-run + wait when stale (passed before N commits); run `bunx pm4ai@latest fix` first on `check: never run`. Why: stale/absent checks aren’t evidence.
@@ -32,7 +33,9 @@ Execution discipline for an agent working this codebase. Engineering posture liv
 ## MUST
 
 - Continue to the next task while autonomous-feasible work remains; identify it and start. Why: idle and handoff are the costliest parts of the loop.
-- Self-decide reversible, config-only, or rule-settled choices; surface only a genuine fork as one question + options + recommendation. Why: most “decisions” are already settled by the rules.
+- Lock the full surfaced scope into `PLAN.md` the moment it rounds out and ship every item in one pass; the locked set is the immovable target. Why: a “this round / next round” split is where items go to die.
+- Parallelize independent work against any known wait (build, codegen, install, network) — the parent grinds another file while a subagent runs. Why: idle wait is the costliest non-stop state in the loop.
+- Self-decide reversible, config-only, or rule-settled choices; surface only a genuine fork as one question + options (each with pros/cons) + recommendation + reasoning. Why: most “decisions” are already settled by the rules, and a stacked or unreasoned MCQ drops answer quality.
 - Exhaust code, docs, git history, and memory before asking; ask only what cannot be discovered. Why: the discovery cost is already paid.
 - Run the action yourself; never ask the user to run a command the agent can run. Why: handing work upward breaks the loop.
 - State an expected outcome and deadline before any observable action (build, navigate, poll); flag stuck the moment it deviates. Why: no criterion means silent stuck loops.
@@ -40,16 +43,29 @@ Execution discipline for an agent working this codebase. Engineering posture liv
 - Commit the moment a bug is found and again when fixed during any verification loop. Why: a per-bug trail maps failure to fix.
 - Foreground any command under ~2 min; background only with concurrent work in flight, never background-then-poll. Why: background-then-poll is an idle pattern.
 - Dispatch concurrent subagents sliced by file/dir/rule boundary, packed in one message; restrict edit-only subagents to read/edit/write/grep/glob; verify build-green on the shared branch first; audit their self-reports before any destructive cleanup. Why: throughput without thrash, and agents misreport.
+- Parent-author the shared types/signatures before dispatching an edit wave; subagents edit call sites against the stable signature. Why: divergent parallel authoring causes stuck-thrash.
+- Use a write-capable subagent type (`general-purpose` or a custom edit agent) for any wave that produces edits; never `Explore` (read-only by construction). Why: read-only agents return plans, zero edits — the whole wave is wasted.
+- Run dependent subagent waves sequentially after the sibling lands; never brief a subagent to wait on a notification. Why: the subagent runtime has no wait-for-event — it terminates without work.
 - Keep command output terse — a single `ok` or silence on success, full detail only on failure. Why: every line spends the context budget.
+- Wrap streaming-CLI chatter (`bun install`, `docker`, `gh`, `wrangler`, `convex deploy`) with redirection — `… >/dev/null 2>&1 && echo ok || cat err`. Why: progress text burns the context budget.
+- Hold at most one long-running background slot; reap it after consuming its output. Why: the runtime leaves stale “(running)” slots that mislead.
+- Check image dimensions before Read on `.png`/`.jpg`/`.heic`/`.webp`; downscale via `sips -Z 2000 "$f" --out /tmp/$(basename "$f")` when over 2000px. Why: a many-image request over 2000px locks the whole session until `/compact`.
+- Confirm the exact target with the user before any destructive or irreversible action — delete, overwrite, `git push --force`, `reset --hard`, `git clean`, `DROP`, `TRUNCATE`, prune, or mass mutation; name precisely what will be affected and wait for an explicit go. Why: irreversible loss has no undo, so the autonomy default never extends to it.
+- Scope a delete/cleanup task to the precise paths named and confirmed first; remove only the named child, never a parent directory that also holds unrelated data. Why: deleting a folder to clear its contents takes every sibling inside it, unrecoverably.
 
 ## NEVER
 
-- Stop at a status summary while autonomous-feasible work remains, or close with “want me to / should I / which one / ready?”. Cost: a wasted turn seeking permission instead of progress.
+- Stop at a status summary while autonomous-feasible work remains, or close with “want me to / should I / which one / ready?” (confirming a destructive or irreversible action is the sole exception). Cost: a wasted turn seeking permission instead of progress.
 - Enumerate remaining items and ask which to do. Cost: the cue is to do all of them.
 - Treat effort, size, or “diminishing returns” as a stop reason. Cost: real work dressed up as a judgment call.
+- Propose dropping scope to simplify — deleting an enum case/type/prop, removing a UI affordance, replacing a control with a label, collapsing screens, or hiding behind a flag. Cost: ONLY MORE, NEVER LESS — a surface shipped narrower than approved makes the absence the new baseline; fix the cause, never amputate the feature.
 - Ask for a fact the agent could discover after one consent, or guess one not in source. Cost: re-explaining paid-for evidence, or shipping code on an unverified value.
+- Invent a file path, export name, config key, version pin, or API signature, or pattern-match against what similar projects “usually” do — read to confirm first, quote verbatim or do not cite. Cost: a fabricated identifier or assumed convention ships as a real bug.
 - Idle through a wait — background-then-poll, heartbeat, or “a subagent will handle it”. Cost: an idle agent is the most expensive state in the loop.
 - Delegate diagnostics (“paste the log”, “tell me what you see”). Cost: inverts loop ownership, slows everything.
+- Orchestrate other AI providers in the dev loop (GPT/Gemini juries, cross-provider supervisors). Cost: Claude-Code subagents are the parallelism primitive; multi-provider adds coordination cost without gain.
+- `rm` or overwrite a parent directory to remove something within it — target the specific child. Cost: sibling data is destroyed with it (e.g. session transcripts beside a `memory/` folder).
+- Read “be autonomous, never ask” as permission for a destructive or irreversible step. Cost: autonomy covers reversible work only; irreversible loss needs explicit consent.
 
 ## Valid stops — only these
 
@@ -71,6 +87,8 @@ Bun is the only runtime + package manager.
 - `bun fix` passes before done. Why: lint/format gate.
 - Update deps via `bun clean && bun i`. Why: refreshes `"latest"` cleanly.
 - All deps `"latest"`; WHEN a pin is unavoidable, pin major only (`"eslint": "9"`). Why: no legacy lock-in.
+- Every direct dep shows an upstream release within ~6 months; replace an abandoned or archived dep, never keep it. Why: stale-but-stable rots — force the migration early.
+- A newly required CLI or dep lands in `package.json` (or the documented setup script) the same turn it is first used. Why: never re-litigate the install next session.
 - `import { X } from 'bun'` (`$`, `file`, `write`, `Glob`, `spawn`, …). Why: `Bun.X` global trips biome `noUndeclaredVariables`.
 - Run `bun i` immediately after renaming a workspace `name:`. Why: dependents resolve old name via stale `node_modules/<scope>/` symlink.
 - Read an opaque eslint `ResolveMessage {}` as a stale workspace symlink → reinstall first. Why: it masks every other violation; not a lint-internals bug.
@@ -96,12 +114,17 @@ Code quality bans, single-source-of-truth, canonical-state, bounded waits, codeg
 
 - One definition per piece of data — shared constant defined once, imported everywhere; extract any value appearing in 2+ files. Why: drift surface.
 - Check existing utilities/components FIRST before writing inline logic. Why: avoid duplication.
+- Land any reusable script/helper/harness/probe as a tracked file (`scripts/*.ts`, a test, a `package.json` script), never throwaway `/tmp` scratch. Why: a `/tmp` probe is re-discovered next session; in-repo evidence re-runs.
+- Extract a shared util/component/factory on its second use, never a speculative first. Why: a one-call abstraction guesses the wrong shape and rots as unmaintained surface.
+- Fix every known bug the moment it surfaces — lint, type error, audit, review, or your own reading — regardless of severity, blast radius, or whether it fires on current data. Why: a latent bug is one input from a live one; the discovery cost is already paid, so the same pass that found it fixes it.
 - Name things for what they ARE, not their lineage. Why: code reads as the single intended design, authored fully-formed.
 - When reworking, rename in place + delete the old, zero transitional duplicate. Why: result reads as if always so.
 - One declarative present-tense schema definition. Why: a numbered migration chain (`001_*`) encodes history in the repo.
+- Land a breaking change expand-contract — add the new shape, dual-write/backfill, drop the old in a later release; applies to DB schema, wire format, Convex tables, exported types, and public API signatures. Why: no destructive change ships in the same release as the code still depending on the old shape.
 - `AbortSignal.timeout(ms)` (or SDK timeout) on every `await` on network/IPC/subprocess. Why: bare `await` on external state can hang silently.
 - Bounded polling — compute a deadline once, exit with a specific stderr reason on timeout (`"api healthz timeout 60s"`). Why: `while(!ready){}` hangs with no clue.
 - Change source + regenerate for any codegen output; regenerate-and-diff gate fails on staleness. Why: committed output must equal a fresh regen; don’t trust the pre-commit hook alone.
+- Land the lint/check policing a class of artifact before the first artifact of that class lands. Why: phase ordering — the gate exists when the artifacts arrive, not after they drift.
 - Carry the declared type across every boundary (persistence, wire, service, codegen, runtime); ratchet toward precise types, never widen a typed surface back. Why: type erasure is the slowest class of bug.
 - Fail fast on any missing required input — throw, return non-zero, or refuse to construct. Why: a substituted default turns missing config into a wrong-value bug.
 - Inline styles only for truly dynamic values. Why: colors/static props belong in classes.
@@ -115,7 +138,9 @@ Code quality bans, single-source-of-truth, canonical-state, bounded waits, codeg
 - Disable lint rules globally/per-directory. Cost: hides real bugs — fix the code.
 - Ignore written source from linters — only auto-generated (`_generated/`, `generated/`, `module_bindings/`, `readonly/ui/`). Cost: source escapes the gate.
 - Reduce lintmax strictness. Cost: removing a rule needs false-positive evidence, adding needs none — WHEN upstream drops a rule, find a replacement.
+- Skip, defer, or “note” a known bug via severity/occurrence framing — “latent”, “won’t fire on current data”, “low-severity”, “backstopped elsewhere”, “the source already guards it”, “fix when that path ships”, “improvement not a bug”. Cost: the severity twin of effort-framing — the exact loophole that lets a found bug rot into an incident; severity sets ordering within the pass, never whether it is fixed. The only non-fix is an unobtainable credential, a shared-blast-radius irreversible op, or a fix that would corrupt correct data — and each still fixes the code path and files a tracked task, never a silent “noted”.
 - Touch `readonly/ui/` manually. Cost: overwritten by cnsync sync.
+- Copy a shared-package primitive (cnsync `readonly/ui`, a lintmax or published-package export) into a consumer repo — import it. Cost: copies drift from the substrate and skip its upstream fixes.
 - Hand-edit codegen output (`_generated/`, `.source/`, `*.generated.ts`, typed-query records). Cost: lost on next regen.
 - Lineage in names (`legacy`, `old`, `deprecated`, `v2`, `-new`, `-rewrite`) or history narrative in comments/commits/logs/docs ("previously", “we switched”, “used to”, “instead of X”, “no longer”, “as of [date]”, defining a thing by what it is NOT). Cost: filler the agent re-reads forever; a `Why:` may give a timeless reason, never a past-incident story.
 
@@ -133,10 +158,12 @@ Git commit + push conventions.
 
 - Commit frequently; push logical groups. Why: small auditable units, easy revert.
 - Commit subject `type: description` — `fix|feat|docs|chore|refactor|test`. Why: conventional-commit parse.
+- Land on `main` directly or via a short-lived feature branch + PR. Why: trunk-based, single `main`.
 
 ## NEVER
 
 - Mention AI / Claude / coauthor / “generated with” in commits. Cost: AI attribution unwanted in history.
+- Maintain long-lived `develop` / `release-*` / `feature/*` branch hierarchies. Cost: divergent long branches rot and conflict against trunk.
 
 ---
 
@@ -258,16 +285,22 @@ Engineering posture — how to weigh decisions. The other rules are the concrete
 - Pick the most legitimate path, never the hacky / least-disruptive one. Why: architectural honesty outlasts short-term convenience.
 - Target the latest runtime, deps, and APIs; spend zero effort on backward compatibility. Why: greenfield has no legacy floor; lock-in compounds.
 - Ship the complexity when it buys ≥1% UX. Why: a cheap-feeling app loses to a polished competitor.
-- Research the ecosystem before greenfielding a non-trivial primitive (crypto, protocol parsing, auth, persistence, orchestration); record what was considered and rejected. Why: minutes of search save days of reinvention plus every bug the library already fixed.
+- Run the adopt gate before writing code for any capability — does the Node/Bun stdlib, a Web API, a dep already in `package.json`, or a maintained npm library own it? Grep `package.json` + `bun.lock` and scan the stdlib FIRST, then live-research npm. Why: reimplementing what is already in your tree is the most common hand-roll; minutes of search save days plus every bug the library fixed.
 - Record a stack swap/add/remove as a durable decision before the code. Why: a rationale that never reaches storage evaporates.
 - Verify every “works” / “fixed” claim by running it. Why: a code trace is not a test.
 - Add strictness on encounter; remove only with false-positive evidence. Why: the world-class endpoint has no post-launch rewrite path.
+- Apply the day-one test to every strictness lever, invariant, dep, or lint rule: would a fresh `bun create` adopt it today? If yes, enable it NOW and grind the retrofit green. Why: existing-code churn is a one-time cost, cheapest pre-launch — it never decides whether the rule is right.
+- When ratcheting strictness, prioritize complexity > maintainability > consistency > style. Why: complexity/maintainability levers prevent unmaintainable growth; style is reviewer-attention noise.
 
 ## NEVER
 
 - Defer a change with real payoff on effort / size / “diminishing returns” grounds. Cost: artificial phasing; the gain rots in a backlog.
+- Cite retrofit churn, call-site count, “big refactor”, or migration size to avoid, hedge, or ask permission about a lever that passes the day-one test. Cost: the same effort-framing in disguise — churn is a one-time cost, never an argument against an invariant a fresh start would adopt; enable it and grind it green without asking.
 - Pin a dep “for stability”. Cost: legacy lock-in compounds.
 - Hand-roll crypto / protocol / contract code a community already packages. Cost: reinvents every bug they fixed.
+- Narrow the adopt gate to a subset of code — by size (“trivial”, “just a small util”, “not worth a dep”), by domain, or by topic (“too niche for npm”). Cost: the qualifier IS the loophole; the gate is universal across every function and topic, and capability-ownership is the only test — never line-count, never how library-shaped it feels. “Surely nobody packaged THIS” is exactly where hand-rolls hide — grep and confirm, never assume.
+- Adopt a dep, pin a version, or call a package “latest” from training memory without an `npm view` / registry check that turn. Cost: training data is stale; the remembered package is often abandoned or superseded — “I’m fairly sure X is the standard” is the tell of an unverified assumption.
+- Weigh a tool’s learning curve or steepness as a con when selecting it. Cost: the agent pays no learning cost — capability-ownership decides; learning-curve framing picks the weaker tool.
 - Keep a workaround when a different approach removes the problem outright. Cost: complexity debt that compounds.
 
 ## Pairs with
@@ -302,6 +335,7 @@ Credential handling, env scoping, server/client boundary, mechanism-asserted inv
 - Route any credentialed client-side work through a server action / API route / Convex action reading the unprefixed var. Why: `NEXT_PUBLIC_*` is inlined into the client bundle, visible in page source.
 - Read server-only vars via `process.env.X` only inside `'use server'`, `'use node'`, `convex/`, `backend/spacetimedb/`, or `app/api/*/route.ts`. Why: server boundary.
 - Fail fast on a missing required var — validate via schema (`z.string().min(1)`, `z.url()`, NO `.default()`) or throw. Why: silent default = undebuggable wrong value.
+- Absence-as-off is allowed ONLY as a documented intentional toggle (`if (env.SENTRY_DSN) initSentry(env.SENTRY_DSN)`) — test: can a user intentionally configure absence to mean off? yes = toggle (allowed), no = fallback (banned). Why: separates a real feature toggle from a silent wrong-value default.
 - Bash `${VAR:?VAR is required}`; docker-compose `${VAR:?}`. Why: crash on absence, not fallback.
 - Set every var explicitly in `.env` (sole source of truth), even conventional ones. Why: nothing implicit.
 - Enforce auth/isolation/ownership by a mechanism the caller can’t bypass — Convex `v.*` validator + auth guard at the boundary, DB NOT NULL/CHECK/unique constraint, server-side challenge. Why: call-site checks get forgotten.
