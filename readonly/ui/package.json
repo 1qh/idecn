@@ -54,11 +54,11 @@
     "@tailwindcss/postcss": "latest",
     "@tailwindcss/typography": "latest",
     "@turbo/gen": "latest",
-    "@types/node": "latest",
+    "@types/node": "^20",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "eslint": "^9.39.2",
+    "eslint": "^9",
     "tailwindcss": "latest",
-    "typescript": "^5.9.3"
+    "typescript": "^5"
   }
 }

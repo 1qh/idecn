@@ -89,7 +89,8 @@ Bun is the only runtime + package manager.
 - All deps `"latest"`; WHEN a pin is unavoidable, pin major only (`"eslint": "9"`). Why: no legacy lock-in.
 - Every direct dep shows an upstream release within ~6 months; replace an abandoned or archived dep, never keep it. Why: stale-but-stable rots — force the migration early.
 - A newly required CLI or dep lands in `package.json` (or the documented setup script) the same turn it is first used. Why: never re-litigate the install next session.
-- `import { X } from 'bun'` (`$`, `file`, `write`, `Glob`, `spawn`, …). Why: `Bun.X` global trips biome `noUndeclaredVariables`.
+- `import { X } from 'bun'` (`$`, `file`, `write`, `Glob`, `spawn`, …) in bun-runtime apps (CLI, standalone server). Why: explicit + tree-shakeable; `Bun` is a registered biome global so either form lints clean.
+- Use the `Bun` global (`Bun.S3Client`, `Bun.s3`, …) in Next/Turbopack apps. Why: `import { X } from 'bun'` is unresolvable in `next build`’s Node page-data-collection workers; the global needs no module resolution, so it survives the build and resolves under the bun runtime.
 - Run `bun i` immediately after renaming a workspace `name:`. Why: dependents resolve old name via stale `node_modules/<scope>/` symlink.
 - Read an opaque eslint `ResolveMessage {}` as a stale workspace symlink → reinstall first. Why: it masks every other violation; not a lint-internals bug.
 - Scripts silent on success, verbose on failure. Why: agent context budget.
