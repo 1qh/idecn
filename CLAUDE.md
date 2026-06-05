@@ -90,7 +90,7 @@ Bun is the only runtime + package manager.
 - Every direct dep shows an upstream release within ~6 months; replace an abandoned or archived dep, never keep it. Why: stale-but-stable rots — force the migration early.
 - A newly required CLI or dep lands in `package.json` (or the documented setup script) the same turn it is first used. Why: never re-litigate the install next session.
 - `import { X } from 'bun'` (`$`, `file`, `write`, `Glob`, `spawn`, …) in bun-runtime apps (CLI, standalone server). Why: explicit + tree-shakeable; `Bun` is a registered biome global so either form lints clean.
-- Use the `Bun` global (`Bun.S3Client`, `Bun.s3`, …) in Next/Turbopack apps. Why: `import { X } from 'bun'` is unresolvable in `next build`’s Node page-data-collection workers; the global needs no module resolution, so it survives the build and resolves under the bun runtime.
+- Use the `Bun` global (`Bun.S3Client`, `Bun.s3`, …) in Next/Turbopack apps. Why: `import { X } from 'bun'` is unresolvable in `next build`'s Node page-data-collection workers; the global needs no module resolution, so it survives the build and resolves under the bun runtime.
 - Run `bun i` immediately after renaming a workspace `name:`. Why: dependents resolve old name via stale `node_modules/<scope>/` symlink.
 - Read an opaque eslint `ResolveMessage {}` as a stale workspace symlink → reinstall first. Why: it masks every other violation; not a lint-internals bug.
 - Scripts silent on success, verbose on failure. Why: agent context budget.
@@ -274,39 +274,6 @@ Same UI, fewest DOM nodes — every element earns its place. If deleting it brea
 
 - Selector tools: `*:` direct children · `[&>li]:py-2` targeted · `[&_a]:underline` descendant (sparingly) · `group`/`peer` on existing nodes → `group-hover:*`/`peer-focus:*` · `data-[state=open]:*`/`aria-expanded:*`/`disabled:*` · `first:`/`last:`/`odd:`/`even:`/`only:` structural.
 - Review each node: can I delete it → delete; can `gap/space/divide` replace it → do it; can I pass `className` → do it; can `[&>...]:` remove repetition → do it.
-
----
-
-Engineering posture — how to weigh decisions. The other rules are the concrete bans; this is the mental model behind them.
-
-## MUST
-
-- Rework freely; treat past effort as sunk cost. Why: a better outcome beats preserving a prior decision.
-- Pre-launch, choose best-shape-from-scratch over safest-incremental. Why: no real users to protect; churn is cheap, debt is not.
-- Pick the most legitimate path, never the hacky / least-disruptive one. Why: architectural honesty outlasts short-term convenience.
-- Target the latest runtime, deps, and APIs; spend zero effort on backward compatibility. Why: greenfield has no legacy floor; lock-in compounds.
-- Ship the complexity when it buys ≥1% UX. Why: a cheap-feeling app loses to a polished competitor.
-- Run the adopt gate before writing code for any capability — does the Node/Bun stdlib, a Web API, a dep already in `package.json`, or a maintained npm library own it? Grep `package.json` + `bun.lock` and scan the stdlib FIRST, then live-research npm. Why: reimplementing what is already in your tree is the most common hand-roll; minutes of search save days plus every bug the library fixed.
-- Record a stack swap/add/remove as a durable decision before the code. Why: a rationale that never reaches storage evaporates.
-- Verify every “works” / “fixed” claim by running it. Why: a code trace is not a test.
-- Add strictness on encounter; remove only with false-positive evidence. Why: the world-class endpoint has no post-launch rewrite path.
-- Apply the day-one test to every strictness lever, invariant, dep, or lint rule: would a fresh `bun create` adopt it today? If yes, enable it NOW and grind the retrofit green. Why: existing-code churn is a one-time cost, cheapest pre-launch — it never decides whether the rule is right.
-- When ratcheting strictness, prioritize complexity > maintainability > consistency > style. Why: complexity/maintainability levers prevent unmaintainable growth; style is reviewer-attention noise.
-
-## NEVER
-
-- Defer a change with real payoff on effort / size / “diminishing returns” grounds. Cost: artificial phasing; the gain rots in a backlog.
-- Cite retrofit churn, call-site count, “big refactor”, or migration size to avoid, hedge, or ask permission about a lever that passes the day-one test. Cost: the same effort-framing in disguise — churn is a one-time cost, never an argument against an invariant a fresh start would adopt; enable it and grind it green without asking.
-- Pin a dep “for stability”. Cost: legacy lock-in compounds.
-- Hand-roll crypto / protocol / contract code a community already packages. Cost: reinvents every bug they fixed.
-- Narrow the adopt gate to a subset of code — by size (“trivial”, “just a small util”, “not worth a dep”), by domain, or by topic (“too niche for npm”). Cost: the qualifier IS the loophole; the gate is universal across every function and topic, and capability-ownership is the only test — never line-count, never how library-shaped it feels. “Surely nobody packaged THIS” is exactly where hand-rolls hide — grep and confirm, never assume.
-- Adopt a dep, pin a version, or call a package “latest” from training memory without an `npm view` / registry check that turn. Cost: training data is stale; the remembered package is often abandoned or superseded — “I’m fairly sure X is the standard” is the tell of an unverified assumption.
-- Weigh a tool’s learning curve or steepness as a con when selecting it. Cost: the agent pays no learning cost — capability-ownership decides; learning-curve framing picks the weaker tool.
-- Keep a workaround when a different approach removes the problem outright. Cost: complexity debt that compounds.
-
-## Pairs with
-
-- `code-quality` (single source of truth, fail-fast, type precision, canonical state); `bun` (latest deps); `testing` (cheapest faithful harness).
 
 ---
 
