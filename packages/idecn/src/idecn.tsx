@@ -19,6 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from '@a/ui/breadcrumb'
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@a/ui/command'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -29,13 +30,13 @@ import {
 } from '@a/ui/context-menu'
 import { Dialog, DialogContent } from '@a/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@a/ui/popover'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@a/ui/resizable'
 import { Skeleton } from '@a/ui/skeleton'
 import { Toaster } from '@a/ui/sonner'
 import { Accordion } from '@base-ui/react/accordion'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
-import { Command as Cmdk } from 'cmdk'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
@@ -50,7 +51,6 @@ import {
   Pencil,
   Pin,
   PinOff,
-  Search,
   SplitSquareHorizontal,
   Trash,
   Trash2,
@@ -69,7 +69,6 @@ import {
   useRef,
   useState
 } from 'react'
-import { Group, Panel, Separator } from 'react-resizable-panels'
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
 
@@ -1584,21 +1583,14 @@ const QuickOpenDialog = ({
   return (
     <Dialog onOpenChange={onChange} open={open}>
       <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
-        <Cmdk className='flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:size-5'>
-          <div className='flex items-center border-b px-3'>
-            <Search className='mr-2 size-4 shrink-0 opacity-50' />
-            <Cmdk.Input
-              className='flex h-10 w-full bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground'
-              placeholder='Search files...'
-            />
-          </div>
-          <Cmdk.List className='max-h-[300px] overflow-x-hidden overflow-y-auto'>
-            <Cmdk.Empty className='py-6 text-center text-sm'>No files found</Cmdk.Empty>
+        <Command>
+          <CommandInput placeholder='Search files...' />
+          <CommandList>
+            <CommandEmpty>No files found</CommandEmpty>
             {flatFiles.map(f => {
               const parent = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : ''
               return (
-                <Cmdk.Item
-                  className='relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0'
+                <CommandItem
                   key={f.id}
                   onSelect={() => {
                     logFn(`Quick open: ${f.name}`)
@@ -1609,11 +1601,11 @@ const QuickOpenDialog = ({
                   <FileIcon className={ICON_CLASS} name={f.name} />
                   <span className='shrink-0 truncate'>{f.name}</span>
                   {parent ? <span className='min-w-0 truncate text-xs text-muted-foreground'>{parent}</span> : null}
-                </Cmdk.Item>
+                </CommandItem>
               )
             })}
-          </Cmdk.List>
-        </Cmdk>
+          </CommandList>
+        </Command>
       </DialogContent>
     </Dialog>
   )
@@ -2414,7 +2406,7 @@ const Workspace = ({
     sidebarChildren
   )
   const dockview = (
-    <Panel minSize={20}>
+    <ResizablePanel minSize={20}>
       <div className='flex h-full flex-col'>
         <DockviewApiContext value={dockviewApi}>
           <DockviewReact
@@ -2427,19 +2419,19 @@ const Workspace = ({
         </DockviewApiContext>
         <StatusBar />
       </div>
-    </Panel>
+    </ResizablePanel>
   )
   const sidePanel = sidebarVisible ? (
     <>
-      {sidebarPosition === 'right' ? <Separator className='opacity-0' /> : null}
-      <Panel defaultSize={sidebarSize} minSize={5}>
+      {sidebarPosition === 'right' ? <ResizableHandle className='opacity-0' /> : null}
+      <ResizablePanel defaultSize={sidebarSize} minSize={5}>
         {sidebarContent}
-      </Panel>
-      {sidebarPosition === 'left' ? <Separator className='opacity-0' /> : null}
+      </ResizablePanel>
+      {sidebarPosition === 'left' ? <ResizableHandle className='opacity-0' /> : null}
     </>
   ) : null
   return (
-    <Group orientation='horizontal' {...props}>
+    <ResizablePanelGroup orientation='horizontal' {...props}>
       <style>{RESET_CSS}</style>
       {sidebarPosition === 'left' ? sidePanel : null}
       {dockview}
@@ -2456,7 +2448,7 @@ const Workspace = ({
         tree={mergedTree ?? EMPTY_TREE}
       />
       <Toaster />
-    </Group>
+    </ResizablePanelGroup>
   )
 }
 type FileTreeProps = ComponentProps<typeof FileTree>
