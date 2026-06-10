@@ -90,7 +90,7 @@ Bun is the only runtime + package manager.
 - Every direct dep shows an upstream release within ~6 months; replace an abandoned or archived dep, never keep it. Why: stale-but-stable rots — force the migration early.
 - A newly required CLI or dep lands in `package.json` (or the documented setup script) the same turn it is first used. Why: never re-litigate the install next session.
 - `import { X } from 'bun'` (`$`, `file`, `write`, `Glob`, `spawn`, …) in bun-runtime apps (CLI, standalone server). Why: explicit + tree-shakeable; `Bun` is a registered biome global so either form lints clean.
-- Use the `Bun` global (`Bun.S3Client`, `Bun.s3`, …) in Next/Turbopack apps. Why: `import { X } from 'bun'` is unresolvable in `next build`’s Node page-data-collection workers; the global needs no module resolution, so it survives the build and resolves under the bun runtime.
+- Use the `Bun` global (`Bun.S3Client`, `Bun.s3`, …) in Next/Turbopack apps. Why: `import { X } from 'bun'` is unresolvable in `next build`'s Node page-data-collection workers; the global needs no module resolution, so it survives the build and resolves under the bun runtime.
 - Run `bun i` immediately after renaming a workspace `name:`. Why: dependents resolve old name via stale `node_modules/<scope>/` symlink.
 - Read an opaque eslint `ResolveMessage {}` as a stale workspace symlink → reinstall first. Why: it masks every other violation; not a lint-internals bug.
 - Scripts silent on success, verbose on failure. Why: agent context budget.
@@ -170,9 +170,11 @@ Git commit + push conventions.
 
 lintmax = biome + oxlint + eslint + prettier + sort-package-json in one command; we own it.
 
+Every lintmax version runs configless by default. `lintmax` (TypeScript) is the sole exception — its max-strict default is dense enough that a project needs `lintmax.config.ts` to opt a rule out, so it supports one; every other version (`lintmax-go`, `lintmax-rs`, …) stays config-free. A project config opts a rule out only with documented false-positive evidence, never to dodge a fix.
+
 ## MUST
 
-- Run only `bun run fix` for code maintenance. Why: it fixes then verifies internally (all 5 linters twice); silent exit 0 = fully clean.
+- Run only `bun run fix` for code maintenance. Why: it fixes then verifies internally (all 5 linters twice); a clean run prints `ok` on a single line + exit 0 — `ok` IS the success signal, not silence.
 - Read failure output directly. Why: already grouped file→linter→rule, compressed line numbers, deduped across 5 linters.
 - Make ALL edits first, then run `fix` foreground to completion. Why: editing during a backgrounded `fix` races it — the formatter writes its pre-edit buffer back and silently reverts your change.
 - WHEN a `fix` is running, wait until `pgrep -f 'lintmax|bun.*fix'` is clear before editing. Why: same revert race.
@@ -182,7 +184,7 @@ lintmax = biome + oxlint + eslint + prettier + sort-package-json in one command;
 
 ## NEVER
 
-- Run `bun run check` / `lintmax check` (CI-only). Cost: redundant after `fix`, wastes 2+ min re-running 5 linters.
+- Run `bun run check` / `lintmax check` for maintenance — `check` is CI-only; `fix` is the agent-side maintenance command. Cost: redundant after `fix`, wastes 2+ min re-running 5 linters.
 - `| tail` / `| head` on any lintmax command. Cost: empty output IS success; failure output is already agent-formatted — truncation hides violations.
 - `lintmax check --human` to “see violations”. Cost: run `bun run fix` and read its failure output.
 - Add a second code-lint tool — extra eslint plugins, stylelint, knip, depcheck, dependency-cruiser, size-limit. Cost: fragments lintmax’s curated surface, drifts.
@@ -205,7 +207,7 @@ lintmax = biome + oxlint + eslint + prettier + sort-package-json in one command;
 
 ## Ignore strategy
 
-- Fix the code first; ignore is last resort. Why: directives teach the linter to mistrust the file.
+- Fix every legit, fixable finding by fixing the code, never the rule; ignore is last resort. Why: a found-and-fixable finding disabled is the severity/effort loophole that lets a real defect rot — the rule stays, the code changes. The only legitimate disable is a documented false-positive-rate, logged as an exception.
 - File-level disable WHEN a file has many unavoidable same-rule violations (sequential DB mutations, standard React patterns, external images); per-line for an isolated one. Why: scale-appropriate.
 - File-level directive at absolute file top, above imports/code (incl `'use client'`/`'use node'`); per-line on the line ABOVE the code. Why: per-line inline trips `no-inline-comments`.
 - WHEN 2+ linters flag one line, file-level for one + per-line for the other. Why: stacking multiple per-line above one line is banned.
