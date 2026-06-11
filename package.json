@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "action": "sh up.sh",
-    "build": "turbo build --output-logs=errors-only",
+    "build": "bash -c \"turbo build --output-logs=errors-only 2> >(grep -vE 'WARNING|Could not resolve workspaces|missing field|Turborepo will still function' >&2)\"",
     "check": "lintmax check",
     "clean": "sh clean.sh",
     "fix": "lintmax fix",
