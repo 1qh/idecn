@@ -1,11 +1,13 @@
+# Getting Started
+
 pm4ai manages every repo with lintmax in deps — syncs configs, generates `CLAUDE.md`, enforces conventions, runs maintenance.
 
 ## MUST
 
 - Read root `README.md` first WHEN it exists. Why: project-specific entry.
-- Determine role via `gh auth status`: owner (`1qh`) may edit pm4ai rules/checks directly; otherwise edit only companion files. Why: managed files are regenerated.
-- Put project-specific content in companion files — `LEARNING.md` (gotchas), `RULES.md` (project-only rules), `PROGRESS.md` (ongoing), `PLAN.md` (architecture). Why: managed files get overwritten.
-- Capture a gotcha into `LEARNING.md` the moment it surfaces, committed with the work that taught it. Why: an uncaptured surprise re-costs the same hour every few weeks; one home per fact, never duplicated.
+- Determine role via `gh auth status`: owner (`1qh`) may edit pm4ai rules/checks directly; never hand-edit a managed file. Why: managed files are regenerated on the next fix.
+- Keep project-specific docs — decisions, gotchas, plans — in the project’s doc repo (the `X-doc` sibling), never in code-repo companion files. Why: the code repo carries only code and machine-readable config; docs have one home in the doc repo.
+- Capture a gotcha into its topic-owner doc in the project doc repo the moment it surfaces, committed with the work that taught it. Why: an uncaptured surprise re-costs the same hour; one home per fact, never duplicated.
 - Owner adds a universal rule → `.mdx` in pm4ai `apps/docs/content/rules/` with `infer` frontmatter; a new check → `packages/pm4ai/src/{audit,checks}.ts`. Why: rules generate CLAUDE.md, checks run in status.
 - Note any cross-project discovery for pm4ai. Why: a lesson hit on many projects becomes a universal rule/check.
 - Act only on a current check: proceed on `check: passed` (current); wait on `check: running...` (don’t edit); fix violations on `check: failed`; re-run + wait when stale (passed before N commits); run `bunx pm4ai@latest fix` first on `check: never run`. Why: stale/absent checks aren’t evidence.
@@ -28,12 +30,14 @@ pm4ai manages every repo with lintmax in deps — syncs configs, generates `CLAU
 
 ---
 
+# Agent execution
+
 Execution discipline for an agent working this codebase. Engineering posture lives in `philosophy`; this is how to run a turn.
 
 ## MUST
 
 - Continue to the next task while autonomous-feasible work remains; identify it and start. Why: idle and handoff are the costliest parts of the loop.
-- Lock the full surfaced scope into `PLAN.md` the moment it rounds out and ship every item in one pass; the locked set is the immovable target. Why: a “this round / next round” split is where items go to die.
+- Lock the full surfaced scope into the project doc repo the moment it rounds out and ship every item in one pass; the locked set is the immovable target. Why: a “this round / next round” split is where items go to die.
 - Parallelize independent work against any known wait (build, codegen, install, network) — the parent grinds another file while a subagent runs. Why: idle wait is the costliest non-stop state in the loop.
 - Self-decide reversible, config-only, or rule-settled choices; surface only a genuine fork as one question + options (each with pros/cons) + recommendation + reasoning. Why: most “decisions” are already settled by the rules, and a stacked or unreasoned MCQ drops answer quality.
 - Exhaust code, docs, git history, and memory before asking; ask only what cannot be discovered. Why: the discovery cost is already paid.
@@ -79,6 +83,8 @@ Execution discipline for an agent working this codebase. Engineering posture liv
 
 ---
 
+# Bun
+
 Bun is the only runtime + package manager.
 
 ## MUST
@@ -108,6 +114,8 @@ Bun is the only runtime + package manager.
 - `sh up.sh` — clean + install + fix + check (universal maintenance cycle).
 
 ---
+
+# Code Quality
 
 Code quality bans, single-source-of-truth, canonical-state, bounded waits, codegen integrity.
 
@@ -153,6 +161,8 @@ Code quality bans, single-source-of-truth, canonical-state, bounded waits, codeg
 
 ---
 
+# Git
+
 Git commit + push conventions.
 
 ## MUST
@@ -167,6 +177,8 @@ Git commit + push conventions.
 - Maintain long-lived `develop` / `release-*` / `feature/*` branch hierarchies. Cost: divergent long branches rot and conflict against trunk.
 
 ---
+
+# Lintmax
 
 lintmax = biome + oxlint + eslint + prettier + sort-package-json in one command; we own it.
 
@@ -250,6 +262,8 @@ Fixes, not suppressions:
 
 ---
 
+# Minimal DOM
+
 Same UI, fewest DOM nodes — every element earns its place. If deleting it breaks nothing (semantics, layout, behavior, required styling), it must not exist.
 
 ## MUST
@@ -279,6 +293,8 @@ Same UI, fewest DOM nodes — every element earns its place. If deleting it brea
 
 ---
 
+# React & Next.js
+
 React 19 + Next.js component conventions.
 
 ## MUST
@@ -297,6 +313,8 @@ React 19 + Next.js component conventions.
 - `Date.now()` / `Math.random()` in render. Cost: hydration mismatch / nondeterminism.
 
 ---
+
+# Security
 
 Credential handling, env scoping, server/client boundary, mechanism-asserted invariants.
 
@@ -335,6 +353,8 @@ Credential handling, env scoping, server/client boundary, mechanism-asserted inv
 
 ---
 
+# shadcn
+
 shadcn components used as-is, native look, semantic classes only.
 
 ## MUST
@@ -365,6 +385,8 @@ shadcn components used as-is, native look, semantic classes only.
 
 ---
 
+# tsdown
+
 Building + publishing library packages with tsdown.
 
 ## MUST
@@ -379,6 +401,8 @@ Building + publishing library packages with tsdown.
 - Bundle deps consumers should install themselves. Cost: duplicate/version-conflict in consumer tree.
 
 ---
+
+# TypeScript
 
 TypeScript code style + formatting.
 
