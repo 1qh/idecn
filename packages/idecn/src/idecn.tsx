@@ -985,6 +985,7 @@ const TreeFolder = ({
   )
 }
 const TreeFile = ({
+  actions,
   disabled,
   icon,
   id,
@@ -993,6 +994,7 @@ const TreeFile = ({
   path,
   ...props
 }: Omit<ComponentProps<'button'>, 'id'> & {
+  actions?: ReactNode
   disabled?: boolean
   icon?: ComponentType<{ className?: string }> | string
   id?: string
@@ -1038,33 +1040,36 @@ const TreeFile = ({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <button
-          data-item-id={itemId}
-          role='treeitem'
-          type='button'
-          {...props}
-          className={cn(
-            ITEM_CLASS,
-            (isSelected || isMultiSelected) && 'bg-accent',
-            disabled && 'pointer-events-none opacity-50',
-            props.className
-          )}
-          draggable={Boolean(mutable && fileActions?.onMove)}
-          onClick={e => {
-            if (!disabled) select(e)
-            props.onClick?.(e)
-          }}
-          onDragStart={e => startMove(e.dataTransfer, path ?? name)}
-          style={{ paddingLeft: pl, ...props.style }}>
-          {CustomIcon ? (
-            <CustomIcon className={iconClass} />
-          ) : typeof icon === 'string' ? (
-            <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
-          ) : (
-            <FileIcon className={iconClass} name={name} />
-          )}
-          {name}
-        </button>
+        <div className='relative'>
+          <button
+            data-item-id={itemId}
+            role='treeitem'
+            type='button'
+            {...props}
+            className={cn(
+              ITEM_CLASS,
+              (isSelected || isMultiSelected) && 'bg-accent',
+              disabled && 'pointer-events-none opacity-50',
+              props.className
+            )}
+            draggable={Boolean(mutable && fileActions?.onMove)}
+            onClick={e => {
+              if (!disabled) select(e)
+              props.onClick?.(e)
+            }}
+            onDragStart={e => startMove(e.dataTransfer, path ?? name)}
+            style={{ paddingLeft: pl, ...props.style }}>
+            {CustomIcon ? (
+              <CustomIcon className={iconClass} />
+            ) : typeof icon === 'string' ? (
+              <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
+            ) : (
+              <FileIcon className={iconClass} name={name} />
+            )}
+            {name}
+          </button>
+          {actions ? <span className='absolute inset-y-0 right-1 flex items-center gap-1'>{actions}</span> : null}
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         {mutable && fileActions?.onRename ? (
@@ -1135,6 +1140,7 @@ const renderItems = ({
       nodes.push(
         <TreeFile
           disabled={item.disabled}
+          actions={item.actions}
           icon={item.icon}
           id={item.id}
           key={item.id}
