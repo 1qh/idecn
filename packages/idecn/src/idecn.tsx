@@ -617,6 +617,7 @@ const Tree = ({
   indent = 16,
   log: treePropLog,
   onSelect,
+  onSelectionChange,
   selectedId: controlledSelectedId,
   triggerUpload,
   ...props
@@ -627,6 +628,7 @@ const Tree = ({
   indent?: number
   log?: (msg: string) => void
   onSelect?: (item: { id: string; name: string; path: string }) => void
+  onSelectionChange?: (ids: string[]) => void
   selectedId?: null | string
   triggerUpload?: (parentPath: string) => void
 }) => {
@@ -636,6 +638,13 @@ const Tree = ({
   const [renamingId, setRenamingId] = useState<null | string>(null)
   const navRef = useRef<HTMLDivElement>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
+  const changeRef = useRef(onSelectionChange)
+  useEffect(() => {
+    changeRef.current = onSelectionChange
+  })
+  useEffect(() => {
+    changeRef.current?.([...selectedIds])
+  }, [selectedIds])
   const ctx = useMemo(
     () => ({
       creatingIn,
@@ -1173,6 +1182,7 @@ const FileTree = ({
   log: fileTreeLog,
   onDoubleClick: onDoubleClickProp,
   onSelectChange,
+  onSelectionChange,
   selectedId: controlledId,
   triggerUpload
 }: {
@@ -1185,6 +1195,7 @@ const FileTree = ({
   log?: (msg: string) => void
   onDoubleClick?: (item: TreeDataItem) => void
   onSelectChange?: (item: TreeDataItem | undefined) => void
+  onSelectionChange?: (ids: string[]) => void
   selectedId?: null | string
   triggerUpload?: (parentPath: string) => void
 }) => {
@@ -1196,6 +1207,7 @@ const FileTree = ({
       expandExclude={expandExclude}
       fileActions={fileActions}
       log={fileTreeLog}
+      onSelectionChange={onSelectionChange}
       selectedId={controlledId ?? initialSelectedItemId}
       triggerUpload={triggerUpload}>
       <div className='min-w-max'>
