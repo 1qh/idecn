@@ -34,6 +34,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@a/ui/resi
 import { Skeleton } from '@a/ui/skeleton'
 import { Toaster } from '@a/ui/sonner'
 import { Accordion } from '@base-ui/react/accordion'
+import { NumberField } from '@base-ui/react/number-field'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
@@ -2484,8 +2485,70 @@ const Workspace = ({
     </ResizablePanelGroup>
   )
 }
+interface ScrubInputProps {
+  ariaLabel?: string
+  className?: string
+  label?: string
+  max?: number
+  min?: number
+  onChange: (value: number) => void
+  placeholder?: string
+  step?: number
+  title?: string
+  value: null | number
+}
+const ScrubInput = ({
+  ariaLabel,
+  className,
+  label,
+  max,
+  min,
+  onChange,
+  placeholder,
+  step,
+  title,
+  value
+}: ScrubInputProps) => {
+  const chars = Math.max(2, String(value ?? placeholder ?? '').length)
+  const style = useMemo(() => ({ width: `calc(${chars}ch + 1.25rem)` }), [chars])
+  const tip = label === undefined ? title : title === undefined ? label : `${label} · ${title}`
+  return (
+    <NumberField.Root
+      className='inline-flex text-xs'
+      max={max}
+      min={min}
+      onValueChange={v => {
+        if (v !== null) onChange(v)
+      }}
+      step={step}
+      value={value}>
+      <NumberField.ScrubArea className='cursor-ew-resize select-none' title={tip}>
+        <NumberField.ScrubAreaCursor className='drop-shadow-sm' />
+        <NumberField.Input
+          aria-label={ariaLabel ?? label}
+          className={cn(
+            'h-7 cursor-ew-resize rounded-md border bg-transparent px-2 text-center tabular-nums outline-none focus:ring-1 focus:ring-ring',
+            className
+          )}
+          placeholder={placeholder}
+          style={style}
+          title={tip}
+        />
+      </NumberField.ScrubArea>
+    </NumberField.Root>
+  )
+}
 type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
-export type { FileActions, FileTreeProps, TabProps, TreeDataItem, VirtualFile, WorkspaceProps, WorkspaceRef }
-export { FileIcon, FileTree, FolderIcon, getIconSvg, Tab, Tree, TreeFile, TreeFolder, Workspace }
+export type {
+  FileActions,
+  FileTreeProps,
+  ScrubInputProps,
+  TabProps,
+  TreeDataItem,
+  VirtualFile,
+  WorkspaceProps,
+  WorkspaceRef
+}
+export { FileIcon, FileTree, FolderIcon, getIconSvg, ScrubInput, Tab, Tree, TreeFile, TreeFolder, Workspace }
