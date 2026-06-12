@@ -2860,7 +2860,7 @@ const PdfPage = ({
     <div className='relative w-fit scroll-mt-12' id={`pdf-page-${pageNo}`}>
       <canvas aria-label={`Page ${pageNo}`} className='border' ref={ref} />
       {vp
-        ? pageRegions.map(r => {
+        ? pageRegions.map((r, i) => {
             const color = r.color ?? 'var(--primary)'
             const isSelected = r.id === selectedRegionId
             return (
@@ -2870,7 +2870,7 @@ const PdfPage = ({
                   'absolute rounded-sm border-2 transition-[filter] hover:brightness-125',
                   isSelected && 'ring-2 ring-offset-1'
                 )}
-                key={r.id}
+                key={`${r.id}-${String(i)}`}
                 onClick={() => onRegionClick?.(r.id)}
                 ref={isSelected ? selectedRef : undefined}
                 style={{
