@@ -50,15 +50,22 @@ import { atomWithStorage } from 'jotai/utils'
 import { folder, LevaPanel, useControls, useCreateStore } from 'leva'
 import {
   ArrowRightToLine,
+  ChevronLeft,
   ChevronRight,
   ChevronsDownUp,
   ClipboardCopy,
   Download,
+  Eye,
+  EyeOff,
   FilePlus,
   FolderPlus,
+  Images,
+  Maximize,
+  Minus,
   Pencil,
   Pin,
   PinOff,
+  Plus,
   SlidersHorizontal,
   SplitSquareHorizontal,
   Trash,
@@ -1139,8 +1146,8 @@ const renderItems = ({
     } else
       nodes.push(
         <TreeFile
-          disabled={item.disabled}
           actions={item.actions}
+          disabled={item.disabled}
           icon={item.icon}
           id={item.id}
           key={item.id}
@@ -2888,6 +2895,55 @@ const PdfPage = ({
   )
 }
 const NO_REGIONS: readonly PdfRegion[] = []
+const PdfThumb = ({
+  active,
+  onClick,
+  pageNo,
+  pdf
+}: {
+  active: boolean
+  onClick: () => void
+  pageNo: number
+  pdf: PDFDocumentProxy
+}) => {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const taskRef = useRef<null | RenderTask>(null)
+  useEffect(() => {
+    let cancelled = false
+    const draw = async () => {
+      const page = await pdf.getPage(pageNo)
+      const viewport = page.getViewport({ scale: 0.18 })
+      const canvas = ref.current
+      const ctx = canvas?.getContext('2d')
+      if (!(canvas && ctx) || cancelled) return
+      canvas.width = Math.ceil(viewport.width)
+      canvas.height = Math.ceil(viewport.height)
+      taskRef.current?.cancel()
+      const task = page.render({ canvas, canvasContext: ctx, viewport })
+      taskRef.current = task
+      await task.promise.catch(() => undefined)
+    }
+    draw().catch(() => undefined)
+    return () => {
+      cancelled = true
+      taskRef.current?.cancel()
+    }
+  }, [pdf, pageNo])
+  return (
+    <button
+      aria-label={`Go to page ${String(pageNo)}`}
+      className={cn(
+        'flex shrink-0 flex-col items-center gap-0.5 rounded border p-1 hover:bg-accent',
+        active && 'border-primary bg-accent'
+      )}
+      onClick={onClick}
+      type='button'>
+      <canvas aria-hidden className='block' ref={ref} />
+      <span className='text-[10px] tabular-nums text-muted-foreground'>{pageNo}</span>
+    </button>
+  )
+}
+const TBTN = 'rounded p-1 hover:bg-accent'
 const PdfViewer = ({
   className,
   onRegionClick,
@@ -2898,15 +2954,25 @@ const PdfViewer = ({
 }: PdfViewerProps) => {
   const [doc, setDoc] = useState<PDFDocumentProxy>()
   const [zoom, setZoom] = useState(scale ?? 1.4)
+  const [fit, setFit] = useState<'none' | 'page' | 'width'>('width')
+  const [base, setBase] = useState<null | { h: number; w: number }>(null)
+  const [box, setBox] = useState({ h: 0, w: 0 })
+  const [page, setPage] = useState(1)
+  const [showThumbs, setShowThumbs] = useState(false)
+  const [showRegions, setShowRegions] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let active = true
     let loaded: PDFDocumentProxy | undefined
     const run = async () => {
       const pdfjs = await loadPdfjs()
       const d = await pdfjs.getDocument({ url: src }).promise.catch(() => undefined)
-      if (d) {
-        loaded = d
-        if (active) setDoc(d)
+      if (!d) return
+      loaded = d
+      const v = (await d.getPage(1)).getViewport({ scale: 1 })
+      if (active) {
+        setDoc(d)
+        setBase({ h: v.height, w: v.width })
       }
     }
     run().catch(() => undefined)
@@ -2915,39 +2981,127 @@ const PdfViewer = ({
       loaded?.cleanup().catch(() => undefined)
     }
   }, [src])
+  useEffect(() => {
+    const root = scrollRef.current
+    if (!(root && doc)) return
+    const ro = new ResizeObserver(entries => {
+      const r = entries[0]?.contentRect
+      if (r) setBox({ h: r.height, w: r.width })
+    })
+    ro.observe(root)
+    return () => ro.disconnect()
+  }, [doc])
+  useEffect(() => {
+    const root = scrollRef.current
+    if (!(root && doc)) return
+    const observer = new IntersectionObserver(
+      entries => {
+        const top = entries.filter(e => e.isIntersecting).toSorted((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (top) setPage(Number(top.target.id.replace('pdf-page-', '')))
+      },
+      { root, threshold: [0.1, 0.5, 0.9] }
+    )
+    for (let n = 1; n <= doc.numPages; n += 1) {
+      const el = root.querySelector(`#pdf-page-${String(n)}`)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [doc])
+  const jump = (n: number): void => {
+    scrollRef.current?.querySelector(`#pdf-page-${String(n)}`)?.scrollIntoView({ behavior: 'smooth' })
+  }
   if (!doc) return <div className={cn(CENTER, 'text-sm text-muted-foreground', className)}>Loading…</div>
+  const pages = Array.from({ length: doc.numPages }, (_, i) => i + 1)
+  const effZoom =
+    fit === 'none' || !base || box.w === 0
+      ? zoom
+      : fit === 'width'
+        ? Math.max(0.2, (box.w - 24) / base.w)
+        : Math.max(0.2, Math.min((box.w - 24) / base.w, (box.h - 24) / base.h))
+  const setManualZoom = (next: number): void => {
+    setFit('none')
+    setZoom(next)
+  }
   return (
-    <div className={cn('flex h-full flex-col overflow-auto', className)}>
-      <div className='sticky top-0 z-10 flex items-center gap-2 border-b bg-background/80 px-2 py-1 text-xs backdrop-blur'>
-        <button
-          aria-label='Zoom out'
-          className='rounded px-1 hover:bg-accent'
-          onClick={() => setZoom(prev => Math.max(0.4, Math.round((prev - 0.2) * 10) / 10))}
-          type='button'>
-          −
-        </button>
-        <span className='tabular-nums'>{Math.round(zoom * 100)}%</span>
-        <button
-          aria-label='Zoom in'
-          className='rounded px-1 hover:bg-accent'
-          onClick={() => setZoom(prev => Math.min(4, Math.round((prev + 0.2) * 10) / 10))}
-          type='button'>
-          +
-        </button>
-        <span className='ml-auto text-muted-foreground tabular-nums'>{doc.numPages} pages</span>
-      </div>
-      <div className='flex flex-col items-center gap-2 p-2'>
-        {Array.from({ length: doc.numPages }, (_, i) => i + 1).map(n => (
-          <PdfPage
-            key={n}
-            onRegionClick={onRegionClick}
-            pageNo={n}
-            pdf={doc}
-            regions={regions}
-            scale={zoom}
-            selectedRegionId={selectedRegionId}
-          />
-        ))}
+    <div className={cn('relative flex h-full overflow-hidden', className)}>
+      {showThumbs ? (
+        <div className='flex w-28 shrink-0 flex-col gap-1 overflow-auto border-r p-1'>
+          {pages.map(n => (
+            <PdfThumb active={n === page} key={n} onClick={() => jump(n)} pageNo={n} pdf={doc} />
+          ))}
+        </div>
+      ) : null}
+      <div className='relative min-w-0 flex-1 overflow-hidden'>
+        <div className='flex h-full flex-col items-center gap-2 overflow-auto bg-muted/20 p-2' ref={scrollRef}>
+          {pages.map(n => (
+            <PdfPage
+              key={n}
+              onRegionClick={onRegionClick}
+              pageNo={n}
+              pdf={doc}
+              regions={showRegions ? regions : NO_REGIONS}
+              scale={effZoom}
+              selectedRegionId={selectedRegionId}
+            />
+          ))}
+        </div>
+        <div className='absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background/90 px-2 py-1 text-xs shadow-md backdrop-blur'>
+          <button
+            aria-label='Thumbnails'
+            aria-pressed={showThumbs}
+            className={TBTN}
+            onClick={() => setShowThumbs(t => !t)}
+            type='button'>
+            <Images className='size-3.5' />
+          </button>
+          <button aria-label='Previous page' className={TBTN} onClick={() => jump(Math.max(1, page - 1))} type='button'>
+            <ChevronLeft className='size-3.5' />
+          </button>
+          <span className='tabular-nums'>
+            {page}/{doc.numPages}
+          </span>
+          <button
+            aria-label='Next page'
+            className={TBTN}
+            onClick={() => jump(Math.min(doc.numPages, page + 1))}
+            type='button'>
+            <ChevronRight className='size-3.5' />
+          </button>
+          <button
+            aria-label='Zoom out'
+            className={TBTN}
+            onClick={() => setManualZoom(Math.max(0.4, Math.round((effZoom - 0.2) * 10) / 10))}
+            type='button'>
+            <Minus className='size-3.5' />
+          </button>
+          <span className='tabular-nums'>{Math.round(effZoom * 100)}%</span>
+          <button
+            aria-label='Zoom in'
+            className={TBTN}
+            onClick={() => setManualZoom(Math.min(4, Math.round((effZoom + 0.2) * 10) / 10))}
+            type='button'>
+            <Plus className='size-3.5' />
+          </button>
+          <button
+            aria-label='Fit'
+            aria-pressed={fit !== 'none'}
+            className={TBTN}
+            onClick={() => setFit(f => (f === 'width' ? 'page' : f === 'page' ? 'none' : 'width'))}
+            title={fit === 'width' ? 'Fit width' : fit === 'page' ? 'Fit page' : 'Manual zoom'}
+            type='button'>
+            <Maximize className='size-3.5' />
+          </button>
+          {regions.length > 0 ? (
+            <button
+              aria-label='Toggle regions'
+              aria-pressed={showRegions}
+              className={TBTN}
+              onClick={() => setShowRegions(s => !s)}
+              type='button'>
+              {showRegions ? <Eye className='size-3.5' /> : <EyeOff className='size-3.5' />}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   )
