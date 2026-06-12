@@ -9,9 +9,10 @@
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
+import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
 import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
-import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
+import type { ComponentProps, ComponentType, ReactElement, ReactNode, Ref } from 'react'
 import { cn } from '@a/ui'
 import {
   Breadcrumb,
@@ -46,6 +47,7 @@ import { useHotkeys } from '@tanstack/react-hotkeys'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
+import { folder, LevaPanel, useControls, useCreateStore } from 'leva'
 import {
   ArrowRightToLine,
   ChevronRight,
@@ -57,6 +59,7 @@ import {
   Pencil,
   Pin,
   PinOff,
+  SlidersHorizontal,
   SplitSquareHorizontal,
   Trash,
   Trash2,
@@ -77,6 +80,7 @@ import {
 } from 'react'
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
+import { z } from 'zod'
 
 let pdfWorkerSet = false
 const loadPdfjs = async () => {
@@ -2499,6 +2503,223 @@ const Workspace = ({
     </ResizablePanelGroup>
   )
 }
+interface ConfigFieldMeta {
+  folder?: string
+  hint?: string
+  icon?: string
+  showWhen?: ConfigShowWhen | ConfigShowWhen[]
+  unit?: string
+}
+interface ConfigJsonNode extends ConfigFieldMeta {
+  default?: unknown
+  enum?: string[]
+  maximum?: number
+  minimum?: number
+  properties?: Record<string, ConfigJsonNode>
+  step?: number
+  type?: string
+}
+type ConfigLevaTheme = NonNullable<ComponentProps<typeof LevaPanel>['theme']>
+interface ConfigShowWhen {
+  equals: boolean | number | string
+  field: string
+}
+type ConfigSide = 'bottom' | 'left' | 'right' | 'top'
+const swallow = () => undefined
+const configTitleCase = (key: string): string =>
+  key
+    .replaceAll(/(?<lower>[a-z])(?<upper>[A-Z])/gu, '$<lower> $<upper>')
+    .replaceAll(/[_-]+/gu, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+const configShowWhenSchema = z.object({
+  equals: z.union([z.boolean(), z.number(), z.string()]),
+  field: z.string()
+})
+const configJsonNodeSchema: z.ZodType<ConfigJsonNode> = z.looseObject({
+  default: z.unknown().optional(),
+  enum: z.array(z.string()).optional(),
+  folder: z.string().optional(),
+  hint: z.string().optional(),
+  icon: z.string().optional(),
+  maximum: z.number().optional(),
+  minimum: z.number().optional(),
+  properties: z
+    .record(
+      z.string(),
+      z.lazy(() => configJsonNodeSchema)
+    )
+    .optional(),
+  showWhen: z.union([configShowWhenSchema, z.array(configShowWhenSchema)]).optional(),
+  step: z.number().optional(),
+  type: z.string().optional(),
+  unit: z.string().optional()
+})
+const configLabel = (key: string, node: ConfigJsonNode, icons?: Record<string, LucideIcon>): ReactElement | string => {
+  const text = node.unit ? `${configTitleCase(key)} (${node.unit})` : configTitleCase(key)
+  const Icon = node.icon ? icons?.[node.icon] : undefined
+  return Icon ? (
+    <span className='inline-flex items-center gap-1.5'>
+      <Icon className='size-3 shrink-0 text-muted-foreground' />
+      {text}
+    </span>
+  ) : (
+    text
+  )
+}
+const configRender = (showWhen: ConfigJsonNode['showWhen']): ((get: (key: string) => unknown) => boolean) | undefined => {
+  if (!showWhen) return
+  const conds = Array.isArray(showWhen) ? showWhen : [showWhen]
+  return (get: (key: string) => unknown) => conds.every(c => get(c.field) === c.equals)
+}
+const configLeaf = (
+  key: string,
+  node: ConfigJsonNode,
+  ctx?: { icons?: Record<string, LucideIcon>; saved?: unknown }
+): null | Record<string, unknown> => {
+  const saved = ctx?.saved
+  const base = { hint: node.hint, label: configLabel(key, node, ctx?.icons), render: configRender(node.showWhen) }
+  if (node.enum) return { ...base, options: node.enum, value: saved ?? node.default ?? node.enum[0] }
+  if (node.type === 'boolean') return { ...base, value: saved ?? node.default ?? false }
+  if (node.type === 'integer' || node.type === 'number') {
+    const min = node.minimum
+    const max = node.maximum
+    const step =
+      node.step ?? (node.type === 'integer' ? 1 : min !== undefined && max !== undefined ? (max - min) / 100 : undefined)
+    return { ...base, max, min, step, value: saved ?? node.default ?? min ?? 0 }
+  }
+  if (node.type === 'string') return { ...base, value: saved ?? node.default ?? '' }
+  return null
+}
+const toLevaSchema = (
+  config: z.ZodObject,
+  opts?: {
+    icons?: Record<string, LucideIcon>
+    overlay?: Record<string, ConfigFieldMeta>
+    values?: Record<string, unknown>
+  }
+): Schema => {
+  const json = configJsonNodeSchema.parse(z.toJSONSchema(config))
+  const top: Record<string, unknown> = {}
+  const folders: Record<string, Record<string, unknown>> = {}
+  for (const [key, raw] of Object.entries(json.properties ?? {})) {
+    const node = opts?.overlay?.[key] ? { ...raw, ...opts.overlay[key] } : raw
+    const control = raw.properties ? null : configLeaf(key, node, { icons: opts?.icons, saved: opts?.values?.[key] })
+    if (control)
+      if (node.folder) {
+        const group = folders[node.folder] ?? {}
+        group[key] = control
+        folders[node.folder] = group
+      } else top[key] = control
+  }
+  const out: Record<string, unknown> = { ...top }
+  for (const [name, controls] of Object.entries(folders)) out[name] = folder(controls as Schema, { collapsed: true })
+  return out as Schema
+}
+const configTheme: ConfigLevaTheme = {
+  colors: {
+    accent2: 'var(--primary)',
+    accent3: 'var(--primary)',
+    elevation1: 'var(--popover)',
+    elevation2: 'var(--card)',
+    elevation3: 'var(--muted)',
+    folderTextColor: 'var(--foreground)',
+    folderWidgetColor: 'var(--muted-foreground)',
+    highlight1: 'var(--muted-foreground)',
+    highlight2: 'var(--foreground)',
+    highlight3: 'var(--foreground)'
+  },
+  fontSizes: { root: '12px' },
+  radii: { lg: 'var(--radius)' },
+  sizes: { rootWidth: '100%' }
+}
+const ConfigPanel = ({ store }: { store: StoreType }) => (
+  <LevaPanel fill flat hideCopyButton store={store} theme={configTheme} titleBar={false} />
+)
+const persistConfig = (key: string): { load: () => unknown; save: (values: unknown) => void } => ({
+  load: () => {
+    try {
+      const raw = globalThis.localStorage.getItem(key)
+      return raw === null ? null : (JSON.parse(raw) as unknown)
+    } catch {
+      return null
+    }
+  },
+  save: values => {
+    try {
+      globalThis.localStorage.setItem(key, JSON.stringify(values))
+    } catch {
+      swallow()
+    }
+  }
+})
+const useConfig = <T extends z.ZodObject>(
+  schema: T,
+  options?: {
+    icons?: Record<string, LucideIcon>
+    load?: () => unknown
+    overlay?: Record<string, ConfigFieldMeta>
+    save?: (values: z.infer<T>) => void
+  }
+): { store: StoreType; values: z.infer<T> } => {
+  const store = useCreateStore()
+  const [values] = useControls(
+    () => {
+      const loaded = options?.load
+        ? (schema.partial().safeParse(options.load()).data as Record<string, unknown> | undefined)
+        : undefined
+      return toLevaSchema(schema, { icons: options?.icons, overlay: options?.overlay, values: loaded })
+    },
+    { store }
+  ) as unknown as [z.infer<T>, unknown]
+  const saveRef = useRef(options?.save)
+  useEffect(() => {
+    saveRef.current = options?.save
+  })
+  useEffect(() => {
+    saveRef.current?.(values)
+  }, [values])
+  return { store, values }
+}
+const ConfigPopover = ({
+  icon: Icon = SlidersHorizontal,
+  label,
+  side = 'top',
+  store
+}: {
+  icon?: LucideIcon
+  label: string
+  side?: ConfigSide
+  store: StoreType
+}) => (
+  <Popover>
+    <Tooltip>
+      <TooltipTrigger
+        render={tooltipProps => (
+          <PopoverTrigger
+            {...tooltipProps}
+            render={popoverProps => (
+              <Button
+                {...popoverProps}
+                aria-label={label}
+                className='shrink-0 text-muted-foreground'
+                size='icon-sm'
+                variant='ghost'>
+                <Icon className='size-4' />
+              </Button>
+            )}
+          />
+        )}
+      />
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+    <PopoverContent align='start' className='w-72 p-0' side={side} sideOffset={6}>
+      <ConfigPanel store={store} />
+    </PopoverContent>
+  </Popover>
+)
 const IconButton = ({
   busy = false,
   children,
@@ -2695,7 +2916,7 @@ const PdfViewer = ({
         <button
           aria-label='Zoom out'
           className='rounded px-1 hover:bg-accent'
-          onClick={() => setZoom(z => Math.max(0.4, Math.round((z - 0.2) * 10) / 10))}
+          onClick={() => setZoom(prev => Math.max(0.4, Math.round((prev - 0.2) * 10) / 10))}
           type='button'>
           −
         </button>
@@ -2703,7 +2924,7 @@ const PdfViewer = ({
         <button
           aria-label='Zoom in'
           className='rounded px-1 hover:bg-accent'
-          onClick={() => setZoom(z => Math.min(4, Math.round((z + 0.2) * 10) / 10))}
+          onClick={() => setZoom(prev => Math.min(4, Math.round((prev + 0.2) * 10) / 10))}
           type='button'>
           +
         </button>
@@ -2782,6 +3003,8 @@ type FileTreeProps = ComponentProps<typeof FileTree>
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
 export type {
+  ConfigFieldMeta,
+  ConfigShowWhen,
   FileActions,
   FileTreeProps,
   PdfRegion,
@@ -2794,16 +3017,21 @@ export type {
   WorkspaceRef
 }
 export {
+  ConfigPanel,
+  ConfigPopover,
   FileIcon,
   FileTree,
   FolderIcon,
   getIconSvg,
   IconButton,
   PdfViewer,
+  persistConfig,
   ScrubInput,
   Tab,
+  toLevaSchema,
   Tree,
   TreeFile,
   TreeFolder,
+  useConfig,
   Workspace
 }
