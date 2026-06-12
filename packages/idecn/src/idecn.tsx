@@ -418,8 +418,30 @@ interface FileActions {
   onCreateFolder?: (parentPath: string, name: string) => Promise<void> | void
   onDelete?: (paths: string[]) => Promise<void> | void
   onDownload?: (path: string) => Promise<void> | void
+  onMove?: (sourcePath: string, targetFolderPath: string) => Promise<void> | void
   onRename?: (path: string, newName: string) => Promise<void> | void
   onUpload?: (parentPath: string, files: FileList) => Promise<void> | void
+}
+const MOVE_MIME = 'application/x-idecn-move'
+const startMove = (dataTransfer: DataTransfer, path: string): void => {
+  dataTransfer.setData(MOVE_MIME, path)
+  dataTransfer.effectAllowed = 'move'
+}
+const allowMove = (dataTransfer: DataTransfer, preventDefault: () => void): void => {
+  if (!dataTransfer.types.includes(MOVE_MIME)) return
+  preventDefault()
+  dataTransfer.dropEffect = 'move'
+}
+const dropMove = (
+  dataTransfer: DataTransfer,
+  targetFolderPath: string,
+  onMove?: (sourcePath: string, targetFolderPath: string) => Promise<void> | void
+): boolean => {
+  const source = dataTransfer.getData(MOVE_MIME)
+  if (!(onMove && source) || source === targetFolderPath || targetFolderPath.startsWith(`${source}/`)) return false
+  const result = onMove(source, targetFolderPath)
+  if (result instanceof Promise) result.catch(() => undefined)
+  return true
 }
 interface TreeContextValue {
   creatingIn: null | { parentPath: string; type: 'file' | 'folder' }
@@ -835,7 +857,16 @@ const TreeFolder = ({
                   props.className
                 )}
                 data-item-id={itemId}
+                draggable={Boolean(mutable && fileActions?.onMove)}
                 onClick={e => select(e)}
+                onDragOver={e => allowMove(e.dataTransfer, () => e.preventDefault())}
+                onDragStart={e => startMove(e.dataTransfer, folderPath)}
+                onDrop={e => {
+                  if (dropMove(e.dataTransfer, folderPath, fileActions?.onMove)) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }
+                }}
                 role='treeitem'
                 style={{ paddingLeft: pl }}
                 tabIndex={0}>
@@ -999,10 +1030,12 @@ const TreeFile = ({
             disabled && 'pointer-events-none opacity-50',
             props.className
           )}
+          draggable={Boolean(mutable && fileActions?.onMove)}
           onClick={e => {
             if (!disabled) select(e)
             props.onClick?.(e)
           }}
+          onDragStart={e => startMove(e.dataTransfer, path ?? name)}
           style={{ paddingLeft: pl, ...props.style }}>
           {CustomIcon ? (
             <CustomIcon className={iconClass} />
