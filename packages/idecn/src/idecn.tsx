@@ -9,6 +9,7 @@
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
+import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
 import { cn } from '@a/ui'
 import {
@@ -73,6 +74,15 @@ import {
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
 
+let pdfWorkerSet = false
+const loadPdfjs = async () => {
+  const pdfjs = await import('pdfjs-dist')
+  if (!pdfWorkerSet) {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+    pdfWorkerSet = true
+  }
+  return pdfjs
+}
 const ICON_CLASS = 'size-4 shrink-0 [&_svg]:size-4 transition-all duration-300'
 const ICON_CLASS_HOVER = `${ICON_CLASS} group-hover:scale-125`
 const ICON_CLASS_TAB_HOVER = `${ICON_CLASS} group-hover/tab:scale-125`
@@ -2485,6 +2495,186 @@ const Workspace = ({
     </ResizablePanelGroup>
   )
 }
+interface PdfRegion {
+  box: readonly [number, number, number, number]
+  color?: string
+  id: string
+  label?: string
+  page: number
+}
+interface PdfViewerProps {
+  className?: string
+  onRegionClick?: (id: string) => void
+  regions?: readonly PdfRegion[]
+  scale?: number
+  selectedRegionId?: null | string
+  src: string
+}
+const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, number]) => {
+  const [x1, y1, x2, y2] = vp.convertToViewportRectangle([box[0], box[1], box[2], box[3]]) as [
+    number,
+    number,
+    number,
+    number
+  ]
+  return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
+}
+const PdfPage = ({
+  onRegionClick,
+  pageNo,
+  pdf,
+  regions,
+  scale,
+  selectedRegionId
+}: {
+  onRegionClick?: (id: string) => void
+  pageNo: number
+  pdf: PDFDocumentProxy
+  regions: readonly PdfRegion[]
+  scale: number
+  selectedRegionId: null | string
+}) => {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const taskRef = useRef<null | RenderTask>(null)
+  const selectedRef = useRef<HTMLButtonElement>(null)
+  const [vp, setVp] = useState<PageViewport>()
+  const pageRegions = regions.filter(r => r.page === pageNo)
+  const selectedOnPage = selectedRegionId !== null && pageRegions.some(r => r.id === selectedRegionId)
+  useEffect(() => {
+    if (selectedOnPage && vp) selectedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [selectedOnPage, vp])
+  useEffect(() => {
+    const controller = new AbortController()
+    const draw = async () => {
+      const page = await pdf.getPage(pageNo)
+      const viewport = page.getViewport({ scale })
+      const canvas = ref.current
+      const ctx = canvas?.getContext('2d')
+      if (!(canvas && ctx)) return
+      const prev = taskRef.current
+      prev?.cancel()
+      await prev?.promise.catch(() => undefined)
+      const dpr = Math.max(1, globalThis.devicePixelRatio)
+      canvas.width = Math.ceil(viewport.width * dpr)
+      canvas.height = Math.ceil(viewport.height * dpr)
+      canvas.style.width = `${viewport.width}px`
+      canvas.style.height = `${viewport.height}px`
+      const task = page.render({
+        canvas,
+        canvasContext: ctx,
+        transform: dpr === 1 ? undefined : [dpr, 0, 0, dpr, 0, 0],
+        viewport
+      })
+      taskRef.current = task
+      try {
+        await task.promise
+      } catch {
+        return
+      }
+      if (!controller.signal.aborted) setVp(viewport)
+    }
+    draw().catch(() => undefined)
+    return () => {
+      controller.abort()
+      taskRef.current?.cancel()
+    }
+  }, [pdf, pageNo, scale])
+  return (
+    <div className='relative w-fit scroll-mt-12' id={`pdf-page-${pageNo}`}>
+      <canvas aria-label={`Page ${pageNo}`} className='border' ref={ref} />
+      {vp
+        ? pageRegions.map(r => {
+            const color = r.color ?? 'var(--primary)'
+            const isSelected = r.id === selectedRegionId
+            return (
+              <button
+                aria-label={r.label ?? `region ${r.id}`}
+                className={cn(
+                  'absolute rounded-sm border-2 transition-[filter] hover:brightness-125',
+                  isSelected && 'ring-2 ring-offset-1'
+                )}
+                key={r.id}
+                onClick={() => onRegionClick?.(r.id)}
+                ref={isSelected ? selectedRef : undefined}
+                style={{
+                  ...pdfBoxStyle(vp, r.box),
+                  backgroundColor: `color-mix(in oklch, ${color} 15%, transparent)`,
+                  borderColor: color
+                }}
+                title={r.label}
+                type='button'
+              />
+            )
+          })
+        : null}
+    </div>
+  )
+}
+const NO_REGIONS: readonly PdfRegion[] = []
+const PdfViewer = ({
+  className,
+  onRegionClick,
+  regions = NO_REGIONS,
+  scale,
+  selectedRegionId = null,
+  src
+}: PdfViewerProps) => {
+  const [doc, setDoc] = useState<PDFDocumentProxy>()
+  const [zoom, setZoom] = useState(scale ?? 1.4)
+  useEffect(() => {
+    let active = true
+    let loaded: PDFDocumentProxy | undefined
+    const run = async () => {
+      const pdfjs = await loadPdfjs()
+      const d = await pdfjs.getDocument({ url: src }).promise.catch(() => undefined)
+      if (d) {
+        loaded = d
+        if (active) setDoc(d)
+      }
+    }
+    run().catch(() => undefined)
+    return () => {
+      active = false
+      loaded?.cleanup().catch(() => undefined)
+    }
+  }, [src])
+  if (!doc) return <div className={cn(CENTER, 'text-sm text-muted-foreground', className)}>Loading…</div>
+  return (
+    <div className={cn('flex h-full flex-col overflow-auto', className)}>
+      <div className='sticky top-0 z-10 flex items-center gap-2 border-b bg-background/80 px-2 py-1 text-xs backdrop-blur'>
+        <button
+          aria-label='Zoom out'
+          className='rounded px-1 hover:bg-accent'
+          onClick={() => setZoom(z => Math.max(0.4, Math.round((z - 0.2) * 10) / 10))}
+          type='button'>
+          −
+        </button>
+        <span className='tabular-nums'>{Math.round(zoom * 100)}%</span>
+        <button
+          aria-label='Zoom in'
+          className='rounded px-1 hover:bg-accent'
+          onClick={() => setZoom(z => Math.min(4, Math.round((z + 0.2) * 10) / 10))}
+          type='button'>
+          +
+        </button>
+        <span className='ml-auto text-muted-foreground tabular-nums'>{doc.numPages} pages</span>
+      </div>
+      <div className='flex flex-col items-center gap-2 p-2'>
+        {Array.from({ length: doc.numPages }, (_, i) => i + 1).map(n => (
+          <PdfPage
+            key={n}
+            onRegionClick={onRegionClick}
+            pageNo={n}
+            pdf={doc}
+            regions={regions}
+            scale={zoom}
+            selectedRegionId={selectedRegionId}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 interface ScrubInputProps {
   ariaLabel?: string
   className?: string
@@ -2544,6 +2734,8 @@ type WorkspaceProps = ComponentProps<typeof Workspace>
 export type {
   FileActions,
   FileTreeProps,
+  PdfRegion,
+  PdfViewerProps,
   ScrubInputProps,
   TabProps,
   TreeDataItem,
@@ -2551,4 +2743,4 @@ export type {
   WorkspaceProps,
   WorkspaceRef
 }
-export { FileIcon, FileTree, FolderIcon, getIconSvg, ScrubInput, Tab, Tree, TreeFile, TreeFolder, Workspace }
+export { FileIcon, FileTree, FolderIcon, getIconSvg, PdfViewer, ScrubInput, Tab, Tree, TreeFile, TreeFolder, Workspace }

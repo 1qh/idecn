@@ -44,7 +44,8 @@
     "@tanstack/react-hotkeys": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
-    "jotai": "latest"
+    "jotai": "latest",
+    "pdfjs-dist": "latest"
   },
   "peerDependencies": {
     "react": ">=18",
