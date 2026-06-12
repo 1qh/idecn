@@ -9,6 +9,7 @@
 import 'dockview-core/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
+import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import type { ComponentProps, ComponentType, ReactNode, Ref } from 'react'
 import { cn } from '@a/ui'
@@ -20,6 +21,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from '@a/ui/breadcrumb'
+import { Button } from '@a/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@a/ui/command'
 import {
   ContextMenu,
@@ -34,6 +36,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@a/ui/popover'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@a/ui/resizable'
 import { Skeleton } from '@a/ui/skeleton'
 import { Toaster } from '@a/ui/sonner'
+import { Spinner } from '@a/ui/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@a/ui/tooltip'
 import { Accordion } from '@base-ui/react/accordion'
 import { NumberField } from '@base-ui/react/number-field'
 import { Editor, loader } from '@monaco-editor/react'
@@ -2495,6 +2499,52 @@ const Workspace = ({
     </ResizablePanelGroup>
   )
 }
+const IconButton = ({
+  busy = false,
+  children,
+  className,
+  disabled = false,
+  icon: Icon,
+  kbd,
+  label,
+  onClick,
+  reason,
+  side,
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'size' | 'variant'> & {
+  busy?: boolean
+  icon: LucideIcon
+  kbd?: string
+  label: string
+  reason?: string
+  side?: 'bottom' | 'left' | 'right' | 'top'
+}) => {
+  const blocked = disabled && !busy
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={triggerProps => (
+          <Button
+            aria-label={label}
+            size='icon-sm'
+            variant='ghost'
+            {...triggerProps}
+            {...props}
+            aria-disabled={blocked || undefined}
+            className={cn(blocked && 'cursor-not-allowed opacity-50', className)}
+            disabled={busy}
+            onClick={blocked ? undefined : onClick}>
+            {busy ? <Spinner className='size-4' /> : (children ?? <Icon className='size-4' />)}
+          </Button>
+        )}
+      />
+      <TooltipContent side={side}>
+        {blocked && reason !== undefined ? reason : label}
+        {kbd === undefined ? null : <kbd className='ml-1 rounded bg-background/20 px-1 font-mono text-[10px]'>{kbd}</kbd>}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 interface PdfRegion {
   box: readonly [number, number, number, number]
   color?: string
@@ -2743,4 +2793,17 @@ export type {
   WorkspaceProps,
   WorkspaceRef
 }
-export { FileIcon, FileTree, FolderIcon, getIconSvg, PdfViewer, ScrubInput, Tab, Tree, TreeFile, TreeFolder, Workspace }
+export {
+  FileIcon,
+  FileTree,
+  FolderIcon,
+  getIconSvg,
+  IconButton,
+  PdfViewer,
+  ScrubInput,
+  Tab,
+  Tree,
+  TreeFile,
+  TreeFolder,
+  Workspace
+}
