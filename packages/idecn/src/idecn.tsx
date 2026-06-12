@@ -440,6 +440,7 @@ const resolveLanguageIcon = (language: string): string => {
 }
 const virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
 interface FileActions {
+  contextActions?: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => TreeContextAction[]
   onCreateFile?: (parentPath: string, name: string) => Promise<void> | void
   onCreateFolder?: (parentPath: string, name: string) => Promise<void> | void
   onDelete?: (paths: string[]) => Promise<void> | void
@@ -448,6 +449,32 @@ interface FileActions {
   onRename?: (path: string, newName: string) => Promise<void> | void
   onUpload?: (parentPath: string, files: FileList) => Promise<void> | void
 }
+interface TreeContextAction {
+  destructive?: boolean
+  icon?: ComponentType<{ className?: string }>
+  label: string
+  onSelect: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => void
+}
+const ContextActions = ({
+  ctx,
+  items
+}: {
+  ctx: { isFolder: boolean; path: string; selectedPaths: string[] }
+  items: TreeContextAction[]
+}): ReactNode =>
+  items.length === 0 ? null : (
+    <>
+      <ContextMenuSeparator />
+      {items.map(a => (
+        <ContextMenuItem
+          className={cn(a.destructive && 'text-destructive focus:text-destructive')}
+          key={a.label}
+          onClick={() => a.onSelect(ctx)}>
+          {a.icon ? <a.icon /> : null} {a.label}
+        </ContextMenuItem>
+      ))}
+    </>
+  )
 const MOVE_MIME = 'application/x-idecn-move'
 const startMove = (dataTransfer: DataTransfer, path: string): void => {
   dataTransfer.setData(MOVE_MIME, path)
@@ -974,6 +1001,12 @@ const TreeFolder = ({
                 }}>
                 <ClipboardCopy /> Copy Path
               </ContextMenuItem>
+              {fileActions?.contextActions ? (
+                <ContextActions
+                  ctx={{ isFolder: true, path: folderPath, selectedPaths: [...selectedIds] }}
+                  items={fileActions.contextActions({ isFolder: true, path: folderPath, selectedPaths: [...selectedIds] })}
+                />
+              ) : null}
             </ContextMenuContent>
           </ContextMenu>
         )}
@@ -1124,6 +1157,12 @@ const TreeFile = ({
           }}>
           <ClipboardCopy /> Copy Path
         </ContextMenuItem>
+        {fileActions?.contextActions ? (
+          <ContextActions
+            ctx={{ isFolder: false, path: path ?? name, selectedPaths: [...selectedIds] }}
+            items={fileActions.contextActions({ isFolder: false, path: path ?? name, selectedPaths: [...selectedIds] })}
+          />
+        ) : null}
       </ContextMenuContent>
     </ContextMenu>
   )
@@ -3183,6 +3222,7 @@ export type {
   PdfViewerProps,
   ScrubInputProps,
   TabProps,
+  TreeContextAction,
   TreeDataItem,
   VirtualFile,
   WorkspaceProps,

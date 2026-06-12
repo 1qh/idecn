@@ -5,7 +5,7 @@
 import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Workspace } from 'idecn'
-import { AlertTriangle, Moon, PanelLeft, Search, Sun, X } from 'lucide-react'
+import { AlertTriangle, Moon, PanelLeft, Search, Star, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -110,6 +110,17 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
   }, [initialTree, log, repo])
   const demoActions: FileActions = useMemo(
     () => ({
+      contextActions: ({ isFolder, path, selectedPaths }) => [
+        {
+          icon: Star,
+          label: selectedPaths.length > 1 ? `Star ${String(selectedPaths.length)} items` : 'Star',
+          onSelect: ctx => {
+            const targets = ctx.selectedPaths.length > 1 ? ctx.selectedPaths : [ctx.path]
+            toast(`Demo: starred ${String(targets.length)} ${isFolder ? 'folder' : 'file'} item(s)`)
+            log(`Star: ${targets.join(', ')} (from ${path})`)
+          }
+        }
+      ],
       onCreateFile: (parentPath, name) => {
         toast(`Demo: would create file "${name}" in ${parentPath || '/'}`)
         log(`Create file: ${parentPath}/${name}`)
