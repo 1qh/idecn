@@ -148,6 +148,10 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
         }
         toast.error(`Failed to download "${path}"`)
       },
+      onMove: (sourcePath, targetFolderPath) => {
+        toast(`Demo: would move "${sourcePath}" into ${targetFolderPath || '/'}`)
+        log(`Move: ${sourcePath} → ${targetFolderPath || '/'}`)
+      },
       onRename: (path, newName) => {
         toast(`Demo: would rename "${path}" to "${newName}"`)
         log(`Rename: ${path} → ${newName}`)
