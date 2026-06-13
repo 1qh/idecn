@@ -1,8 +1,3 @@
-/** biome-ignore-all lint/security/noDangerouslySetInnerHtml: trusted SVG from material-icon-theme */
-/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: event.code keys (KeyZ, KeyW) are not components */
-/** biome-ignore-all lint/performance/noImgElement: image preview panel */
-/** biome-ignore-all lint/correctness/useImageSize: dynamic image dimensions unknown */
-/** biome-ignore-all lint/nursery/noComponentHookFactories: hooks returning component data */
 /* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
@@ -623,12 +618,14 @@ const useIconsReady = () => {
 }
 const FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
   useIconsReady()
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (./_generated/icons), not user input
   return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
 }
 const FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
   useIconsReady()
   return (
     <span
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (./_generated/icons), not user input
       dangerouslySetInnerHTML={{
         __html: getSvg(resolveFolderIcon(name, open ?? false))
       }}
@@ -1111,6 +1108,7 @@ const TreeFile = ({
             {CustomIcon ? (
               <CustomIcon className={iconClass} />
             ) : typeof icon === 'string' ? (
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (getSvg → ./_generated/icons), not user input
               <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
             ) : (
               <FileIcon className={iconClass} name={name} />
@@ -1295,6 +1293,8 @@ const ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
   if (!src) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Loading...</div>
   return (
     <div className={cn(CENTER, 'h-full overflow-auto p-4')}>
+      {/* biome-ignore lint/performance/noImgElement: framework-agnostic library component, next/image unavailable */}
+      {/* biome-ignore lint/correctness/useImageSize: runtime preview of arbitrary image, dimensions unknown; sized via object-contain */}
       <img alt={api.title ?? ''} className='max-h-full max-w-full object-contain' src={src} />
     </div>
   )
@@ -1946,6 +1946,8 @@ const Workspace = ({
   )
   useAltKeys(
     {
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       ArrowLeft: () => {
         const h = historyRef.current
         if (h.index <= 0) return
@@ -1959,6 +1961,8 @@ const Workspace = ({
         }
         h.navigating = false
       },
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       ArrowRight: () => {
         const h = historyRef.current
         if (h.index >= h.entries.length - 1) return
@@ -1972,6 +1976,8 @@ const Workspace = ({
         }
         h.navigating = false
       },
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       KeyE: () => {
         const { api } = stateRef.current
         if (!api) return
@@ -1983,6 +1989,8 @@ const Workspace = ({
         next.focus()
         log(`Cycle tab: ${next.title ?? next.id}`)
       },
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       KeyT: () => {
         const lastPath = closedTabs.at(-1)
         if (!lastPath) return
@@ -1991,6 +1999,8 @@ const Workspace = ({
         pinFile({ id: lastPath, name, path: lastPath })
         log(`Reopened: ${lastPath}`)
       },
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       KeyW: () => {
         const panel = stateRef.current.api?.activePanel
         if (panel) {
@@ -1998,6 +2008,8 @@ const Workspace = ({
           panel.api.close()
         }
       },
+      // biome-ignore lint/correctness/noNestedComponentDefinitions: KeyboardEvent.code handler map for useAltKeys, not a component
+      // biome-ignore lint/nursery/noComponentHookFactories: KeyboardEvent.code handler map for useAltKeys, not a hook factory
       KeyZ: () => {
         setInternalWordWrap(w => !w)
         log('Word wrap toggled')

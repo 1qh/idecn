@@ -46,8 +46,7 @@
     "dockview-react": "latest",
     "jotai": "latest",
     "leva": "latest",
-    "pdfjs-dist": "latest",
-    "zod": "latest"
+    "pdfjs-dist": "latest"
   },
   "peerDependencies": {
     "react": ">=18",

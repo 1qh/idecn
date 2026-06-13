@@ -1,6 +1,5 @@
-/** biome-ignore-all lint/nursery/noNestedPromises: server action fallback to client fetch */
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
-/* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/no-nesting */
+/* oxlint-disable promise/prefer-await-to-then */
 'use client'
 import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
 import { SiGithub } from '@icons-pack/react-simple-icons'
@@ -61,52 +60,53 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
       return
     }
     log(`Fetching tree for ${repo}`)
-    fetchTree(repo)
-      .then(t => {
+    const loadFromJsdelivr = async () => {
+      const r = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
+      const d = (await r.json()) as { files?: unknown[] }
+      if (!d.files) throw new Error('no files')
+      setTree(d.files as TreeDataItem[])
+    }
+    const loadFromGithubApi = async () => {
+      const r = await fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
+      const d = (await r.json()) as { tree?: { path: string; type: string }[] }
+      if (!d.tree) throw new Error('no tree')
+      const items: TreeDataItem[] = []
+      const dirs = new Map<string, TreeDataItem>()
+      for (const t of d.tree.toSorted((a, b) => {
+        if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
+        return a.path.localeCompare(b.path)
+      })) {
+        const parts = t.path.split('/')
+        const name = parts.at(-1) ?? t.path
+        const node: TreeDataItem = { id: t.path, name, path: t.path }
+        if (t.type === 'tree') {
+          node.children = []
+          dirs.set(t.path, node)
+        }
+        if (parts.length === 1) items.push(node)
+        else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
+      }
+      setTree(items)
+    }
+    const load = async () => {
+      try {
+        const t = await fetchTree(repo)
         setTree(t)
         log(`Tree: ${String(t.length)} root items (server action)`)
-      })
-      .catch(async () =>
-        fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
-          .then(async r => r.json() as Promise<{ files?: unknown[] }>)
-          .then(d => {
-            if (!d.files) throw new Error('no files')
-            setTree(d.files as TreeDataItem[])
-          })
-          .catch(async () =>
-            fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
-              .then(
-                async r =>
-                  r.json() as Promise<{
-                    tree?: { path: string; type: string }[]
-                  }>
-              )
-              .then(d => {
-                if (!d.tree) throw new Error('no tree')
-                const items: TreeDataItem[] = []
-                const dirs = new Map<string, TreeDataItem>()
-                for (const t of d.tree.toSorted((a, b) => {
-                  if (a.type !== b.type) return a.type === 'tree' ? -1 : 1
-                  return a.path.localeCompare(b.path)
-                })) {
-                  const parts = t.path.split('/')
-                  const name = parts.at(-1) ?? t.path
-                  const node: TreeDataItem = { id: t.path, name, path: t.path }
-                  if (t.type === 'tree') {
-                    node.children = []
-                    dirs.set(t.path, node)
-                  }
-                  if (parts.length === 1) items.push(node)
-                  else dirs.get(parts.slice(0, -1).join('/'))?.children?.push(node)
-                }
-                setTree(items)
-              })
-              .catch(() => {
-                setTree([])
-                setError('Failed to load repo tree')
-              })
-          )
-      )
+      } catch {
+        try {
+          await loadFromJsdelivr()
+        } catch {
+          try {
+            await loadFromGithubApi()
+          } catch {
+            setTree([])
+            setError('Failed to load repo tree')
+          }
+        }
+      }
+    }
+    load().catch(() => undefined)
   }, [initialTree, log, repo])
   const demoActions: FileActions = useMemo(
     () => ({

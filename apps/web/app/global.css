@@ -1,6 +1,7 @@
 @import '@a/ui/globals.css';
 @source '../../packages/idecn/src';
 @source '../../readonly/ui/src';
+/* biome-ignore lint/nursery/noUnusedClasses: .dark is toggled at runtime on <html> by next-themes, never a literal JSX class */
 .dark {
   --card: oklch(0.12 0 0);
   --card-foreground: oklch(0.985 0 0);

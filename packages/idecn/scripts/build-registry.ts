@@ -1,6 +1,4 @@
-/** biome-ignore-all lint/performance/noAwaitInLoops: sequential file reads */
-/** biome-ignore-all lint/nursery/useNamedCaptureGroup: simple extraction */
-/* eslint-disable no-console, no-await-in-loop, prefer-named-capture-group */
+/* eslint-disable no-console */
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -19,17 +17,22 @@ const srcImports = new Set(
   })
 )
 const deps = Object.keys(pkg.dependencies).filter(d => srcImports.has(d))
-const uiImports = [...new Set(src.match(/from '@a\/ui\/([^']+)'/gu)?.map(m => m.slice(12, -1)))]
+const uiImports = [...new Set(src.match(/from '@a\/ui\/(?<name>[^']+)'/gu)?.map(m => m.slice(12, -1)))]
 const uiFiles: { content: string; path: string; type: string }[] = []
 const nestedRegistryDeps = new Set<string>()
-for (const name of uiImports) {
-  const uiSrc = await readUi(`components/${name}.tsx`)
+const uiResults = await Promise.all(
+  uiImports.map(async name => {
+    const uiSrc = await readUi(`components/${name}.tsx`)
+    return { name, uiSrc }
+  })
+)
+for (const { name, uiSrc } of uiResults) {
   const uiContent = uiSrc
     .replaceAll('../lib/utils', '@/lib/utils')
-    .replaceAll(/"\.\/([^"]+)"/gu, '"@/components/ui/$1"')
-    .replaceAll(/'\.\/([^']+)'/gu, "'@/components/ui/$1'")
+    .replaceAll(/"\.\/(?<path>[^"]+)"/gu, '"@/components/ui/$<path>"')
+    .replaceAll(/'\.\/(?<path>[^']+)'/gu, "'@/components/ui/$<path>'")
   uiFiles.push({ content: uiContent, path: `components/ui/${name}.tsx`, type: 'registry:component' })
-  const nested = uiSrc.match(/from ['"]\.\/([^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
+  const nested = uiSrc.match(/from ['"]\.\/(?<path>[^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
   if (nested) for (const n of nested) if (!uiImports.includes(n)) nestedRegistryDeps.add(n)
 }
 mkdirSync(outDir, { recursive: true })

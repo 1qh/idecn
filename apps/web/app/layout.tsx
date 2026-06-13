@@ -9,7 +9,9 @@ const metadata: Metadata = {
   title: 'idecn'
 }
 const Layout = ({ children }: { children: ReactNode }) => (
+  // biome-ignore lint/nursery/noUndeclaredClasses: standard tailwind-v4 utilities (font-sans, tracking-*) not resolved by the scanner
   <html className={cn('font-sans tracking-[-0.02em]', sans.variable, mono.variable)} lang='en' suppressHydrationWarning>
+    {/* biome-ignore lint/nursery/noUndeclaredClasses: standard tailwind-v4 utilities (min-h-screen, antialiased) not resolved by the scanner */}
     <body className='min-h-screen antialiased'>
       <Providers>{children}</Providers>
     </body>
