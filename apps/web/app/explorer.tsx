@@ -45,6 +45,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
   )
   /** biome-ignore lint/correctness/useExhaustiveDependencies: mount only */
   useEffect(() => {
+    // oxlint-disable-next-line react/react-compiler -- canonical client-mount guard; intentional setState in a mount-only effect
     setMounted(true)
     log(`Loaded ${DEFAULT_REPO} with ${initialTree.length} root items`)
     const handler = (e: KeyboardEvent) => {
@@ -55,6 +56,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
     return () => document.removeEventListener('keydown', handler)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // oxlint-disable-next-line react/react-compiler -- intentional external-sync effect resetting state on repo change
     setError(null)
     if (repo === DEFAULT_REPO) {
       setTree(initialTree)

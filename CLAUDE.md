@@ -5,7 +5,8 @@ pm4ai manages every repo with lintmax in deps — syncs configs, generates `CLAU
 ## MUST
 
 - Read root `README.md` first WHEN it exists. Why: project-specific entry.
-- Determine role via `gh auth status`: owner (`1qh`) may edit pm4ai rules/checks directly; never hand-edit a managed file. Why: managed files are regenerated on the next fix.
+- Determine role via `gh auth status`: owner (`1qh`) may edit pm4ai rules/checks directly; never hand-edit a synced managed file. Why: synced files are regenerated on the next fix.
+- Extend an extendable managed file (currently `.github/workflows/ci.yml`) by appending project steps AFTER the canonical block, leaving the canonical prefix byte-identical. Why: `fix`/`status` preserve it via the starts-with check (`isExtended`), so project CI coexists with the synced baseline.
 - Keep project-specific docs — decisions, gotchas, plans — in the project’s doc repo (the `X-doc` sibling), never in code-repo companion files. Why: the code repo carries only code and machine-readable config; docs have one home in the doc repo.
 - Capture a gotcha into its topic-owner doc in the project doc repo the moment it surfaces, committed with the work that taught it. Why: an uncaptured surprise re-costs the same hour; one home per fact, never duplicated.
 - Owner adds a universal rule → `.mdx` in pm4ai `apps/docs/content/rules/` with `infer` frontmatter; a new check → `packages/pm4ai/src/{audit,checks}.ts`. Why: rules generate CLAUDE.md, checks run in status.
@@ -14,7 +15,8 @@ pm4ai manages every repo with lintmax in deps — syncs configs, generates `CLAU
 
 ## NEVER
 
-- Edit a managed file directly — `CLAUDE.md`, `.github/workflows/ci.yml`, `clean.sh`, `up.sh`, `bunfig.toml`, `.gitignore`, `readonly/ui/`. Cost: next `pm4ai fix` overwrites it.
+- Edit a synced managed file directly — `CLAUDE.md`, `clean.sh`, `up.sh`, `bunfig.toml`, `.gitignore`, `readonly/ui/`. Cost: next `pm4ai fix` overwrites it.
+- Alter the canonical prefix of an extendable file (`.github/workflows/ci.yml`) or interleave custom steps inside it. Cost: breaks the starts-with check, so `fix` overwrites the whole file and drops your steps.
 
 ## Key repos
 
