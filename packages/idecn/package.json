@@ -1,6 +1,6 @@
 {
   "name": "idecn",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "private": false,
   "description": "IDE-like workspace and file tree components for React with material icons",
   "keywords": [
@@ -22,7 +22,8 @@
     ".": {
       "types": "./dist/idecn.d.ts",
       "import": "./dist/idecn.js"
-    }
+    },
+    "./styles.css": "./dist/idecn.css"
   },
   "main": "./dist/idecn.js",
   "types": "./dist/idecn.d.ts",
@@ -30,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && bun scripts/copy-styles.ts",
     "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
     "prepublishOnly": "bun run build",
     "postpublish": "bun ../../tools/prune-versions.ts",
