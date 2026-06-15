@@ -2602,13 +2602,13 @@ interface ConfigShowWhen {
 }
 type ConfigSide = 'bottom' | 'left' | 'right' | 'top'
 const swallow = () => undefined
-const configTitleCase = (key: string): string =>
+const configTitleCase = (key: string, acronyms?: ReadonlySet<string>): string =>
   key
     .replaceAll(/(?<lower>[a-z])(?<upper>[A-Z])/gu, '$<lower> $<upper>')
     .replaceAll(/[_-]+/gu, ' ')
     .split(' ')
     .filter(Boolean)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map(w => (acronyms?.has(w.toLowerCase()) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ')
 const configShowWhenSchema = z.object({
   equals: z.union([z.boolean(), z.number(), z.string()]),
@@ -2633,9 +2633,14 @@ const configJsonNodeSchema: z.ZodType<ConfigJsonNode> = z.looseObject({
   type: z.string().optional(),
   unit: z.string().optional()
 })
-const configLabel = (key: string, node: ConfigJsonNode, icons?: Record<string, LucideIcon>): ReactElement | string => {
-  const text = node.unit ? `${configTitleCase(key)} (${node.unit})` : configTitleCase(key)
-  const Icon = node.icon ? icons?.[node.icon] : undefined
+const configLabel = (
+  key: string,
+  node: ConfigJsonNode,
+  ctx?: { acronyms?: ReadonlySet<string>; icons?: Record<string, LucideIcon> }
+): ReactElement | string => {
+  const cased = configTitleCase(key, ctx?.acronyms)
+  const text = node.unit ? `${cased} (${node.unit})` : cased
+  const Icon = node.icon ? ctx?.icons?.[node.icon] : undefined
   return Icon ? (
     <span className='inline-flex items-center gap-1.5'>
       <Icon className='size-3 shrink-0 text-muted-foreground' />
@@ -2653,10 +2658,14 @@ const configRender = (showWhen: ConfigJsonNode['showWhen']): ((get: (key: string
 const configLeaf = (
   key: string,
   node: ConfigJsonNode,
-  ctx?: { icons?: Record<string, LucideIcon>; saved?: unknown }
+  ctx?: { acronyms?: ReadonlySet<string>; icons?: Record<string, LucideIcon>; saved?: unknown }
 ): null | Record<string, unknown> => {
   const saved = ctx?.saved
-  const base = { hint: node.hint, label: configLabel(key, node, ctx?.icons), render: configRender(node.showWhen) }
+  const base = {
+    hint: node.hint,
+    label: configLabel(key, node, { acronyms: ctx?.acronyms, icons: ctx?.icons }),
+    render: configRender(node.showWhen)
+  }
   if (node.enum) return { ...base, options: node.enum, value: saved ?? node.default ?? node.enum[0] }
   if (node.type === 'boolean') return { ...base, value: saved ?? node.default ?? false }
   if (node.type === 'integer' || node.type === 'number') {
@@ -2672,6 +2681,7 @@ const configLeaf = (
 const toLevaSchema = (
   config: z.ZodObject,
   opts?: {
+    acronyms?: ReadonlySet<string>
     icons?: Record<string, LucideIcon>
     overlay?: Record<string, ConfigFieldMeta>
     values?: Record<string, unknown>
@@ -2682,7 +2692,9 @@ const toLevaSchema = (
   const folders: Record<string, Record<string, unknown>> = {}
   for (const [key, raw] of Object.entries(json.properties ?? {})) {
     const node = opts?.overlay?.[key] ? { ...raw, ...opts.overlay[key] } : raw
-    const control = raw.properties ? null : configLeaf(key, node, { icons: opts?.icons, saved: opts?.values?.[key] })
+    const control = raw.properties
+      ? null
+      : configLeaf(key, node, { acronyms: opts?.acronyms, icons: opts?.icons, saved: opts?.values?.[key] })
     if (control)
       if (node.folder) {
         const group = folders[node.folder] ?? {}
@@ -2734,6 +2746,7 @@ const persistConfig = (key: string): { load: () => unknown; save: (values: unkno
 const useConfig = <T extends z.ZodObject>(
   schema: T,
   options?: {
+    acronyms?: ReadonlySet<string>
     icons?: Record<string, LucideIcon>
     load?: () => unknown
     overlay?: Record<string, ConfigFieldMeta>
@@ -2746,7 +2759,12 @@ const useConfig = <T extends z.ZodObject>(
       const loaded = options?.load
         ? (schema.partial().safeParse(options.load()).data as Record<string, unknown> | undefined)
         : undefined
-      return toLevaSchema(schema, { icons: options?.icons, overlay: options?.overlay, values: loaded })
+      return toLevaSchema(schema, {
+        acronyms: options?.acronyms,
+        icons: options?.icons,
+        overlay: options?.overlay,
+        values: loaded
+      })
     },
     { store }
   ) as unknown as [z.infer<T>, unknown]
