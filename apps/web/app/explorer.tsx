@@ -1,9 +1,10 @@
+/** biome-ignore-all lint/correctness/useUniqueElementIds: Tab id is the dockview panel identifier, not a DOM element id */
 /* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
 /* oxlint-disable promise/prefer-await-to-then */
 'use client'
 import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
 import { SiGithub } from '@icons-pack/react-simple-icons'
-import { Workspace } from 'idecn'
+import { Tab, Workspace } from 'idecn'
 import { AlertTriangle, Moon, PanelLeft, Search, Star, Sun, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,6 +12,7 @@ import { toast } from 'sonner'
 import { downloadFile, downloadFolder, fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
 
+const DETAILS_POSITION = { direction: 'right', referenceTab: 'welcome' } as const
 const triggerDownload = (base64: string, filename: string) => {
   const bytes = Uint8Array.from(atob(base64), c => c.codePointAt(0) ?? 0)
   const blob = new Blob([bytes])
@@ -283,8 +285,19 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
           return null
         }}
         ref={ref}
-        tree={markMutable(tree)}
-      />
+        tree={markMutable(tree)}>
+        <Tab id='welcome' title='Welcome'>
+          <div className='space-y-2 p-4 text-sm text-muted-foreground'>
+            <p className='font-medium text-foreground'>idecn workspace</p>
+            <p>Open files from the tree, or arrange fixed panes with positioned tabs.</p>
+          </div>
+        </Tab>
+        <Tab id='details' position={DETAILS_POSITION} title='Details'>
+          <div className='p-4 text-sm text-muted-foreground'>
+            A positioned tab opens beside its reference, building a split layout from declarative children.
+          </div>
+        </Tab>
+      </Workspace>
     </div>
   )
 }

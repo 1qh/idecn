@@ -1263,6 +1263,7 @@ const Tab = (_props: {
   id?: string
   inactiveClassName?: string
   onClose?: () => void
+  position?: { direction: 'above' | 'below' | 'left' | 'right' | 'within'; referenceTab?: string }
   title: string
 }): null => null
 Tab._type = TAB_TYPE
@@ -2034,6 +2035,11 @@ const Workspace = ({
       existing.api.updateParameters({ content: tab.children })
       return
     }
+    const refId = tab.position?.referenceTab
+    const refPanel = refId === undefined ? undefined : api.panels.find(p => p.id === refId)
+    const position = tab.position
+      ? { direction: tab.position.direction, ...(refPanel ? { referencePanel: refPanel.id } : {}) }
+      : undefined
     api.addPanel({
       component: 'custom',
       id: tabId,
@@ -2045,6 +2051,7 @@ const Workspace = ({
         icon: tab.icon,
         inactiveClassName: tab.inactiveClassName
       },
+      ...(position ? { position } : {}),
       tabComponent: 'default',
       title: tab.title
     })
