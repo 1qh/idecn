@@ -2418,6 +2418,7 @@ const Workspace = ({
       })
     )
     stateRef.current.ready = true
+    notifyPanels()
   }
   const mergedTree = useMemo(() => {
     if (!(tree || (files && files.length > 0))) return tree
