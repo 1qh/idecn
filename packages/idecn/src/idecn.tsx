@@ -1857,7 +1857,6 @@ const Workspace = ({
       if (stateRef.current.fileIds.has(panel.id)) panel.api.updateParameters({ editorOptions: mergedEditorOptions })
   }, [mergedEditorOptions])
   useEffect(() => {
-    // oxlint-disable-next-line react/react-compiler -- canonical client-mount guard; intentional setState in a mount-only effect
     setMounted(true)
     const observer = new MutationObserver(() => {
       log(`Theme: ${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`)
