@@ -2042,6 +2042,7 @@ const Workspace = ({
     const existing = api.panels.find(p => p.id === tabId)
     if (existing) {
       existing.api.updateParameters({ content: tab.children })
+      if (existing.title !== tab.title) existing.api.setTitle(tab.title)
       return
     }
     const refId = tab.position?.referenceTab
