@@ -523,7 +523,12 @@ interface TreeDataItem {
 }
 interface WorkspaceRef {
   focusPanel: (id: string) => void
+  hasPanel: (id: string) => boolean
   openFile: (item: TreeDataItem) => void
+  panelIds: () => string[]
+  reopenLast: () => void
+  reset: () => void
+  togglePanel: (id: string, focusOnly?: boolean) => void
   toggleSidebar: () => void
 }
 const EMPTY_SET = new Set<string>()
@@ -1739,6 +1744,7 @@ const Workspace = ({
   initialFiles,
   onFilesChange,
   onOpenFile,
+  onPanelsChange,
   onSidebarChange,
   onTabChange,
   ref,
@@ -1761,6 +1767,7 @@ const Workspace = ({
   initialFiles?: string[]
   onFilesChange?: (files: string[]) => void
   onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
+  onPanelsChange?: (ids: string[]) => void
   onSidebarChange?: (visible: boolean) => void
   onTabChange?: (id: string) => void
   ref?: Ref<WorkspaceRef>
@@ -1822,6 +1829,7 @@ const Workspace = ({
   const themeRef = useRef(theme)
   const filesRef = useRef(files)
   const onTabChangeRef = useRef(onTabChange)
+  const onPanelsChangeRef = useRef(onPanelsChange)
   const mergedEditorOptions = useMemo(
     () => ({
       ...editorOptions,
@@ -1840,6 +1848,7 @@ const Workspace = ({
     previewIdRef.current = currentPreviewId
     pinnedTabsRef.current = pinnedTabsValue
     onTabChangeRef.current = onTabChange
+    onPanelsChangeRef.current = onPanelsChange
   })
   useEffect(() => {
     const { api } = stateRef.current
@@ -2254,15 +2263,50 @@ const Workspace = ({
   useEffect(() => {
     setOpenFileFn(() => pinFile)
   }, [pinFile, setOpenFileFn])
-  useImperativeHandle(
-    ref,
-    () => ({
+  useImperativeHandle(ref, () => {
+    const reopenById = (id: string): boolean => {
+      const spec = tabs.find(t => getTabId(t) === id)
+      if (!spec) return false
+      addTab(spec)
+      stateRef.current.api?.panels.find(p => p.id === id)?.focus()
+      return true
+    }
+    return {
       focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
+      hasPanel: (id: string) => Boolean(stateRef.current.api?.panels.some(p => p.id === id)),
       openFile: pinFile,
+      panelIds: () => stateRef.current.api?.panels.map(p => p.id) ?? [],
+      reopenLast: () =>
+        setClosedTabs(prev => {
+          for (let i = prev.length - 1; i >= 0; i -= 1) {
+            const id = prev[i]
+            if (id !== undefined && reopenById(id)) return [...prev.slice(0, i), ...prev.slice(i + 1)]
+          }
+          return prev
+        }),
+      reset: () => {
+        const { api } = stateRef.current
+        if (!api) return
+        for (const id of api.panels.map(p => p.id)) {
+          const panel = api.panels.find(p => p.id === id)
+          if (panel) api.removePanel(panel)
+        }
+        for (const tab of tabs) addTab(tab)
+      },
+      togglePanel: (id: string, focusOnly?: boolean) => {
+        const { api } = stateRef.current
+        if (!api) return
+        const existing = api.panels.find(p => p.id === id)
+        if (existing) {
+          if (focusOnly) existing.focus()
+          else api.removePanel(existing)
+          return
+        }
+        reopenById(id)
+      },
       toggleSidebar
-    }),
-    [pinFile, toggleSidebar]
-  )
+    }
+  }, [addTab, pinFile, setClosedTabs, tabs, toggleSidebar])
   useEffect(() => {
     const { api } = stateRef.current
     if (!api) return
@@ -2331,6 +2375,7 @@ const Workspace = ({
       const fileList = [...stateRef.current.fileIds]
       onFilesChangeRef.current?.(fileList)
     }
+    const notifyPanels = () => onPanelsChangeRef.current?.(event.api.panels.map(p => p.id))
     stateRef.current.disposables.push(
       event.api.onDidRemovePanel(e => {
         stateRef.current.fileIds.delete(e.id)
@@ -2349,10 +2394,12 @@ const Workspace = ({
         if (!e.id.startsWith(VIRTUAL_PREFIX)) setClosedTabs(prev => [...prev.slice(-19), e.id])
         log(`Closed: ${e.title ?? e.id}`)
         notifyFiles()
+        notifyPanels()
       }),
       event.api.onDidAddPanel(e => {
         log(`Opened tab: ${e.title ?? e.id}`)
         notifyFiles()
+        notifyPanels()
       }),
       event.api.onDidActivePanelChange(e => {
         if (e?.id) {
