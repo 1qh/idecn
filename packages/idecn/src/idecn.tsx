@@ -206,7 +206,7 @@ const RESET_CSS = [
   '--dv-tabs-and-actions-container-height:auto;',
   '--dv-group-view-background-color:transparent;',
   '--dv-separator-border:transparent;',
-  '--dv-tab-divider-color:transparent;',
+  '--dv-tab-divider-color:color-mix(in oklch,var(--color-border,var(--border)) 60%,transparent);',
   '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
   '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
   '--dv-tab-margin:0;',
@@ -1264,7 +1264,7 @@ const Tab = (_props: {
   children: ReactNode
   closable?: boolean
   headerClassName?: string
-  icon?: boolean
+  icon?: boolean | ComponentType<{ className?: string }>
   id?: string
   inactiveClassName?: string
   onClose?: () => void
@@ -1436,7 +1436,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
         activeClassName?: string
         closable?: boolean
         headerClassName?: string
-        icon?: boolean
+        icon?: boolean | ComponentType<{ className?: string }>
         iconName?: string
         inactiveClassName?: string
         preview?: boolean
@@ -1446,6 +1446,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
   const [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom)
   const isPreview = previewId === api.id
   const isPinned = pinnedTabs.includes(api.id)
+  const TabIcon = typeof p?.icon === 'function' ? p.icon : undefined
   const showIcon = p?.icon !== false
   const closable = p?.closable !== false && !isPinned
   const [active, setActive] = useState(api.isActive)
@@ -1471,7 +1472,11 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
             api.close()
           }
         }}>
-        {showIcon ? <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} /> : null}
+        {TabIcon ? (
+          <TabIcon className={ICON_CLASS_TAB_HOVER} />
+        ) : showIcon ? (
+          <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} />
+        ) : null}
         {api.title}
         {isPinned ? (
           <Pin
@@ -3001,8 +3006,8 @@ const PdfPage = ({
     }
   }, [pdf, pageNo, scale])
   return (
-    <div className='relative w-fit scroll-mt-12' id={`pdf-page-${pageNo}`}>
-      <canvas aria-label={`Page ${pageNo}`} className='border' ref={ref} />
+    <div className='relative w-fit scroll-mt-12 border-b border-border/40 pb-2 last:border-b-0' id={`pdf-page-${pageNo}`}>
+      <canvas aria-label={`Page ${pageNo}`} className='block' ref={ref} />
       {vp
         ? pageRegions.map((r, i) => {
             const color = r.color ?? 'var(--primary)'
@@ -3169,7 +3174,7 @@ const PdfViewer = ({
         </div>
       ) : null}
       <div className='relative min-w-0 flex-1 overflow-hidden'>
-        <div className='flex h-full flex-col items-center gap-2 overflow-auto bg-muted/20 p-2' ref={scrollRef}>
+        <div className='flex h-full flex-col items-center gap-0 overflow-auto bg-muted/20 p-2' ref={scrollRef}>
           {pages.map(n => (
             <PdfPage
               key={n}
