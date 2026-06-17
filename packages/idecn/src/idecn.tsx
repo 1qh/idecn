@@ -437,6 +437,7 @@ const resolveLanguageIcon = (language: string): string => {
 const virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
 interface FileActions {
   contextActions?: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => TreeContextAction[]
+  copyPath?: boolean
   onCreateFile?: (parentPath: string, name: string) => Promise<void> | void
   onCreateFolder?: (parentPath: string, name: string) => Promise<void> | void
   onDelete?: (paths: string[]) => Promise<void> | void
@@ -1013,15 +1014,17 @@ const TreeFolder = ({
               {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
                 <ContextMenuSeparator />
               ) : null}
-              <ContextMenuItem
-                onClick={() => {
-                  navigator.clipboard
-                    .writeText(folderPath)
-                    .then(() => toast('Copied to clipboard'))
-                    .catch(() => undefined)
-                }}>
-                <ClipboardCopy /> Copy Path
-              </ContextMenuItem>
+              {fileActions?.copyPath === false ? null : (
+                <ContextMenuItem
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(folderPath)
+                      .then(() => toast('Copied to clipboard'))
+                      .catch(() => undefined)
+                  }}>
+                  <ClipboardCopy /> Copy Path
+                </ContextMenuItem>
+              )}
               {fileActions?.contextActions ? (
                 <ContextActions
                   ctx={{ isFolder: true, path: folderPath, selectedPaths: [...selectedIds] }}
@@ -1171,15 +1174,17 @@ const TreeFile = ({
         {(mutable && (fileActions?.onRename || fileActions?.onDelete)) || fileActions?.onDownload ? (
           <ContextMenuSeparator />
         ) : null}
-        <ContextMenuItem
-          onClick={() => {
-            navigator.clipboard
-              .writeText(path ?? name)
-              .then(() => toast('Copied to clipboard'))
-              .catch(() => undefined)
-          }}>
-          <ClipboardCopy /> Copy Path
-        </ContextMenuItem>
+        {fileActions?.copyPath === false ? null : (
+          <ContextMenuItem
+            onClick={() => {
+              navigator.clipboard
+                .writeText(path ?? name)
+                .then(() => toast('Copied to clipboard'))
+                .catch(() => undefined)
+            }}>
+            <ClipboardCopy /> Copy Path
+          </ContextMenuItem>
+        )}
         {fileActions?.contextActions ? (
           <ContextActions
             ctx={{ isFolder: false, path: path ?? name, selectedPaths: [...selectedIds] }}
