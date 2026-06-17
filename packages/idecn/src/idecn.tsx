@@ -1264,6 +1264,7 @@ const Tab = (_props: {
   activeClassName?: string
   children: ReactNode
   closable?: boolean
+  defaultOpen?: boolean
   headerClassName?: string
   icon?: boolean | ComponentType<{ className?: string }>
   id?: string
@@ -1738,6 +1739,51 @@ const QuickOpenDialog = ({
     </Dialog>
   )
 }
+const persistLayout = (api: DockviewApi, key: string) => {
+  try {
+    const json = api.toJSON()
+    const panels: Record<string, unknown> = {}
+    for (const [id, panel] of Object.entries(json.panels)) panels[id] = { ...panel, params: {} }
+    globalThis.localStorage.setItem(key, JSON.stringify({ ...json, panels }))
+  } catch {
+    /* layout snapshot not serializable this tick */
+  }
+}
+const restoreLayout = (api: DockviewApi, key: string, tabs: TabProps[]): boolean => {
+  let raw: null | string
+  try {
+    raw = globalThis.localStorage.getItem(key)
+  } catch {
+    return false
+  }
+  if (raw === null || raw === '') return false
+  try {
+    api.fromJSON(JSON.parse(raw) as Parameters<typeof api.fromJSON>[0])
+  } catch {
+    return false
+  }
+  const tabIds = new Set(tabs.map(getTabId))
+  const stale = api.panels.filter(panel => !tabIds.has(panel.id))
+  for (const panel of stale)
+    try {
+      api.removePanel(panel)
+    } catch {
+      /* already gone */
+    }
+  for (const tab of tabs) {
+    const panel = api.panels.find(p => p.id === getTabId(tab))
+    if (panel)
+      panel.api.updateParameters({
+        activeClassName: tab.activeClassName,
+        closable: tab.closable,
+        content: tab.children,
+        headerClassName: tab.headerClassName,
+        icon: tab.icon,
+        inactiveClassName: tab.inactiveClassName
+      })
+  }
+  return api.panels.length > 0
+}
 const Workspace = ({
   activityLog,
   children,
@@ -1748,6 +1794,7 @@ const Workspace = ({
   fileActions,
   files,
   initialFiles,
+  layoutKey,
   onFilesChange,
   onOpenFile,
   onPanelsChange,
@@ -1772,6 +1819,7 @@ const Workspace = ({
   fileActions?: FileActions
   files?: VirtualFile[]
   initialFiles?: string[]
+  layoutKey?: string
   onFilesChange?: (files: string[]) => void
   onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
   onPanelsChange?: (ids: string[]) => void
@@ -2296,11 +2344,17 @@ const Workspace = ({
       reset: () => {
         const { api } = stateRef.current
         if (!api) return
+        if (layoutKey !== undefined)
+          try {
+            globalThis.localStorage.removeItem(layoutKey)
+          } catch {
+            /* storage unavailable */
+          }
         for (const id of api.panels.map(p => p.id)) {
           const panel = api.panels.find(p => p.id === id)
           if (panel) api.removePanel(panel)
         }
-        for (const tab of tabs) addTab(tab)
+        for (const tab of tabs) if (tab.defaultOpen !== false) addTab(tab)
       },
       togglePanel: (id: string, focusOnly?: boolean) => {
         const { api } = stateRef.current
@@ -2315,7 +2369,7 @@ const Workspace = ({
       },
       toggleSidebar
     }
-  }, [addTab, pinFile, setClosedTabs, tabs, toggleSidebar])
+  }, [addTab, layoutKey, pinFile, setClosedTabs, tabs, toggleSidebar])
   useEffect(() => {
     const { api } = stateRef.current
     if (!api) return
@@ -2329,7 +2383,7 @@ const Workspace = ({
       const tabId = getTabId(tab)
       if (stateRef.current.prevTabIds.has(tabId))
         api.panels.find(p => p.id === tabId)?.api.updateParameters({ content: tab.children })
-      else addTab(tab)
+      else if (tab.defaultOpen !== false) addTab(tab)
     }
     stateRef.current.prevTabIds = currentIds
     stateRef.current.onCloseMap.clear()
@@ -2358,7 +2412,10 @@ const Workspace = ({
   const handleReady = (event: DockviewReadyEvent) => {
     stateRef.current.api = event.api
     setDockviewApi(event.api)
-    for (const tab of tabs) addTab(tab)
+    const restored = layoutKey === undefined ? false : restoreLayout(event.api, layoutKey, tabs)
+    if (!restored) for (const tab of tabs) if (tab.defaultOpen !== false) addTab(tab)
+    if (layoutKey !== undefined)
+      stateRef.current.disposables.push(event.api.onDidLayoutChange(() => persistLayout(event.api, layoutKey)))
     stateRef.current.prevTabIds = new Set(tabs.map(getTabId))
     for (const tab of tabs) if (tab.onClose) stateRef.current.onCloseMap.set(getTabId(tab), tab.onClose)
     if (filesRef.current)
