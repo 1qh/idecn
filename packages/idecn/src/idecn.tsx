@@ -843,6 +843,7 @@ const TreeFolder = ({
   children,
   defaultOpen = false,
   disabled,
+  icon,
   id,
   mutable,
   name,
@@ -854,6 +855,7 @@ const TreeFolder = ({
   className?: string
   defaultOpen?: boolean
   disabled?: boolean
+  icon?: ComponentType<{ className?: string }> | false | string
   id?: string
   mutable?: boolean
   name: string
@@ -941,7 +943,7 @@ const TreeFolder = ({
                 role='treeitem'
                 style={{ paddingLeft: pl }}
                 tabIndex={0}>
-                <FolderIcon className={iconClass} name={name} open={isOpen} />
+                {icon === false ? null : <FolderIcon className={iconClass} name={name} open={isOpen} />}
                 {name}
               </Accordion.Trigger>
             </ContextMenuTrigger>
@@ -1195,6 +1197,7 @@ const renderItems = ({
       nodes.push(
         <TreeFolder
           disabled={item.disabled}
+          icon={item.icon}
           id={item.id}
           key={item.id}
           mutable={item.mutable}
