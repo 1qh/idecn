@@ -2884,6 +2884,7 @@ const useConfig = <T extends z.ZodObject>(
   }
 ): { store: StoreType; values: z.infer<T> } => {
   const store = useCreateStore()
+  const overlayDep = JSON.stringify(Object.entries(options?.overlay ?? {}).map(([key, meta]) => [key, meta.enum ?? null]))
   const [values] = useControls(
     () => {
       const loaded = options?.load
@@ -2896,7 +2897,8 @@ const useConfig = <T extends z.ZodObject>(
         values: loaded
       })
     },
-    { store }
+    { store },
+    [overlayDep]
   ) as unknown as [z.infer<T>, unknown]
   const saveRef = useRef(options?.save)
   useEffect(() => {
