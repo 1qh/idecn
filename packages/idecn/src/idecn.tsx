@@ -205,7 +205,7 @@ const RESET_CSS = [
   '--dv-tabs-and-actions-container-background-color:transparent;',
   '--dv-tabs-and-actions-container-height:auto;',
   '--dv-group-view-background-color:transparent;',
-  '--dv-separator-border:transparent;',
+  '--dv-separator-border:color-mix(in oklch,var(--color-border,var(--border)) 60%,transparent);',
   '--dv-tab-divider-color:color-mix(in oklch,var(--color-border,var(--border)) 60%,transparent);',
   '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
   '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
@@ -1463,7 +1463,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
         className={cn(
           'group/tab flex h-full items-center gap-[3px] px-px py-[3px] text-sm',
           p?.headerClassName,
-          active ? ['font-medium', p?.activeClassName] : ['text-muted-foreground', p?.inactiveClassName]
+          active ? ['font-medium text-foreground', p?.activeClassName] : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}
         data-preview={isPreview ? '' : undefined}
