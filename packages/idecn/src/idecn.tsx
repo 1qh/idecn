@@ -218,9 +218,10 @@ const RESET_CSS = [
   '.dv-reset .dv-tab{padding:0;background:transparent}',
   '.dv-reset .dv-tabs-container{gap:0}',
   '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
-  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:var(--color-muted,var(--muted))!important}',
-  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:1px solid var(--color-primary,var(--primary))}',
-  '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:1px solid transparent}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:color-mix(in oklch,var(--color-primary,var(--primary)) 12%,var(--color-background,var(--background)))!important}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:2px solid var(--color-primary,var(--primary))}',
+  '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:2px solid transparent}',
+  '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab):hover{background:color-mix(in oklch,var(--color-muted,var(--muted)) 55%,transparent)}',
   '.dv-reset .dv-tabs-container>.dv-tab+.dv-tab{border-left:1px solid color-mix(in oklch,var(--color-border,var(--border)) 50%,transparent)}',
   '.dv-reset .dv-tab:has([data-fill]){flex:1}',
   '.dv-reset .dv-tabs-container{overflow-x:auto;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--color-foreground,var(--foreground)) 15%,transparent) transparent}',
@@ -1460,9 +1461,9 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
     <ContextMenu>
       <ContextMenuTrigger
         className={cn(
-          'group/tab flex h-full items-center gap-[3px] pl-1 py-[3px] text-sm',
+          'group/tab flex h-full items-center gap-[3px] px-px py-[3px] text-sm',
           p?.headerClassName,
-          active ? p?.activeClassName : ['text-muted-foreground', p?.inactiveClassName]
+          active ? ['font-medium', p?.activeClassName] : ['text-muted-foreground', p?.inactiveClassName]
         )}
         data-fill={p?.headerClassName ? '' : undefined}
         data-preview={isPreview ? '' : undefined}
