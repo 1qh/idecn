@@ -1461,7 +1461,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
     <ContextMenu>
       <ContextMenuTrigger
         className={cn(
-          'group/tab flex h-full items-center gap-[3px] px-px py-[3px] text-sm',
+          'group/tab flex h-full items-center gap-[5px] py-[3px] pr-px pl-[3px] text-sm',
           p?.headerClassName,
           active ? ['font-medium text-foreground', p?.activeClassName] : ['text-muted-foreground', p?.inactiveClassName]
         )}
@@ -1489,7 +1489,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
           />
         ) : closable ? (
           <X
-            className='-ml-1 size-4 opacity-0 p-0.5 hover:p-0 hover:cursor-pointer hover:text-red-500 transition-all hover:opacity-100 group-hover/tab:opacity-50'
+            className='-ml-[3px] size-4 text-destructive opacity-0 p-0.5 hover:p-0 hover:cursor-pointer transition-all hover:opacity-100 group-hover/tab:opacity-50'
             onClick={e => {
               e.stopPropagation()
               api.close()
