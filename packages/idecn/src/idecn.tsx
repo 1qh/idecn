@@ -846,6 +846,7 @@ const TreeFolder = ({
   id,
   mutable,
   name,
+  onSelect,
   path,
   ...props
 }: {
@@ -856,6 +857,7 @@ const TreeFolder = ({
   id?: string
   mutable?: boolean
   name: string
+  onSelect?: () => void
   path?: string
 }) => {
   const {
@@ -924,7 +926,10 @@ const TreeFolder = ({
                 )}
                 data-item-id={itemId}
                 draggable={Boolean(mutable && fileActions?.onMove)}
-                onClick={e => select(e)}
+                onClick={e => {
+                  select(e)
+                  onSelect?.()
+                }}
                 onDragOver={e => allowMove(e.dataTransfer, () => e.preventDefault())}
                 onDragStart={e => startMove(e.dataTransfer, folderPath)}
                 onDrop={e => {
@@ -1175,11 +1180,13 @@ const TreeFile = ({
 const renderItems = ({
   items,
   onItemClick,
-  onItemDoubleClick
+  onItemDoubleClick,
+  selectableFolders
 }: {
   items: TreeDataItem[]
   onItemClick?: (item: TreeDataItem) => void
   onItemDoubleClick?: (item: TreeDataItem) => void
+  selectableFolders?: boolean
 }): ReactNode[] => {
   const nodes: ReactNode[] = []
   for (const item of items)
@@ -1192,8 +1199,9 @@ const renderItems = ({
           key={item.id}
           mutable={item.mutable}
           name={name}
+          onSelect={selectableFolders ? () => onItemClick?.(item) : undefined}
           path={item.path}>
-          {renderItems({ items: children, onItemClick, onItemDoubleClick })}
+          {renderItems({ items: children, onItemClick, onItemDoubleClick, selectableFolders })}
         </TreeFolder>
       )
     } else
@@ -1227,6 +1235,7 @@ const FileTree = ({
   onDoubleClick: onDoubleClickProp,
   onSelectChange,
   onSelectionChange,
+  selectableFolders,
   selectedId: controlledId,
   triggerUpload
 }: {
@@ -1240,6 +1249,7 @@ const FileTree = ({
   onDoubleClick?: (item: TreeDataItem) => void
   onSelectChange?: (item: TreeDataItem | undefined) => void
   onSelectionChange?: (ids: string[]) => void
+  selectableFolders?: boolean
   selectedId?: null | string
   triggerUpload?: (parentPath: string) => void
 }) => {
@@ -1255,7 +1265,7 @@ const FileTree = ({
       selectedId={controlledId ?? initialSelectedItemId}
       triggerUpload={triggerUpload}>
       <div className='min-w-max'>
-        {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp })}
+        {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp, selectableFolders })}
       </div>
     </Tree>
   )
