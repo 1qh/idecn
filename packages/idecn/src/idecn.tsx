@@ -2709,6 +2709,7 @@ const Workspace = ({
   )
 }
 interface ConfigFieldMeta {
+  enum?: string[]
   folder?: string
   hint?: string
   icon?: string
