@@ -1271,6 +1271,7 @@ const Tab = (_props: {
   id?: string
   inactive?: boolean
   inactiveClassName?: string
+  initialWidth?: number
   onClose?: () => void
   position?: { direction: 'above' | 'below' | 'left' | 'right' | 'within'; referenceTab?: string }
   title: string
@@ -2115,6 +2116,7 @@ const Workspace = ({
       component: 'custom',
       id: tabId,
       ...(tab.inactive ? { inactive: true } : {}),
+      ...(tab.initialWidth === undefined ? {} : { initialWidth: tab.initialWidth }),
       params: {
         activeClassName: tab.activeClassName,
         closable: tab.closable,
@@ -2946,6 +2948,43 @@ const ConfigPopover = ({
     </PopoverContent>
   </Popover>
 )
+const InfoButton = ({
+  children,
+  icon: Icon,
+  label,
+  side = 'top'
+}: {
+  children: ReactNode
+  icon: LucideIcon
+  label: string
+  side?: ConfigSide
+}) => (
+  <Popover>
+    <Tooltip>
+      <TooltipTrigger
+        render={tooltipProps => (
+          <PopoverTrigger
+            {...tooltipProps}
+            render={popoverProps => (
+              <Button
+                {...popoverProps}
+                aria-label={label}
+                className='shrink-0 text-muted-foreground'
+                size='icon-sm'
+                variant='ghost'>
+                <Icon className='size-4' />
+              </Button>
+            )}
+          />
+        )}
+      />
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+    <PopoverContent align='start' className='w-fit max-w-[min(28rem,92vw)] p-2 text-xs' side={side} sideOffset={6}>
+      {children}
+    </PopoverContent>
+  </Popover>
+)
 const IconButton = ({
   busy = false,
   children,
@@ -3398,6 +3437,7 @@ export {
   FolderIcon,
   getIconSvg,
   IconButton,
+  InfoButton,
   PdfViewer,
   persistConfig,
   ScrubInput,
