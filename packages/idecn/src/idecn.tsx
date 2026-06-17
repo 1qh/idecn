@@ -2850,7 +2850,10 @@ const configLeaf = (
     label: configLabel(key, node, { acronyms: ctx?.acronyms, icons: ctx?.icons }),
     render: configRender(node.showWhen)
   }
-  if (node.enum) return { ...base, options: node.enum, value: saved ?? node.default ?? node.enum[0] }
+  if (node.enum) {
+    const savedValid = typeof saved === 'string' && node.enum.includes(saved)
+    return { ...base, options: node.enum, value: savedValid ? saved : (node.default ?? node.enum[0]) }
+  }
   if (node.type === 'boolean') return { ...base, value: saved ?? node.default ?? false }
   if (node.type === 'integer' || node.type === 'number') {
     const min = node.minimum
