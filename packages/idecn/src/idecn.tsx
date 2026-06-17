@@ -218,7 +218,7 @@ const RESET_CSS = [
   '.dv-reset .dv-tab{padding:0;background:transparent}',
   '.dv-reset .dv-tabs-container{gap:0}',
   '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
-  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:color-mix(in oklch,var(--color-primary,var(--primary)) 12%,var(--color-background,var(--background)))!important}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:transparent!important}',
   '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:2px solid var(--color-primary,var(--primary))}',
   '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:2px solid transparent}',
   '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab):hover{background:color-mix(in oklch,var(--color-muted,var(--muted)) 55%,transparent)}',
