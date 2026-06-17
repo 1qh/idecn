@@ -207,7 +207,6 @@ const RESET_CSS = [
   '--dv-group-view-background-color:transparent;',
   '--dv-separator-border:color-mix(in oklch,var(--color-border,var(--border)) 60%,transparent);',
   '--dv-tab-divider-color:color-mix(in oklch,var(--color-border,var(--border)) 60%,transparent);',
-  '--dv-active-tab-border-color:var(--color-primary,var(--primary));',
   '--dv-drag-over-background-color:color-mix(in oklch,var(--color-accent,var(--accent)) 50%,transparent);',
   '--dv-drag-over-border-color:color-mix(in oklch,var(--color-ring,var(--ring)) 30%,transparent);',
   '--dv-tab-margin:0;',
@@ -220,7 +219,7 @@ const RESET_CSS = [
   '.dv-reset .dv-tabs-container{gap:0}',
   '.dv-reset .dv-tabs-and-actions-container{font-size:inherit}',
   '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{background:transparent!important}',
-  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:2px solid var(--dv-active-tab-border-color)}',
+  '.dv-reset .dv-tabs-container>.dv-tab.dv-active-tab{border-bottom:2px solid var(--dv-active-tab-border-color,var(--color-primary,var(--primary)))}',
   '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab){border-bottom:2px solid transparent}',
   '.dv-reset .dv-tabs-container>.dv-tab:not(.dv-active-tab):hover{background:color-mix(in oklch,var(--color-muted,var(--muted)) 55%,transparent)}',
   '.dv-reset .dv-tabs-container>.dv-tab+.dv-tab{border-left:1px solid color-mix(in oklch,var(--color-border,var(--border)) 50%,transparent)}',
@@ -1760,6 +1759,7 @@ const Workspace = ({
   sidebar: controlledSidebar,
   sidebarPosition = 'left',
   sidebarSize = '16%',
+  statusBar = true,
   theme,
   tree,
   ...props
@@ -1783,6 +1783,7 @@ const Workspace = ({
   sidebar?: boolean
   sidebarPosition?: 'left' | 'right'
   sidebarSize?: number | string
+  statusBar?: boolean
   theme?: string | { dark: string; light: string }
   tree?: TreeDataItem[]
 }) => {
@@ -2608,7 +2609,7 @@ const Workspace = ({
             watermarkComponent={WatermarkPanel}
           />
         </DockviewApiContext>
-        <StatusBar />
+        {statusBar ? <StatusBar /> : null}
       </div>
     </ResizablePanel>
   )
