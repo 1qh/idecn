@@ -2938,7 +2938,7 @@ const ConfigPopover = ({
       />
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
-    <PopoverContent align='start' className='w-72 p-0' side={side} sideOffset={6}>
+    <PopoverContent align='start' className='w-fit min-w-72 max-w-[min(34rem,92vw)] p-0' side={side} sideOffset={6}>
       <ConfigPanel store={store} />
     </PopoverContent>
   </Popover>
