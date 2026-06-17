@@ -547,6 +547,7 @@ const TreeContext = createContext<TreeContextValue>({
   setSelectedIds: () => undefined
 })
 const DockviewApiContext = createContext<DockviewApi | null>(null)
+const TabContentContext = createContext<Map<string, ReactNode>>(new Map())
 const DepthContext = createContext(0)
 const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
   const {
@@ -1268,6 +1269,7 @@ const Tab = (_props: {
   headerClassName?: string
   icon?: boolean | ComponentType<{ className?: string }>
   id?: string
+  inactive?: boolean
   inactiveClassName?: string
   onClose?: () => void
   position?: { direction: 'above' | 'below' | 'left' | 'right' | 'within'; referenceTab?: string }
@@ -1275,6 +1277,7 @@ const Tab = (_props: {
 }): null => null
 Tab._type = TAB_TYPE
 const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
+  const registry = use(TabContentContext)
   const [content, setContent] = useState(params.content)
   useEffect(() => {
     const d = api.onDidParametersChange(e => {
@@ -1285,7 +1288,8 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
       d.dispose()
     }
   }, [api])
-  return <div className='h-full overflow-auto'>{content}</div>
+  const registered = registry.get(api.id)
+  return <div className='h-full overflow-auto'>{registered ?? content}</div>
 }
 const ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
   const [src, setSrc] = useState(params.src)
@@ -1462,7 +1466,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
     <ContextMenu>
       <ContextMenuTrigger
         className={cn(
-          'group/tab flex h-full items-center gap-[5px] py-[3px] pr-px pl-[3px] text-sm',
+          'group/tab flex h-full items-center gap-[5px] py-[3px] pr-px pl-[5px] text-sm',
           p?.headerClassName,
           active ? ['font-medium text-foreground', p?.activeClassName] : ['text-muted-foreground', p?.inactiveClassName]
         )}
@@ -2084,6 +2088,7 @@ const Workspace = ({
     shortcuts
   )
   const tabs = useMemo(() => extractTabs(children), [children])
+  const tabContent = useMemo(() => new Map(tabs.map(t => [getTabId(t), t.children])), [tabs])
   const sidebarChildren = useMemo(() => {
     const items: ReactNode[] = []
     Children.forEach(children, child => {
@@ -2109,6 +2114,7 @@ const Workspace = ({
     api.addPanel({
       component: 'custom',
       id: tabId,
+      ...(tab.inactive ? { inactive: true } : {}),
       params: {
         activeClassName: tab.activeClassName,
         closable: tab.closable,
@@ -2658,13 +2664,15 @@ const Workspace = ({
     <ResizablePanel minSize={20}>
       <div className='flex h-full flex-col'>
         <DockviewApiContext value={dockviewApi}>
-          <DockviewReact
-            className='dv-reset flex-1'
-            components={COMPONENTS}
-            onReady={handleReady}
-            tabComponents={TAB_COMPONENTS}
-            watermarkComponent={WatermarkPanel}
-          />
+          <TabContentContext value={tabContent}>
+            <DockviewReact
+              className='dv-reset flex-1'
+              components={COMPONENTS}
+              onReady={handleReady}
+              tabComponents={TAB_COMPONENTS}
+              watermarkComponent={WatermarkPanel}
+            />
+          </TabContentContext>
         </DockviewApiContext>
         {statusBar ? <StatusBar /> : null}
       </div>
