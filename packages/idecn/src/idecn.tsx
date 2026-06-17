@@ -943,6 +943,9 @@ const TreeFolder = ({
                 role='treeitem'
                 style={{ paddingLeft: pl }}
                 tabIndex={0}>
+                <ChevronRight
+                  className={cn('size-3 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-90')}
+                />
                 {icon === false ? null : <FolderIcon className={iconClass} name={name} open={isOpen} />}
                 {name}
               </Accordion.Trigger>
