@@ -788,6 +788,7 @@ const InlineInput = ({
 const RenameInput = ({
   currentName,
   depth,
+  icon,
   indent,
   isFolder,
   onCancel,
@@ -795,6 +796,7 @@ const RenameInput = ({
 }: {
   currentName: string
   depth: number
+  icon?: ComponentType<{ className?: string }> | false | string
   indent: number
   isFolder: boolean
   onCancel: () => void
@@ -818,7 +820,7 @@ const RenameInput = ({
   }
   return (
     <div className={cn(ITEM_CLASS, 'gap-1')} style={{ paddingLeft: `${String(depth * indent + 8)}px` }}>
-      {isFolder ? (
+      {icon === false ? null : isFolder ? (
         <FolderIcon className={ICON_CLASS} name={value || currentName} />
       ) : (
         <FileIcon className={ICON_CLASS} name={value || currentName} />
@@ -840,6 +842,7 @@ const RenameInput = ({
   )
 }
 const TreeFolder = ({
+  chevron = true,
   children,
   defaultOpen = false,
   disabled,
@@ -851,6 +854,7 @@ const TreeFolder = ({
   path,
   ...props
 }: {
+  chevron?: boolean
   children?: ReactNode
   className?: string
   defaultOpen?: boolean
@@ -908,6 +912,7 @@ const TreeFolder = ({
           <RenameInput
             currentName={name.split('/').at(-1) ?? name}
             depth={depth}
+            icon={icon}
             indent={indent}
             isFolder
             onCancel={() => setRenamingId(null)}
@@ -943,9 +948,11 @@ const TreeFolder = ({
                 role='treeitem'
                 style={{ paddingLeft: pl }}
                 tabIndex={0}>
-                <ChevronRight
-                  className={cn('size-3 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-90')}
-                />
+                {chevron ? (
+                  <ChevronRight
+                    className={cn('size-3 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-90')}
+                  />
+                ) : null}
                 {icon === false ? null : <FolderIcon className={iconClass} name={name} open={isOpen} />}
                 {name}
               </Accordion.Trigger>
@@ -1091,6 +1098,7 @@ const TreeFile = ({
       <RenameInput
         currentName={name}
         depth={depth}
+        icon={icon}
         indent={indent}
         isFolder={false}
         onCancel={() => setRenamingId(null)}
@@ -1183,11 +1191,17 @@ const TreeFile = ({
   )
 }
 const renderItems = ({
+  chevron,
+  depth = 0,
+  itemClassName,
   items,
   onItemClick,
   onItemDoubleClick,
   selectableFolders
 }: {
+  chevron?: boolean
+  depth?: number
+  itemClassName?: (depth: number) => string | undefined
   items: TreeDataItem[]
   onItemClick?: (item: TreeDataItem) => void
   onItemDoubleClick?: (item: TreeDataItem) => void
@@ -1199,6 +1213,8 @@ const renderItems = ({
       const { children, name } = compactFolder(item)
       nodes.push(
         <TreeFolder
+          chevron={chevron}
+          className={itemClassName?.(depth)}
           disabled={item.disabled}
           icon={item.icon}
           id={item.id}
@@ -1207,13 +1223,22 @@ const renderItems = ({
           name={name}
           onSelect={selectableFolders ? () => onItemClick?.(item) : undefined}
           path={item.path}>
-          {renderItems({ items: children, onItemClick, onItemDoubleClick, selectableFolders })}
+          {renderItems({
+            chevron,
+            depth: depth + 1,
+            itemClassName,
+            items: children,
+            onItemClick,
+            onItemDoubleClick,
+            selectableFolders
+          })}
         </TreeFolder>
       )
     } else
       nodes.push(
         <TreeFile
           actions={item.actions}
+          className={itemClassName?.(depth)}
           disabled={item.disabled}
           icon={item.icon}
           id={item.id}
@@ -1231,12 +1256,14 @@ const renderItems = ({
   return nodes
 }
 const FileTree = ({
+  chevron = true,
   className,
   data,
   expandDepth = 0,
   expandExclude,
   fileActions,
   initialSelectedItemId,
+  itemClassName,
   log: fileTreeLog,
   onDoubleClick: onDoubleClickProp,
   onSelectChange,
@@ -1245,12 +1272,14 @@ const FileTree = ({
   selectedId: controlledId,
   triggerUpload
 }: {
+  chevron?: boolean
   className?: string
   data: TreeDataItem | TreeDataItem[]
   expandDepth?: number
   expandExclude?: string[]
   fileActions?: FileActions
   initialSelectedItemId?: string
+  itemClassName?: (depth: number) => string | undefined
   log?: (msg: string) => void
   onDoubleClick?: (item: TreeDataItem) => void
   onSelectChange?: (item: TreeDataItem | undefined) => void
@@ -1271,7 +1300,14 @@ const FileTree = ({
       selectedId={controlledId ?? initialSelectedItemId}
       triggerUpload={triggerUpload}>
       <div className='min-w-max'>
-        {renderItems({ items, onItemClick: onSelectChange, onItemDoubleClick: onDoubleClickProp, selectableFolders })}
+        {renderItems({
+          chevron,
+          itemClassName,
+          items,
+          onItemClick: onSelectChange,
+          onItemDoubleClick: onDoubleClickProp,
+          selectableFolders
+        })}
       </div>
     </Tree>
   )
