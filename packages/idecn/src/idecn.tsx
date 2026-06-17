@@ -1446,7 +1446,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
   const [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom)
   const isPreview = previewId === api.id
   const isPinned = pinnedTabs.includes(api.id)
-  const TabIcon = typeof p?.icon === 'function' ? p.icon : undefined
+  const TabIcon = p?.icon && typeof p.icon !== 'boolean' ? p.icon : undefined
   const showIcon = p?.icon !== false
   const closable = p?.closable !== false && !isPinned
   const [active, setActive] = useState(api.isActive)
