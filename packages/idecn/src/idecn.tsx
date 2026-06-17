@@ -515,7 +515,7 @@ interface TreeDataItem {
   children?: TreeDataItem[]
   className?: string
   disabled?: boolean
-  icon?: ComponentType<{ className?: string }> | string
+  icon?: ComponentType<{ className?: string }> | false | string
   id: string
   mutable?: boolean
   name: string
@@ -1049,7 +1049,7 @@ const TreeFile = ({
 }: Omit<ComponentProps<'button'>, 'id'> & {
   actions?: ReactNode
   disabled?: boolean
-  icon?: ComponentType<{ className?: string }> | string
+  icon?: ComponentType<{ className?: string }> | false | string
   id?: string
   mutable?: boolean
   name: string
@@ -1112,7 +1112,7 @@ const TreeFile = ({
             }}
             onDragStart={e => startMove(e.dataTransfer, path ?? name)}
             style={{ paddingLeft: pl, ...props.style }}>
-            {CustomIcon ? (
+            {icon === false ? null : CustomIcon ? (
               <CustomIcon className={iconClass} />
             ) : typeof icon === 'string' ? (
               // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (getSvg → ./_generated/icons), not user input
