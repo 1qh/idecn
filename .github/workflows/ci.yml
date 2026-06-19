@@ -6,11 +6,29 @@ on:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  actions: write
+  contents: read
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'schedule' && 'ubuntu-latest' || vars.RUNNER_LABEL || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
-      - run: sudo apt-get install -y zsh
+      - if: runner.os == 'Linux'
+        run: sudo apt-get install -y zsh
       - uses: oven-sh/setup-bun@v2
       - run: bun action
+      - name: prune prior CI runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP_RUN_ID: ${{ github.run_id }}
+        run: sh .github/scripts/prune-ci-runs.sh
+      - name: notify on failure (ntfy)
+        if: failure()
+        run: curl -s -d "CI FAIL ${{ github.repository }}@${{ github.sha }} ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "ntfy.sh/${{ vars.NTFY_TOPIC || '1qh-ci' }}" || true
+      - name: notify on failure (mac desktop)
+        if: ${{ failure() && runner.os == 'macOS' }}
+        run: |
+          osascript -e 'display notification "CI failed: ${{ github.repository }}" with title "CI" sound name "Basso"' || true
