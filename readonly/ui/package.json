@@ -34,7 +34,7 @@
     "nanoid": "latest",
     "next-themes": "latest",
     "react": "latest",
-    "react-day-picker": "9",
+    "react-day-picker": "latest",
     "react-dom": "latest",
     "react-jsx-parser": "latest",
     "react-resizable-panels": "latest",
