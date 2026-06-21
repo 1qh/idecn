@@ -43,6 +43,8 @@
     "@monaco-editor/react": "latest",
     "@shikijs/monaco": "latest",
     "@tanstack/react-hotkeys": "latest",
+    "@tanstack/react-virtual": "latest",
+    "cmdk": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
     "jotai": "latest",

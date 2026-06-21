@@ -39,12 +39,14 @@ import { NumberField } from '@base-ui/react/number-field'
 import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import { folder, LevaPanel, useControls, useCreateStore } from 'leva'
 import {
   ArrowRightToLine,
+  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsDownUp,
@@ -61,6 +63,7 @@ import {
   Pin,
   PinOff,
   Plus,
+  Search,
   SlidersHorizontal,
   SplitSquareHorizontal,
   Trash,
@@ -3485,10 +3488,134 @@ const ScrubInput = ({
     </NumberField.Root>
   )
 }
+interface CheckTreeProps {
+  checkedIds: Set<string>
+  className?: string
+  data: TreeDataItem[]
+  onCheckedChange: (ids: Set<string>) => void
+}
 type FileTreeProps = ComponentProps<typeof FileTree>
+interface FlatRow {
+  depth: number
+  isFolder: boolean
+  item: TreeDataItem
+}
 type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
+const fileIdsOf = (item: TreeDataItem): string[] => (item.children ? item.children.flatMap(fileIdsOf) : [item.id])
+const allFolderIds = (items: TreeDataItem[]): string[] =>
+  items.flatMap(item => (item.children ? [item.id, ...allFolderIds(item.children)] : []))
+const matchesQuery = (item: TreeDataItem, q: string): boolean =>
+  item.name.toLowerCase().includes(q) || (item.children?.some(child => matchesQuery(child, q)) ?? false)
+const flattenCheckRows = (args: { depth: number; expanded: Set<string>; items: TreeDataItem[]; q: string }): FlatRow[] => {
+  const { depth, expanded, items, q } = args
+  const rows: FlatRow[] = []
+  for (const item of items)
+    if (q === '' || matchesQuery(item, q)) {
+      const isFolder = Boolean(item.children)
+      rows.push({ depth, isFolder, item })
+      if (isFolder && item.children && (q !== '' || expanded.has(item.id)))
+        rows.push(...flattenCheckRows({ depth: depth + 1, expanded, items: item.children, q }))
+    }
+  return rows
+}
+const midTruncate = (name: string, max = 44): string => {
+  if (name.length <= max) return name
+  const head = Math.ceil(max / 2) - 1
+  const tail = Math.floor(max / 2) - 2
+  return `${name.slice(0, head)}…${name.slice(name.length - tail)}`
+}
+const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreeProps) => {
+  const [query, setQuery] = useState('')
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(allFolderIds(data)))
+  const q = query.trim().toLowerCase()
+  const rows = useMemo(() => flattenCheckRows({ depth: 0, expanded, items: data, q }), [data, q, expanded])
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    estimateSize: () => 28,
+    getScrollElement: () => scrollRef.current,
+    overscan: 12
+  })
+  const toggleCheck = (item: TreeDataItem) => {
+    const ids = fileIdsOf(item)
+    const next = new Set(checkedIds)
+    const allOn = ids.every(id => next.has(id))
+    for (const id of ids)
+      if (allOn) next.delete(id)
+      else next.add(id)
+    onCheckedChange(next)
+  }
+  const toggleExpand = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  return (
+    <div className={cn('flex min-h-0 flex-col gap-1', className)}>
+      <div className='flex items-center gap-1.5 px-1'>
+        <Search className='size-3 shrink-0 text-muted-foreground' />
+        <input
+          className='h-6 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground'
+          onChange={event => setQuery(event.target.value)}
+          placeholder='Filter files and folders…'
+          value={query}
+        />
+      </div>
+      <div className='min-h-0 flex-1 overflow-auto' ref={scrollRef}>
+        <div className='relative w-full' style={{ height: `${String(virtualizer.getTotalSize())}px` }}>
+          {virtualizer.getVirtualItems().map(virtualRow => {
+            const row = rows[virtualRow.index]
+            if (!row) return null
+            const { depth, isFolder, item } = row
+            const ids = isFolder ? fileIdsOf(item) : [item.id]
+            const onCount = ids.filter(id => checkedIds.has(id)).length
+            const state = onCount === 0 ? 'off' : onCount === ids.length ? 'on' : 'mixed'
+            const open = expanded.has(item.id) || q !== ''
+            return (
+              <div
+                className='absolute inset-x-0 flex h-7 items-center gap-1 pr-2 text-xs'
+                key={item.id}
+                style={{
+                  paddingLeft: `${String(depth * 16 + 8)}px`,
+                  transform: `translateY(${String(virtualRow.start)}px)`
+                }}>
+                <button
+                  className='flex size-4 shrink-0 items-center justify-center rounded border'
+                  onClick={() => toggleCheck(item)}
+                  type='button'>
+                  {state === 'on' ? <Check className='size-3' /> : null}
+                  {state === 'mixed' ? <Minus className='size-3' /> : null}
+                </button>
+                {isFolder ? (
+                  <button className='shrink-0' onClick={() => toggleExpand(item.id)} type='button'>
+                    <ChevronRight className={cn('size-3 transition-transform', open ? 'rotate-90' : '')} />
+                  </button>
+                ) : (
+                  <span className='w-3 shrink-0' />
+                )}
+                {isFolder ? (
+                  <FolderIcon className={ICON_CLASS} name={item.name} open={open} />
+                ) : (
+                  <FileIcon className={ICON_CLASS} name={item.name} />
+                )}
+                <span className='truncate' title={item.name}>
+                  {midTruncate(item.name)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
 export type {
+  CheckTreeProps,
   ConfigFieldMeta,
   ConfigShowWhen,
   FileActions,
@@ -3504,6 +3631,7 @@ export type {
   WorkspaceRef
 }
 export {
+  CheckTree,
   ConfigPanel,
   ConfigPopover,
   FileIcon,
