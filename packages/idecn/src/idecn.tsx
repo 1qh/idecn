@@ -1154,7 +1154,7 @@ const TreeFile = ({
             )}
             {name}
           </button>
-          {actions ? <span className='absolute inset-y-0 right-1 flex items-center gap-1'>{actions}</span> : null}
+          {actions ? <span className='absolute inset-y-0 right-1 flex items-center'>{actions}</span> : null}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
