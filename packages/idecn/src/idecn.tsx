@@ -247,6 +247,10 @@ const previewPanelAtom = atom<null | string>(null)
 const quickOpenAtom = atom(false)
 const treeAtom = atom<TreeDataItem[]>([])
 const openFileAtom = atom<((item: TreeDataItem) => void) | null>(null)
+type InputMethod = () => InputMethodSession
+type InputMethodSession = (key: string) => null | { deleteBefore: number; insert: string }
+const inputMethodAtom = atom<InputMethod | null>(null)
+const onEditorChangeAtom = atom<((id: string, content: string) => void) | null>(null)
 let iconManifest: IconManifest | null = null
 let iconSvgs: Record<string, string> = {}
 let cachedMonoFont: string | undefined
@@ -1428,6 +1432,8 @@ const FilePanel = ({
   }, [api, isVirtual])
   const setCursor = useSetAtom(cursorAtom)
   const setFileInfo = useSetAtom(activeFileInfoAtom)
+  const inputMethod = useAtomValue(inputMethodAtom)
+  const onEditorChange = useAtomValue(onEditorChangeAtom)
   useEffect(() => {
     if (api.isActive) setFileInfo({ language, path: api.id })
     const d = api.onDidActiveChange(e => {
@@ -1445,7 +1451,8 @@ const FilePanel = ({
         <Skeleton className='h-4 w-2/3' />
       </div>
     )
-  if (!content) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
+  const editablePanel = (editorOpts as undefined | { readOnly?: boolean })?.readOnly === false
+  if (!(content || editablePanel)) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
   const pathParts = api.id.split('/')
   return (
     <div className='flex h-full flex-col'>
@@ -1470,6 +1477,9 @@ const FilePanel = ({
       <Editor
         className='flex-1'
         language={language}
+        onChange={value => {
+          if (onEditorChange && value !== undefined) onEditorChange(api.id, value)
+        }}
         onMount={editor => {
           editorRef.current = editor
           const update = () => {
@@ -1479,6 +1489,33 @@ const FilePanel = ({
           update()
           editor.onDidChangeCursorPosition(update)
           api.onDidDimensionsChange(() => editor.layout())
+          if (inputMethod) {
+            const session = inputMethod()
+            editor.onKeyDown(e => {
+              const { key } = e.browserEvent
+              if (e.ctrlKey || e.metaKey || e.altKey) return
+              const edit = session(key)
+              if (!edit) return
+              e.preventDefault()
+              e.stopPropagation()
+              const pos = editor.getPosition()
+              const model = editor.getModel()
+              if (!(pos && model)) return
+              const startColumn = Math.max(1, pos.column - edit.deleteBefore)
+              editor.executeEdits('ime', [
+                {
+                  forceMoveMarkers: true,
+                  range: {
+                    endColumn: pos.column,
+                    endLineNumber: pos.lineNumber,
+                    startColumn,
+                    startLineNumber: pos.lineNumber
+                  },
+                  text: edit.insert
+                }
+              ])
+            })
+          }
         }}
         options={{
           ...EDITOR_OPTIONS,
@@ -1855,13 +1892,16 @@ const Workspace = ({
   activityLog,
   children,
   defaultSidebar = true,
+  editable,
   editorOptions,
   expandDepth = 0,
   expandExclude,
   fileActions,
   files,
   initialFiles,
+  inputMethod,
   layoutKey,
+  onContentChange,
   onFilesChange,
   onOpenFile,
   onPanelsChange,
@@ -1880,13 +1920,16 @@ const Workspace = ({
 }: Omit<ComponentProps<'div'>, 'ref'> & {
   activityLog?: (line: string) => void
   defaultSidebar?: boolean
+  editable?: boolean
   editorOptions?: Record<string, unknown>
   expandDepth?: number
   expandExclude?: string[]
   fileActions?: FileActions
   files?: VirtualFile[]
   initialFiles?: string[]
+  inputMethod?: InputMethod
   layoutKey?: string
+  onContentChange?: (id: string, content: string) => void
   onFilesChange?: (files: string[]) => void
   onOpenFile?: (item: TreeDataItem) => null | Promise<null | string> | string
   onPanelsChange?: (ids: string[]) => void
@@ -1957,11 +2000,20 @@ const Workspace = ({
   const mergedEditorOptions = useMemo(
     () => ({
       ...editorOptions,
+      ...(editable ? { readOnly: false } : {}),
       fontSize: (EDITOR_OPTIONS.fontSize ?? 16) + fontSizeDelta,
       wordWrap: (internalWordWrap ? 'on' : 'off') satisfies NonNullable<EditorProps['options']>['wordWrap']
     }),
-    [editorOptions, fontSizeDelta, internalWordWrap]
+    [editable, editorOptions, fontSizeDelta, internalWordWrap]
   )
+  const setInputMethod = useSetAtom(inputMethodAtom)
+  useEffect(() => {
+    setInputMethod(() => inputMethod ?? null)
+  }, [inputMethod, setInputMethod])
+  const setOnEditorChange = useSetAtom(onEditorChangeAtom)
+  useEffect(() => {
+    setOnEditorChange(() => onContentChange ?? null)
+  }, [onContentChange, setOnEditorChange])
   useEffect(() => {
     onFilesChangeRef.current = onFilesChange
     onOpenFileRef.current = onOpenFile
@@ -3709,6 +3761,8 @@ export type {
   ConfigShowWhen,
   FileActions,
   FileTreeProps,
+  InputMethod,
+  InputMethodSession,
   PdfRegion,
   PdfViewerProps,
   ScrubInputProps,
