@@ -27,7 +27,7 @@ import {
   ContextMenuShortcut,
   ContextMenuTrigger
 } from '@a/ui/context-menu'
-import { Dialog, DialogContent } from '@a/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@a/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@a/ui/popover'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@a/ui/resizable'
 import { Skeleton } from '@a/ui/skeleton'
@@ -40,6 +40,7 @@ import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { Command as CommandPrimitive } from 'cmdk'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
@@ -3614,8 +3615,83 @@ const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreePr
     </div>
   )
 }
+interface CommandAction {
+  group: string
+  icon?: ComponentType<{ className?: string }>
+  id: string
+  keywords?: string
+  label: string
+  onSelect: () => void
+}
+const paletteRecentsAtom = atomWithStorage<string[]>('idecn:paletteRecents', [])
+const PALETTE_HEADING =
+  '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-muted-foreground'
+const CommandPalette = ({
+  actions,
+  onOpenChange,
+  open,
+  placeholder = 'Type a command or search…'
+}: {
+  actions: CommandAction[]
+  onOpenChange: (open: boolean) => void
+  open: boolean
+  placeholder?: string
+}) => {
+  const [recents, setRecents] = useAtom(paletteRecentsAtom)
+  const byId = new Map(actions.map(action => [action.id, action]))
+  const recentActions = recents
+    .map(id => byId.get(id))
+    .filter((action): action is CommandAction => action !== undefined)
+    .slice(0, 5)
+  const groups = [...new Set(actions.map(action => action.group))]
+  const run = (action: CommandAction) => {
+    setRecents([action.id, ...recents.filter(id => id !== action.id)].slice(0, 8))
+    onOpenChange(false)
+    action.onSelect()
+  }
+  const renderItem = (action: CommandAction, prefix: string) => (
+    <CommandPrimitive.Item
+      className='flex h-9 cursor-pointer items-center gap-2 rounded px-2 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground'
+      key={`${prefix}-${action.id}`}
+      onSelect={() => run(action)}
+      value={`${action.label} ${action.keywords ?? ''}`}>
+      {action.icon ? <action.icon className='size-4 shrink-0 text-muted-foreground' /> : null}
+      <span className='truncate'>{action.label}</span>
+      <span className='ml-auto shrink-0 truncate text-xs text-muted-foreground'>{action.group}</span>
+    </CommandPrimitive.Item>
+  )
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
+        <DialogTitle className='sr-only'>Command palette</DialogTitle>
+        <CommandPrimitive className='flex max-h-[60vh] flex-col' loop>
+          <CommandPrimitive.Input
+            className='h-11 border-b bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground'
+            placeholder={placeholder}
+          />
+          <CommandPrimitive.List className='overflow-auto p-1'>
+            <CommandPrimitive.Empty className='py-6 text-center text-sm text-muted-foreground'>
+              No results.
+            </CommandPrimitive.Empty>
+            {recentActions.length > 0 ? (
+              <CommandPrimitive.Group className={PALETTE_HEADING} heading='Recent'>
+                {recentActions.map(action => renderItem(action, 'recent'))}
+              </CommandPrimitive.Group>
+            ) : null}
+            {groups.map(group => (
+              <CommandPrimitive.Group className={PALETTE_HEADING} heading={group} key={group}>
+                {actions.filter(action => action.group === group).map(action => renderItem(action, 'all'))}
+              </CommandPrimitive.Group>
+            ))}
+          </CommandPrimitive.List>
+        </CommandPrimitive>
+      </DialogContent>
+    </Dialog>
+  )
+}
 export type {
   CheckTreeProps,
+  CommandAction,
   ConfigFieldMeta,
   ConfigShowWhen,
   FileActions,
@@ -3632,6 +3708,7 @@ export type {
 }
 export {
   CheckTree,
+  CommandPalette,
   ConfigPanel,
   ConfigPopover,
   FileIcon,
