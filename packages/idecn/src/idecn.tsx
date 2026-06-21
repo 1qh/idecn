@@ -234,7 +234,8 @@ const RESET_CSS = [
   '.dv-reset .dv-watermark{background:transparent}',
   String.raw`.dv-reset .dv-tab:has([data-preview]) .group\/tab{font-style:italic}`,
   '@media(prefers-reduced-motion:reduce){.dv-reset *{transition-duration:0s!important;animation-duration:0s!important}}',
-  '[data-slot=dialog-overlay]{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
+  '[data-slot=dialog-overlay]{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
+  'input[class*=leva-c-]{text-overflow:ellipsis}'
 ].join('')
 const cursorAtom = atom({ col: 1, line: 1 })
 const activeFileInfoAtom = atom({ language: 'plaintext', path: '' })
@@ -2787,6 +2788,7 @@ const Workspace = ({
 }
 interface ConfigFieldMeta {
   enum?: string[]
+  enumLabels?: string[]
   folder?: string
   hint?: string
   icon?: string
@@ -2875,7 +2877,13 @@ const configLeaf = (
   }
   if (node.enum) {
     const savedValid = typeof saved === 'string' && node.enum.includes(saved)
-    return { ...base, options: node.enum, value: savedValid ? saved : (node.default ?? node.enum[0]) }
+    const value = savedValid ? saved : (node.default ?? node.enum[0])
+    const labels = node.enumLabels
+    const options =
+      labels?.length === node.enum.length
+        ? Object.fromEntries(node.enum.map((opt, i) => [labels[i] ?? opt, opt]))
+        : node.enum
+    return { ...base, options, value }
   }
   if (node.type === 'boolean') return { ...base, value: saved ?? node.default ?? false }
   if (node.type === 'integer' || node.type === 'number') {
