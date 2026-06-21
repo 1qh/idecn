@@ -3579,32 +3579,37 @@ const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreePr
             const open = expanded.has(item.id) || q !== ''
             return (
               <div
-                className='absolute inset-x-0 flex h-7 items-center gap-1 pr-2 text-xs'
+                className='absolute inset-x-0 flex h-7 items-center pr-2 text-xs'
                 key={item.id}
                 style={{
                   paddingLeft: `${String(depth * 16 + 8)}px`,
                   transform: `translateY(${String(virtualRow.start)}px)`
                 }}>
                 <button
-                  className='flex size-4 shrink-0 items-center justify-center rounded border'
+                  className='flex size-5 shrink-0 items-center justify-center'
                   onClick={() => toggleCheck(item)}
                   type='button'>
-                  {state === 'on' ? <Check className='size-3' /> : null}
-                  {state === 'mixed' ? <Minus className='size-3' /> : null}
+                  <span className='flex size-4 items-center justify-center rounded border'>
+                    {state === 'on' ? <Check className='size-3' /> : null}
+                    {state === 'mixed' ? <Minus className='size-3' /> : null}
+                  </span>
                 </button>
                 {isFolder ? (
-                  <button className='shrink-0' onClick={() => toggleExpand(item.id)} type='button'>
+                  <button
+                    className='flex size-5 shrink-0 items-center justify-center'
+                    onClick={() => toggleExpand(item.id)}
+                    type='button'>
                     <ChevronRight className={cn('size-3 transition-transform', open ? 'rotate-90' : '')} />
                   </button>
                 ) : (
-                  <span className='w-3 shrink-0' />
+                  <span className='w-2 shrink-0' />
                 )}
                 {isFolder ? (
                   <FolderIcon className={ICON_CLASS} name={item.name} open={open} />
                 ) : (
                   <FileIcon className={ICON_CLASS} name={item.name} />
                 )}
-                <span className='truncate' title={item.name}>
+                <span className='truncate pl-1' title={item.name}>
                   {midTruncate(item.name)}
                 </span>
               </div>
