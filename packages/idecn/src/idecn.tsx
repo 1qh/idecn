@@ -1689,7 +1689,9 @@ const StatusBar = () => {
   const fileInfo = useAtomValue(activeFileInfoAtom)
   return (
     <div className='flex h-6 items-center justify-between border-t border-border px-3 text-xs text-muted-foreground'>
-      <span className='truncate'>{fileInfo.path}</span>
+      <span className='truncate' title={fileInfo.path}>
+        {fileInfo.path}
+      </span>
       <div className='flex items-center gap-3'>
         <span className='font-mono'>
           Ln {cursor.line}, Col {cursor.col}
@@ -1750,7 +1752,9 @@ const BreadcrumbPickerItem = ({
         ) : (
           <FileIcon className={ICON_CLASS} name={item.name} />
         )}
-        <span className='truncate'>{item.name}</span>
+        <span className='truncate' title={item.name}>
+          {item.name}
+        </span>
       </button>
       {expanded && item.children
         ? item.children.map(c => (
@@ -1834,8 +1838,14 @@ const QuickOpenDialog = ({
                   }}
                   value={`${f.name} ${f.path}`}>
                   <FileIcon className={ICON_CLASS} name={f.name} />
-                  <span className='shrink-0 truncate'>{f.name}</span>
-                  {parent ? <span className='min-w-0 truncate text-xs text-muted-foreground'>{parent}</span> : null}
+                  <span className='shrink-0 truncate' title={f.name}>
+                    {f.name}
+                  </span>
+                  {parent ? (
+                    <span className='min-w-0 truncate text-xs text-muted-foreground' title={parent}>
+                      {parent}
+                    </span>
+                  ) : null}
                 </CommandItem>
               )
             })}
@@ -3726,8 +3736,12 @@ const CommandPalette = ({
       onSelect={() => run(action)}
       value={`${action.label} ${action.keywords ?? ''}`}>
       {action.icon ? <action.icon className='size-4 shrink-0 text-muted-foreground' /> : null}
-      <span className='truncate'>{action.label}</span>
-      <span className='ml-auto shrink-0 truncate text-xs text-muted-foreground'>{action.group}</span>
+      <span className='truncate' title={action.label}>
+        {action.label}
+      </span>
+      <span className='ml-auto shrink-0 truncate text-xs text-muted-foreground' title={action.group}>
+        {action.group}
+      </span>
     </CommandPrimitive.Item>
   )
   return (
