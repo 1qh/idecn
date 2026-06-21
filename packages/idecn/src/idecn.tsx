@@ -1936,6 +1936,7 @@ const Workspace = ({
     api: null as DockviewApi | null,
     disposables: [] as { dispose: () => void }[],
     fileIds: new Set<string>(),
+    geom: new Map<string, { height: number; width: number }>(),
     onCloseMap: new Map<string, () => void>(),
     prevTabIds: new Set<string>(),
     ready: false
@@ -2422,14 +2423,27 @@ const Workspace = ({
         for (const tab of tabs) if (tab.defaultOpen !== false) addTab(tab)
       },
       togglePanel: (id: string, focusOnly?: boolean) => {
-        const { api } = stateRef.current
+        const { api, geom } = stateRef.current
         if (!api) return
         const existing = api.panels.find(p => p.id === id)
         if (existing) {
-          if (focusOnly) existing.focus()
-          else api.removePanel(existing)
+          if (focusOnly) {
+            existing.focus()
+            return
+          }
+          api.removePanel(existing)
+          for (const p of api.panels) {
+            const g = geom.get(p.id)
+            if (g)
+              try {
+                p.api.setSize({ height: g.height, width: g.width })
+              } catch {
+                /* size not settable this tick */
+              }
+          }
           return
         }
+        for (const p of api.panels) geom.set(p.id, { height: p.api.height, width: p.api.width })
         reopenById(id)
       },
       toggleSidebar
