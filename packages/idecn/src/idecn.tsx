@@ -429,6 +429,7 @@ interface PanelPosition {
 interface VirtualFile {
   content: string
   icon?: ComponentType<{ className?: string }>
+  id?: string
   language?: string
   name: string
   open?: boolean
@@ -444,6 +445,7 @@ const resolveLanguageIcon = (language: string): string => {
   return iconManifest.file
 }
 const virtualFileId = (name: string) => `${VIRTUAL_PREFIX}${name}`
+const virtualFileKey = (f: VirtualFile) => virtualFileId(f.id ?? f.name)
 interface FileActions {
   contextActions?: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => TreeContextAction[]
   copyPath?: boolean
@@ -2248,7 +2250,7 @@ const Workspace = ({
   const openVirtualFile = useCallback((file: VirtualFile) => {
     const { api } = stateRef.current
     if (!api) return
-    const id = virtualFileId(file.name)
+    const id = virtualFileKey(file)
     const existing = api.panels.find(p => p.id === id)
     if (existing) {
       existing.focus()
@@ -2529,7 +2531,7 @@ const Workspace = ({
     const { api } = stateRef.current
     if (!(api && files)) return
     const tid = setTimeout(() => {
-      const activeIds = new Set(files.map(f => virtualFileId(f.name)))
+      const activeIds = new Set(files.map(virtualFileKey))
       for (const panel of api.panels)
         if (panel.id.startsWith(VIRTUAL_PREFIX) && !activeIds.has(panel.id))
           try {
@@ -2538,9 +2540,12 @@ const Workspace = ({
             /* Already removed */
           }
       for (const file of files) {
-        const id = virtualFileId(file.name)
+        const id = virtualFileKey(file)
         const panel = api.panels.find(p => p.id === id)
-        if (panel) panel.api.updateParameters({ content: file.content })
+        if (panel) {
+          panel.api.updateParameters({ content: file.content })
+          if (panel.title !== file.name) panel.api.setTitle(file.name)
+        }
       }
     }, 100)
     return () => clearTimeout(tid)
@@ -2625,9 +2630,9 @@ const Workspace = ({
     if (!(tree || (files && files.length > 0))) return tree
     const toItem = (f: VirtualFile): TreeDataItem => ({
       icon: f.icon ?? (f.language ? resolveLanguageIcon(f.language) : undefined),
-      id: virtualFileId(f.name),
+      id: virtualFileKey(f),
       name: f.name,
-      path: virtualFileId(f.name)
+      path: virtualFileKey(f)
     })
     const top = files?.filter(f => f.pin === 'top').map(toItem) ?? []
     const mid = files?.filter(f => !f.pin).map(toItem) ?? []
@@ -2749,7 +2754,7 @@ const Workspace = ({
                 return
               }
               if (item.id.startsWith(VIRTUAL_PREFIX)) {
-                const vf = files?.find(f => virtualFileId(f.name) === item.id)
+                const vf = files?.find(f => virtualFileKey(f) === item.id)
                 if (vf) openVirtualFile(vf)
               } else openFile(item)
             }}
