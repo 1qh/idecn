@@ -465,14 +465,16 @@ interface TreeContextAction {
 }
 const ContextActions = ({
   ctx,
-  items
+  items,
+  separated = true
 }: {
   ctx: { isFolder: boolean; path: string; selectedPaths: string[] }
   items: TreeContextAction[]
+  separated?: boolean
 }): ReactNode =>
   items.length === 0 ? null : (
     <>
-      <ContextMenuSeparator />
+      {separated ? <ContextMenuSeparator /> : null}
       {items.map(a => (
         <ContextMenuItem
           className={cn(a.destructive && 'text-destructive focus:text-destructive')}
@@ -1041,6 +1043,16 @@ const TreeFolder = ({
                 <ContextActions
                   ctx={{ isFolder: true, path: folderPath, selectedPaths: [...selectedIds] }}
                   items={fileActions.contextActions({ isFolder: true, path: folderPath, selectedPaths: [...selectedIds] })}
+                  separated={
+                    (mutable === true &&
+                      (fileActions.onCreateFile !== undefined ||
+                        fileActions.onCreateFolder !== undefined ||
+                        fileActions.onUpload !== undefined ||
+                        fileActions.onRename !== undefined ||
+                        fileActions.onDelete !== undefined)) ||
+                    fileActions.onDownload !== undefined ||
+                    fileActions.copyPath !== false
+                  }
                 />
               ) : null}
             </ContextMenuContent>
@@ -1201,6 +1213,11 @@ const TreeFile = ({
           <ContextActions
             ctx={{ isFolder: false, path: path ?? name, selectedPaths: [...selectedIds] }}
             items={fileActions.contextActions({ isFolder: false, path: path ?? name, selectedPaths: [...selectedIds] })}
+            separated={
+              (mutable === true && (fileActions.onRename !== undefined || fileActions.onDelete !== undefined)) ||
+              fileActions.onDownload !== undefined ||
+              fileActions.copyPath !== false
+            }
           />
         ) : null}
       </ContextMenuContent>
