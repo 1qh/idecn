@@ -538,6 +538,7 @@ interface WorkspaceRef {
   focusPanel: (id: string) => void
   hasPanel: (id: string) => boolean
   openFile: (item: TreeDataItem) => void
+  openVirtual: (fileId: string) => void
   panelIds: () => string[]
   reopenLast: () => void
   reset: () => void
@@ -2467,6 +2468,10 @@ const Workspace = ({
       focusPanel: (id: string) => stateRef.current.api?.panels.find(p => p.id === id)?.focus(),
       hasPanel: (id: string) => Boolean(stateRef.current.api?.panels.some(p => p.id === id)),
       openFile: pinFile,
+      openVirtual: (fileId: string) => {
+        const file = filesRef.current?.find(vf => (vf.id ?? vf.name) === fileId)
+        if (file) openVirtualFile(file)
+      },
       panelIds: () => stateRef.current.api?.panels.map(p => p.id) ?? [],
       reopenLast: () =>
         setClosedTabs(prev => {
@@ -2517,7 +2522,7 @@ const Workspace = ({
       },
       toggleSidebar
     }
-  }, [addTab, layoutKey, pinFile, setClosedTabs, tabs, toggleSidebar])
+  }, [addTab, layoutKey, openVirtualFile, pinFile, setClosedTabs, tabs, toggleSidebar])
   useEffect(() => {
     const { api } = stateRef.current
     if (!api) return
