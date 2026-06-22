@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 import { downloadFile, downloadFolder, fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
 
-const DETAILS_POSITION = { direction: 'right', referenceTab: 'welcome' } as const
 const triggerDownload = (base64: string, filename: string) => {
   const bytes = Uint8Array.from(atob(base64), c => c.codePointAt(0) ?? 0)
   const blob = new Blob([bytes])
@@ -286,13 +285,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
         }}
         ref={ref}
         tree={markMutable(tree)}>
-        <Tab id='welcome' title='Welcome'>
-          <div className='space-y-2 p-4 text-sm text-muted-foreground'>
-            <p className='font-medium text-foreground'>idecn workspace</p>
-            <p>Open files from the tree, or arrange fixed panes with positioned tabs.</p>
-          </div>
-        </Tab>
-        <Tab id='details' position={DETAILS_POSITION} title='Details'>
+        <Tab id='details' title='Details'>
           <div className='p-4 text-sm text-muted-foreground'>
             A positioned tab opens beside its reference, building a split layout from declarative children.
           </div>
