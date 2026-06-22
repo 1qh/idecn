@@ -1031,7 +1031,7 @@ const TreeFolder = ({
                     navigator.clipboard
                       .writeText(folderPath)
                       .then(() => toast('Copied to clipboard'))
-                      .catch(() => undefined)
+                      .catch(() => toast('Copy failed'))
                   }}>
                   <ClipboardCopy /> Copy Path
                 </ContextMenuItem>
@@ -1191,7 +1191,7 @@ const TreeFile = ({
               navigator.clipboard
                 .writeText(path ?? name)
                 .then(() => toast('Copied to clipboard'))
-                .catch(() => undefined)
+                .catch(() => toast('Copy failed'))
             }}>
             <ClipboardCopy /> Copy Path
           </ContextMenuItem>
