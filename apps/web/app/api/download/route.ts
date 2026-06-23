@@ -6,6 +6,7 @@ import bundled from '../../.cache/repo.json' with { type: 'json' }
 const bundledRepo = bundled as Record<string, string>
 const findRoot = (): null | string => {
   const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]
+  // oxlint-disable-next-line node/no-sync
   for (const c of candidates) if (existsSync(resolve(c, '.gitignore'))) return c
   return null
 }
@@ -13,6 +14,7 @@ const root = findRoot()
 const gitignore = root
   ? (() => {
       try {
+        // oxlint-disable-next-line node/no-sync
         return readFileSync(resolve(root, '.gitignore'), 'utf8')
       } catch {
         return ''
@@ -33,11 +35,14 @@ const collectLocalFiles = (prefix: string): { content: Uint8Array; path: string 
   if (root) {
     const fullPrefix = resolve(root, prefix)
     const walk = (dir: string, rel: string) => {
+      // oxlint-disable-next-line node/no-sync
       for (const name of readdirSync(dir).toSorted())
         if (!ignored.has(name)) {
           const full = resolve(dir, name)
           const r = rel ? `${rel}/${name}` : name
+          // oxlint-disable-next-line node/no-sync
           if (statSync(full).isDirectory()) walk(full, r)
+          // oxlint-disable-next-line node/no-sync
           else results.push({ content: new Uint8Array(readFileSync(full)), path: r })
         }
     }
@@ -55,6 +60,7 @@ const readFile = (path: string): null | Uint8Array => {
     const full = resolve(root, path)
     if (!full.startsWith(root)) return null
     try {
+      // oxlint-disable-next-line node/no-sync
       return new Uint8Array(readFileSync(full))
     } catch {
       return null

@@ -5,11 +5,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const pkgPath = join(process.cwd(), 'package.json')
+// oxlint-disable-next-line node/no-sync
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { name?: string; version?: string }
 if (!(pkg.name && pkg.version)) {
   console.error('package.json missing name or version')
   process.exit(1)
 }
+// oxlint-disable-next-line node/no-sync
 const result = spawnSync('npm', ['view', pkg.name, 'versions', '--json'], { encoding: 'utf8' })
 if (result.status !== 0) {
   console.log(`${pkg.name}: first publish, nothing to clean`)
@@ -23,6 +25,7 @@ if (old.length === 0) {
   process.exit(0)
 }
 for (const v of old) {
+  // oxlint-disable-next-line node/no-sync
   const r = spawnSync('npm', ['unpublish', `${pkg.name}@${v}`], { encoding: 'utf8', stdio: 'inherit' })
   if (r.status === 0) console.log(`${pkg.name}@${v} unpublished`)
 }

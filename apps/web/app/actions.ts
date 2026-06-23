@@ -6,6 +6,7 @@ import { DEFAULT_REPO } from './constants'
 
 const findRoot = (): null | string => {
   const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]
+  // oxlint-disable-next-line node/no-sync
   for (const c of candidates) if (existsSync(resolve(c, '.gitignore'))) return c
   return null
 }
@@ -21,6 +22,7 @@ const bundledRepo = await (async (): Promise<Record<string, string>> => {
 const gitignore = root
   ? (() => {
       try {
+        // oxlint-disable-next-line node/no-sync
         return readFileSync(resolve(root, '.gitignore'), 'utf8')
       } catch {
         return ''
@@ -95,10 +97,12 @@ const fetchTree = async (repo: string): Promise<TreeItem[]> => {
     if (root) {
       const tree: { path: string; type: 'blob' | 'tree' }[] = []
       const walk = (dir: string, prefix: string) => {
+        // oxlint-disable-next-line node/no-sync
         for (const name of readdirSync(dir).toSorted())
           if (!ignored.has(name)) {
             const full = resolve(dir, name)
             const rel = prefix ? `${prefix}/${name}` : name
+            // oxlint-disable-next-line node/no-sync
             if (statSync(full).isDirectory()) {
               tree.push({ path: rel, type: 'tree' })
               walk(full, rel)
@@ -150,6 +154,7 @@ const readLocal = (path: string): Buffer | null => {
     const full = resolve(root, path)
     if (!full.startsWith(root)) return null
     try {
+      // oxlint-disable-next-line node/no-sync
       return readFileSync(full)
     } catch {
       return null
@@ -191,11 +196,14 @@ const collectLocalFiles = (prefix: string): { content: Buffer; path: string }[] 
   if (root) {
     const fullPrefix = resolve(root, prefix)
     const walk = (dir: string, rel: string) => {
+      // oxlint-disable-next-line node/no-sync
       for (const name of readdirSync(dir).toSorted())
         if (!ignored.has(name)) {
           const full = resolve(dir, name)
           const r = rel ? `${rel}/${name}` : name
+          // oxlint-disable-next-line node/no-sync
           if (statSync(full).isDirectory()) walk(full, r)
+          // oxlint-disable-next-line node/no-sync
           else results.push({ content: readFileSync(full), path: r })
         }
     }

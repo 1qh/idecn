@@ -35,6 +35,7 @@ for (const { name, uiSrc } of uiResults) {
   const nested = uiSrc.match(/from ['"]\.\/(?<path>[^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
   if (nested) for (const n of nested) if (!uiImports.includes(n)) nestedRegistryDeps.add(n)
 }
+// oxlint-disable-next-line node/no-sync
 mkdirSync(outDir, { recursive: true })
 let content = src
 content = content

@@ -22,11 +22,13 @@ const usedIcons = new Set<string>(
 const svgMap: Record<string, string> = {}
 for (const name of usedIcons)
   try {
+    // oxlint-disable-next-line node/no-sync
     svgMap[name] = readFileSync(resolve(iconsDir, `${name}.svg`), 'utf8')
   } catch {
     /* Icon file not found */
   }
 const outDir = resolve(import.meta.dir, '../src/_generated')
+// oxlint-disable-next-line node/no-sync
 mkdirSync(outDir, { recursive: true })
 const data = JSON.stringify({
   manifest: {
@@ -41,6 +43,7 @@ const data = JSON.stringify({
   },
   svgs: svgMap
 })
+// oxlint-disable-next-line node/no-sync
 writeFileSync(resolve(outDir, 'icons.ts'), `const icons = ${data}\nexport { icons }\n`)
 console.log(
   `Generated ${Object.keys(svgMap).length} icon SVGs, manifest with ${Object.keys(manifest.folderNames as object).length} folder mappings`

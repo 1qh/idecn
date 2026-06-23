@@ -2641,17 +2641,19 @@ const Workspace = ({
         notifyPanels()
       }),
       event.api.onDidActivePanelChange(e => {
-        if (e?.id) {
-          setActiveFileId(e.id)
-          onTabChangeRef.current?.(e.id)
+        const { panel } = e
+        if (panel) {
+          const activeId = panel.id
+          setActiveFileId(activeId)
+          onTabChangeRef.current?.(activeId)
           if (!historyRef.current.navigating) {
             const h = historyRef.current
-            if (h.entries[h.index] !== e.id) {
-              h.entries = [...h.entries.slice(0, h.index + 1), e.id].slice(-50)
+            if (h.entries[h.index] !== activeId) {
+              h.entries = [...h.entries.slice(0, h.index + 1), activeId].slice(-50)
               h.index = h.entries.length - 1
             }
           }
-          log(`Focused: ${e.title ?? e.id}`)
+          log(`Focused: ${panel.title ?? activeId}`)
         }
       })
     )

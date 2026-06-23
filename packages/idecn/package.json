@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown && bun scripts/copy-styles.ts",
+    "build": "tsdown",
     "gen": "bun scripts/gen-icons.ts && bun scripts/build-registry.ts",
     "prepublishOnly": "bun run build",
     "postpublish": "bun ../../tools/prune-versions.ts",
@@ -44,7 +44,6 @@
     "@shikijs/monaco": "latest",
     "@tanstack/react-hotkeys": "latest",
     "@tanstack/react-virtual": "latest",
-    "cmdk": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
     "jotai": "latest",
