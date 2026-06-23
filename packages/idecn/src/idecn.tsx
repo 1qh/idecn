@@ -3461,7 +3461,9 @@ const PdfViewer = ({
         </div>
       ) : null}
       <div className='relative min-w-0 flex-1 overflow-hidden'>
-        <div className='flex h-full flex-col items-center gap-0 overflow-auto bg-muted/20 p-2' ref={scrollRef}>
+        <div
+          className='flex h-full flex-col items-center gap-0 overflow-auto bg-muted/20 p-2 [scrollbar-gutter:stable]'
+          ref={scrollRef}>
           {pages.map(n => (
             <PdfPage
               key={n}
