@@ -17,6 +17,7 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get install -y zsh
       - uses: oven-sh/setup-bun@v2
+      - run: bun pm cache rm
       - run: bun action
       - name: prune prior CI runs
         if: always()
