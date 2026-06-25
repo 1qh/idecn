@@ -9,49 +9,65 @@ interface Pkg {
   version?: string
   workspaces?: string[]
 }
+interface Target {
+  dir: string
+  name: string
+  onNpm: boolean
+  published: boolean
+  version: string
+}
 const root = process.cwd()
 const rootPkg = (await file(join(root, 'package.json'))
   .json()
   .catch(() => ({}))) as Pkg
 const globs = rootPkg.workspaces ?? ['packages/*']
-const findPublishable = async (): Promise<null | { dir: string; name: string; version: string }> => {
-  const rootCandidate = rootPkg.name && rootPkg.version && !rootPkg.private ? [join(root, 'package.json')] : []
-  const scanned = await Promise.all(
-    globs.map(async g =>
-      (await Array.fromAsync(new Glob(`${g}/package.json`).scan({ cwd: root }))).map(rel => join(root, rel))
-    )
+const scanned = await Promise.all(
+  globs.map(async g =>
+    (await Array.fromAsync(new Glob(`${g}/package.json`).scan({ cwd: root }))).map(rel => join(root, rel))
   )
-  const candidates = [...rootCandidate, ...scanned.flat()]
-  const pkgs = await Promise.all(
-    candidates.map(async path => ({
-      path,
-      pkg: (await file(path)
-        .json()
-        .catch(() => ({}))) as Pkg
-    }))
-  )
-  const hit = pkgs.find(({ pkg }) => pkg.name && pkg.version && !pkg.private)
-  if (!(hit?.pkg.name && hit.pkg.version)) return null
-  return { dir: dirname(hit.path), name: hit.pkg.name, version: hit.pkg.version }
+)
+const rootCandidate = rootPkg.name ? [join(root, 'package.json')] : []
+const paths = [...rootCandidate, ...scanned.flat()]
+const pkgs = await Promise.all(
+  paths.map(async path => ({
+    path,
+    pkg: (await file(path)
+      .json()
+      .catch(() => ({}))) as Pkg
+  }))
+)
+const resolve = async (path: string, pkg: Pkg): Promise<null | Target> => {
+  if (!(pkg.name && pkg.version) || pkg.private) return null
+  const view = await $`npm view ${pkg.name} versions --json`.quiet().nothrow()
+  const versions = view.exitCode === 0 ? (JSON.parse(view.stdout.toString().trim() || '[]') as string | string[]) : []
+  const all = Array.isArray(versions) ? versions : [versions]
+  return {
+    dir: dirname(path),
+    name: pkg.name,
+    onNpm: view.exitCode === 0,
+    published: all.includes(pkg.version),
+    version: pkg.version
+  }
 }
-const target = await findPublishable()
+const resolved = (await Promise.all(pkgs.map(async ({ path, pkg }) => resolve(path, pkg)))).filter(
+  (t): t is Target => t !== null
+)
+const target = resolved.find(t => t.onNpm)
 if (!target) {
-  console.log('no publishable package')
+  console.log('no publishable package on npm (new packages are published manually once, then auto-release takes over)')
   process.exit(0)
 }
-const { dir, name, version } = target
-const tag = `v${version}`
-const published = await $`npm view ${name}@${version} version`.quiet().nothrow()
-if (published.exitCode === 0 && published.stdout.toString().trim()) {
-  console.log(`${name}@${version} already published`)
+if (target.published) {
+  console.log(`${target.name}@${target.version} already published`)
   process.exit(0)
 }
-const pub = await $`bun publish --access public`.cwd(dir).nothrow()
+const pub = await $`bun publish --access public`.cwd(target.dir).nothrow()
 if (pub.exitCode !== 0) {
-  console.error(`publish failed for ${name}@${version}`)
+  console.error(`publish failed for ${target.name}@${target.version}`)
   process.exit(1)
 }
+const tag = `v${target.version}`
 await $`git tag ${tag}`.nothrow()
 await $`git push origin ${tag}`.nothrow()
 await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow()
-console.log(`released ${name}@${version}`)
+console.log(`released ${target.name}@${target.version}`)
