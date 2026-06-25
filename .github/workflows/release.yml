@@ -1,0 +1,25 @@
+name: release
+on:
+  push:
+    branches: [main]
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - if: runner.os == 'Linux'
+        run: sudo apt-get install -y zsh
+      - uses: oven-sh/setup-bun@v2
+      - run: bun action
+      - name: release if version bumped
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bun tools/release.ts
