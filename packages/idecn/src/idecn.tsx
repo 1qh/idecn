@@ -3491,7 +3491,12 @@ const PdfViewer = ({
             type='button'>
             <Images className='size-3.5' />
           </button>
-          <button aria-label='Previous page' className={TBTN} onClick={() => jump(Math.max(1, page - 1))} type='button'>
+          <button
+            aria-label='Previous page'
+            className={TBTN}
+            disabled={page <= 1}
+            onClick={() => jump(Math.max(1, page - 1))}
+            type='button'>
             <ChevronLeft className='size-3.5' />
           </button>
           <span className='tabular-nums'>
@@ -3500,6 +3505,7 @@ const PdfViewer = ({
           <button
             aria-label='Next page'
             className={TBTN}
+            disabled={page >= doc.numPages}
             onClick={() => jump(Math.min(doc.numPages, page + 1))}
             type='button'>
             <ChevronRight className='size-3.5' />
