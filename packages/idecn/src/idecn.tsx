@@ -2254,9 +2254,12 @@ const Workspace = ({
     }
     const refId = tab.position?.referenceTab
     const refPanel = refId === undefined ? undefined : api.panels.find(p => p.id === refId)
-    const position = tab.position
-      ? { direction: tab.position.direction, ...(refPanel ? { referencePanel: refPanel.id } : {}) }
-      : undefined
+    const refTarget = refPanel
+      ? tab.position?.direction === 'within'
+        ? { referenceGroup: refPanel.group.id }
+        : { referencePanel: refPanel.id }
+      : {}
+    const position = tab.position ? { direction: tab.position.direction, ...refTarget } : undefined
     api.addPanel({
       component: 'custom',
       id: tabId,
@@ -3393,6 +3396,9 @@ const PdfViewer = ({
   useEffect(() => {
     let active = true
     let loaded: PDFDocumentProxy | undefined
+    setDoc(undefined)
+    setBase(null)
+    setPage(1)
     const run = async () => {
       const pdfjs = await loadPdfjs()
       const d = await pdfjs.getDocument({ url: src }).promise.catch(() => undefined)
