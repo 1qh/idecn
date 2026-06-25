@@ -1873,6 +1873,22 @@ const QuickOpenDialog = ({
     </Dialog>
   )
 }
+const layoutVersionSuffix = /v\d+$/u
+const pruneStaleLayoutKeys = (key: string) => {
+  const prefix = key.replace(layoutVersionSuffix, '')
+  if (prefix === key) return
+  try {
+    const store = globalThis.localStorage
+    const drop: string[] = []
+    for (let i = 0; i < store.length; i += 1) {
+      const k = store.key(i)
+      if (k !== null && k !== key && k.startsWith(prefix) && layoutVersionSuffix.test(k)) drop.push(k)
+    }
+    for (const k of drop) store.removeItem(k)
+  } catch {
+    /* localStorage unavailable */
+  }
+}
 const persistLayout = (api: DockviewApi, key: string) => {
   try {
     const json = api.toJSON()
@@ -2588,6 +2604,7 @@ const Workspace = ({
   const handleReady = (event: DockviewReadyEvent) => {
     stateRef.current.api = event.api
     setDockviewApi(event.api)
+    if (layoutKey !== undefined) pruneStaleLayoutKeys(layoutKey)
     const restored = layoutKey === undefined ? false : restoreLayout(event.api, layoutKey, tabs)
     if (!restored) for (const tab of tabs) if (tab.defaultOpen !== false) addTab(tab)
     if (layoutKey !== undefined)
