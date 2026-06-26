@@ -70,4 +70,15 @@ const tag = `v${target.version}`
 await $`git tag ${tag}`.nothrow()
 await $`git push origin ${tag}`.nothrow()
 await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow()
+const remoteTags = (await $`git ls-remote --tags origin`.quiet().nothrow()).stdout
+  .toString()
+  .split('\n')
+  .map(line => line.split('/').at(-1) ?? '')
+  .filter(t => t && t !== tag && !t.endsWith('^{}'))
+await Promise.all(
+  [...new Set(remoteTags)].map(async t => {
+    await $`gh release delete ${t} --yes --cleanup-tag`.nothrow()
+    await $`git push origin :refs/tags/${t}`.nothrow()
+  })
+)
 console.log(`released ${target.name}@${target.version}`)
