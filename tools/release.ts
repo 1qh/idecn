@@ -52,21 +52,30 @@ const resolve = async (path: string, pkg: Pkg): Promise<null | Target> => {
 const resolved = (await Promise.all(pkgs.map(async ({ path, pkg }) => resolve(path, pkg)))).filter(
   (t): t is Target => t !== null
 )
-const target = resolved.find(t => t.onNpm)
-if (!target) {
+const onNpm = resolved.filter(t => t.onNpm)
+if (onNpm.length === 0) {
   console.log('no publishable package on npm (new packages are published manually once, then auto-release takes over)')
   process.exit(0)
 }
-if (target.published) {
-  console.log(`${target.name}@${target.version} already published`)
+const toPublish = onNpm.filter(t => !t.published)
+if (toPublish.length === 0) {
+  console.log(`already published: ${onNpm.map(t => `${t.name}@${t.version}`).join(', ')}`)
   process.exit(0)
 }
-const pub = await $`bun publish --access public`.cwd(target.dir).nothrow()
-if (pub.exitCode !== 0) {
-  console.error(`publish failed for ${target.name}@${target.version}`)
+const publishOne = async (t: Target): Promise<Target & { ok: boolean }> => {
+  const pub = await $`bun publish --access public`.cwd(t.dir).nothrow()
+  if (pub.exitCode === 0) return { ...t, ok: true }
+  const recheck = await $`npm view ${t.name}@${t.version} version`.quiet().nothrow()
+  return { ...t, ok: recheck.exitCode === 0 && recheck.stdout.toString().trim().length > 0 }
+}
+const results = await Promise.all(toPublish.map(publishOne))
+const failed = results.filter(r => !r.ok)
+if (failed.length > 0) {
+  console.error(`publish failed: ${failed.map(f => `${f.name}@${f.version}`).join(', ')}`)
   process.exit(1)
 }
-const tag = `v${target.version}`
+const first = results[0]
+const tag = `v${first?.version ?? '0.0.0'}`
 await $`git tag ${tag}`.nothrow()
 await $`git push origin ${tag}`.nothrow()
 await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow()
@@ -81,4 +90,4 @@ await Promise.all(
     await $`git push origin :refs/tags/${t}`.nothrow()
   })
 )
-console.log(`released ${target.name}@${target.version}`)
+console.log(`released: ${results.map(r => `${r.name}@${r.version}`).join(', ')}`)
