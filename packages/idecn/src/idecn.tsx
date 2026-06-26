@@ -18,7 +18,15 @@ import {
   BreadcrumbSeparator
 } from '@a/ui/breadcrumb'
 import { Button } from '@a/ui/button'
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@a/ui/command'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut
+} from '@a/ui/command'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,7 +48,6 @@ import { Editor, loader } from '@monaco-editor/react'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Command as CommandPrimitive } from 'cmdk'
 import { DockviewReact } from 'dockview-react'
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
@@ -3759,8 +3766,6 @@ interface CommandAction {
   onSelect: () => void
 }
 const paletteRecentsAtom = atomWithStorage<string[]>('idecn:paletteRecents', [])
-const PALETTE_HEADING =
-  '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-muted-foreground'
 const CommandPalette = ({
   actions,
   onOpenChange,
@@ -3785,45 +3790,35 @@ const CommandPalette = ({
     action.onSelect()
   }
   const renderItem = (action: CommandAction, prefix: string) => (
-    <CommandPrimitive.Item
-      className='flex h-9 cursor-pointer items-center gap-2 rounded px-2 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground'
+    <CommandItem
       key={`${prefix}-${action.id}`}
       onSelect={() => run(action)}
       value={`${action.label} ${action.keywords ?? ''}`}>
-      {action.icon ? <action.icon className='size-4 shrink-0 text-muted-foreground' /> : null}
+      {action.icon ? <action.icon className='text-muted-foreground' /> : null}
       <span className='truncate' title={action.label}>
         {action.label}
       </span>
-      <span className='ml-auto shrink-0 truncate text-xs text-muted-foreground' title={action.group}>
-        {action.group}
-      </span>
-    </CommandPrimitive.Item>
+      <CommandShortcut title={action.group}>{action.group}</CommandShortcut>
+    </CommandItem>
   )
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className='overflow-hidden p-0' showCloseButton={false}>
         <DialogTitle className='sr-only'>Command palette</DialogTitle>
-        <CommandPrimitive className='flex max-h-[60vh] flex-col' loop>
-          <CommandPrimitive.Input
-            className='h-11 border-b bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground'
-            placeholder={placeholder}
-          />
-          <CommandPrimitive.List className='overflow-auto p-1'>
-            <CommandPrimitive.Empty className='py-6 text-center text-sm text-muted-foreground'>
-              No results.
-            </CommandPrimitive.Empty>
+        <Command className='max-h-[60vh]' loop>
+          <CommandInput placeholder={placeholder} />
+          <CommandList>
+            <CommandEmpty>No results.</CommandEmpty>
             {recentActions.length > 0 ? (
-              <CommandPrimitive.Group className={PALETTE_HEADING} heading='Recent'>
-                {recentActions.map(action => renderItem(action, 'recent'))}
-              </CommandPrimitive.Group>
+              <CommandGroup heading='Recent'>{recentActions.map(action => renderItem(action, 'recent'))}</CommandGroup>
             ) : null}
             {groups.map(group => (
-              <CommandPrimitive.Group className={PALETTE_HEADING} heading={group} key={group}>
+              <CommandGroup heading={group} key={group}>
                 {actions.filter(action => action.group === group).map(action => renderItem(action, 'all'))}
-              </CommandPrimitive.Group>
+              </CommandGroup>
             ))}
-          </CommandPrimitive.List>
-        </CommandPrimitive>
+          </CommandList>
+        </Command>
       </DialogContent>
     </Dialog>
   )
