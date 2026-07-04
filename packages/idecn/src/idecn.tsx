@@ -2,9 +2,7 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
-import type { GridCell, GridColumn, Item } from '@glideapps/glide-data-grid'
 import type { EditorProps } from '@monaco-editor/react'
-import type { RecogitoTextAnnotator, TextAnnotation } from '@recogito/react-text-annotator'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
 import type { LucideIcon } from 'lucide-react'
@@ -29,7 +27,6 @@ import {
   CommandList,
   CommandShortcut
 } from '@a/ui/command'
-import '@glideapps/glide-data-grid/dist/index.css'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -45,12 +42,9 @@ import { Skeleton } from '@a/ui/skeleton'
 import { Toaster } from '@a/ui/sonner'
 import { Spinner } from '@a/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@a/ui/tooltip'
-import { Annotorious, useAnnotator } from '@annotorious/react'
 import { Accordion } from '@base-ui/react/accordion'
 import { NumberField } from '@base-ui/react/number-field'
-import { DataEditor, GridCellKind } from '@glideapps/glide-data-grid'
 import { Editor, loader } from '@monaco-editor/react'
-import { TextAnnotator } from '@recogito/react-text-annotator'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -89,6 +83,8 @@ import {
   createContext,
   createElement,
   isValidElement,
+  lazy,
+  Suspense,
   use,
   useCallback,
   useEffect,
@@ -100,6 +96,7 @@ import {
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import type { GridEditorHostProps, TextAnnotationHostProps } from './annotation-hosts'
 
 let pdfWorkerSet = false
 const loadPdfjs = async () => {
@@ -3398,70 +3395,18 @@ const PdfPage = ({
     </div>
   )
 }
-interface TextAnnotationHostProps {
-  annotations?: readonly TextAnnotation[]
-  className?: string
-  onSelect?: (ids: readonly string[]) => void
-  text: string
-}
-const AnnotatorBinding = ({
-  annotations,
-  onSelect
-}: {
-  annotations: readonly TextAnnotation[]
-  onSelect?: (ids: readonly string[]) => void
-}) => {
-  const anno = useAnnotator<RecogitoTextAnnotator>()
-  useEffect(() => {
-    anno.setAnnotations(annotations as TextAnnotation[])
-  }, [anno, annotations])
-  useEffect(() => {
-    const handler = (selected: TextAnnotation[]) => onSelect?.(selected.map(s => s.id))
-    anno.on('selectionChanged', handler)
-    return () => {
-      anno.off('selectionChanged', handler)
-    }
-  }, [anno, onSelect])
-  return null
-}
-const NO_ANNOTATIONS: readonly TextAnnotation[] = []
-const TextAnnotationHost = ({ annotations = NO_ANNOTATIONS, className, onSelect, text }: TextAnnotationHostProps) => (
-  <Annotorious>
-    <TextAnnotator>
-      <div className={cn('whitespace-pre-wrap break-words p-3 text-sm leading-relaxed', className)}>{text}</div>
-    </TextAnnotator>
-    <AnnotatorBinding annotations={annotations} onSelect={onSelect} />
-  </Annotorious>
+const TextAnnotationHostLazy = lazy(async () => ({ default: (await import('./annotation-hosts')).TextAnnotationHost }))
+const TextAnnotationHost = (props: TextAnnotationHostProps) => (
+  <Suspense fallback={null}>
+    <TextAnnotationHostLazy {...props} />
+  </Suspense>
 )
-interface GridEditorHostProps {
-  className?: string
-  columns: readonly string[]
-  onCellSelect?: (col: number, row: number) => void
-  rows: readonly (readonly string[])[]
-}
-const GridEditorHost = ({ className, columns, onCellSelect, rows }: GridEditorHostProps) => {
-  const cols: GridColumn[] = useMemo(() => columns.map(title => ({ id: title, title, width: 160 })), [columns])
-  const getCellContent = useCallback(
-    ([col, row]: Item): GridCell => {
-      const data = rows[row]?.[col] ?? ''
-      return { allowOverlay: false, data, displayData: data, kind: GridCellKind.Text }
-    },
-    [rows]
-  )
-  return (
-    <div className={cn('size-full', className)}>
-      <DataEditor
-        columns={cols}
-        getCellContent={getCellContent}
-        onGridSelectionChange={sel => {
-          const c = sel.current?.cell
-          if (c) onCellSelect?.(c[0], c[1])
-        }}
-        rows={rows.length}
-      />
-    </div>
-  )
-}
+const GridEditorHostLazy = lazy(async () => ({ default: (await import('./annotation-hosts')).GridEditorHost }))
+const GridEditorHost = (props: GridEditorHostProps) => (
+  <Suspense fallback={null}>
+    <GridEditorHostLazy {...props} />
+  </Suspense>
+)
 const NO_REGIONS: readonly PdfRegion[] = []
 const PdfThumb = ({
   active,
