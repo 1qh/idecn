@@ -7,7 +7,7 @@ import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockv
 import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
 import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
-import type { ComponentProps, ComponentType, ReactElement, ReactNode, Ref } from 'react'
+import type { ComponentProps, ComponentType, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, Ref } from 'react'
 import { cn } from '@a/ui'
 import {
   Breadcrumb,
@@ -3245,6 +3245,7 @@ interface PdfRegion {
 interface PdfViewerProps {
   className?: string
   onRegionClick?: (id: string) => void
+  onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
   regions?: readonly PdfRegion[]
   scale?: number
   selectedRegionId?: null | string
@@ -3261,6 +3262,7 @@ const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, nu
 }
 const PdfPage = ({
   onRegionClick,
+  onRegionDraw,
   pageNo,
   pdf,
   regions,
@@ -3268,6 +3270,7 @@ const PdfPage = ({
   selectedRegionId
 }: {
   onRegionClick?: (id: string) => void
+  onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
   pageNo: number
   pdf: PDFDocumentProxy
   regions: readonly PdfRegion[]
@@ -3278,6 +3281,25 @@ const PdfPage = ({
   const taskRef = useRef<null | RenderTask>(null)
   const selectedRef = useRef<HTMLButtonElement>(null)
   const [vp, setVp] = useState<PageViewport>()
+  const [drag, setDrag] = useState<null | { x0: number; x1: number; y0: number; y1: number }>(null)
+  const drawStart = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!onRegionDraw || e.button !== 0) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDrag({ x0: e.clientX - rect.left, x1: e.clientX - rect.left, y0: e.clientY - rect.top, y1: e.clientY - rect.top })
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const drawMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDrag({ ...drag, x1: e.clientX - rect.left, y1: e.clientY - rect.top })
+  }
+  const drawEnd = () => {
+    if (!(drag && vp && onRegionDraw)) return setDrag(null)
+    const [x0, y0] = vp.convertToPdfPoint(Math.min(drag.x0, drag.x1), Math.min(drag.y0, drag.y1)) as [number, number]
+    const [x1, y1] = vp.convertToPdfPoint(Math.max(drag.x0, drag.x1), Math.max(drag.y0, drag.y1)) as [number, number]
+    if (Math.abs(drag.x1 - drag.x0) > 4 && Math.abs(drag.y1 - drag.y0) > 4) onRegionDraw([x0, y0, x1, y1], pageNo)
+    setDrag(null)
+  }
   const pageRegions = regions.filter(r => r.page === pageNo)
   const selectedOnPage = selectedRegionId !== null && pageRegions.some(r => r.id === selectedRegionId)
   useEffect(() => {
@@ -3322,6 +3344,27 @@ const PdfPage = ({
   return (
     <div className='relative w-fit scroll-mt-12 border-b border-border/40 pb-2 last:border-b-0' id={`pdf-page-${pageNo}`}>
       <canvas aria-label={`Page ${pageNo}`} className='block' ref={ref} />
+      {onRegionDraw && vp ? (
+        <div
+          className='absolute inset-0 cursor-crosshair'
+          onPointerDown={drawStart}
+          onPointerMove={drawMove}
+          onPointerUp={drawEnd}
+          style={{ height: vp.height, width: vp.width }}
+        >
+          {drag ? (
+            <div
+              className='absolute border-2 border-primary bg-primary/15'
+              style={{
+                height: Math.abs(drag.y1 - drag.y0),
+                left: Math.min(drag.x0, drag.x1),
+                top: Math.min(drag.y0, drag.y1),
+                width: Math.abs(drag.x1 - drag.x0)
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
       {vp
         ? pageRegions.map((r, i) => {
             const color = r.color ?? 'var(--primary)'
@@ -3403,6 +3446,7 @@ const TBTN = 'rounded p-1 hover:bg-accent'
 const PdfViewer = ({
   className,
   onRegionClick,
+  onRegionDraw,
   regions = NO_REGIONS,
   scale,
   selectedRegionId = null,
@@ -3498,6 +3542,7 @@ const PdfViewer = ({
             <PdfPage
               key={n}
               onRegionClick={onRegionClick}
+              onRegionDraw={onRegionDraw}
               pageNo={n}
               pdf={doc}
               regions={showRegions ? regions : NO_REGIONS}
