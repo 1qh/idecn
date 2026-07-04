@@ -3256,11 +3256,12 @@ interface PdfViewerProps {
 }
 interface ViewportGeom {
   convertToPdfPoint: (x: number, y: number) => [number, number]
-  convertToViewportRectangle: (rect: readonly number[]) => [number, number, number, number]
+  convertToViewportPoint: (x: number, y: number) => [number, number]
 }
 const vpGeom = (vp: PageViewport): ViewportGeom => vp as unknown as ViewportGeom
 const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, number]) => {
-  const [x1, y1, x2, y2] = vpGeom(vp).convertToViewportRectangle([box[0], box[1], box[2], box[3]])
+  const [x1, y1] = vpGeom(vp).convertToViewportPoint(box[0], box[1])
+  const [x2, y2] = vpGeom(vp).convertToViewportPoint(box[2], box[3])
   return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
 }
 const PdfPage = ({
