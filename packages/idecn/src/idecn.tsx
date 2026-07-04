@@ -2,19 +2,15 @@
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
+import type { GridCell, GridColumn, Item } from '@glideapps/glide-data-grid'
 import type { EditorProps } from '@monaco-editor/react'
+import type { RecogitoTextAnnotator, TextAnnotation } from '@recogito/react-text-annotator'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
 import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
-import type { RecogitoTextAnnotator, TextAnnotation } from '@recogito/react-text-annotator'
-import type { ComponentProps, ComponentType, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, Ref } from 'react'
-import type { GridCell, GridColumn, Item } from '@glideapps/glide-data-grid'
-import { Annotorious, useAnnotator } from '@annotorious/react'
-import { DataEditor, GridCellKind } from '@glideapps/glide-data-grid'
-import { TextAnnotator } from '@recogito/react-text-annotator'
+import type { ComponentProps, ComponentType, ReactElement, ReactNode, PointerEvent as ReactPointerEvent, Ref } from 'react'
 import { cn } from '@a/ui'
-import '@glideapps/glide-data-grid/dist/index.css'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,6 +29,7 @@ import {
   CommandList,
   CommandShortcut
 } from '@a/ui/command'
+import '@glideapps/glide-data-grid/dist/index.css'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -48,9 +45,12 @@ import { Skeleton } from '@a/ui/skeleton'
 import { Toaster } from '@a/ui/sonner'
 import { Spinner } from '@a/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@a/ui/tooltip'
+import { Annotorious, useAnnotator } from '@annotorious/react'
 import { Accordion } from '@base-ui/react/accordion'
 import { NumberField } from '@base-ui/react/number-field'
+import { DataEditor, GridCellKind } from '@glideapps/glide-data-grid'
 import { Editor, loader } from '@monaco-editor/react'
+import { TextAnnotator } from '@recogito/react-text-annotator'
 import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco'
 import { useHotkeys } from '@tanstack/react-hotkeys'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -3257,13 +3257,13 @@ interface PdfViewerProps {
   selectedRegionId?: null | string
   src: string
 }
+interface ViewportGeom {
+  convertToPdfPoint: (x: number, y: number) => [number, number]
+  convertToViewportRectangle: (rect: readonly number[]) => [number, number, number, number]
+}
+const vpGeom = (vp: PageViewport): ViewportGeom => vp as unknown as ViewportGeom
 const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, number]) => {
-  const [x1, y1, x2, y2] = vp.convertToViewportRectangle([box[0], box[1], box[2], box[3]]) as [
-    number,
-    number,
-    number,
-    number
-  ]
+  const [x1, y1, x2, y2] = vpGeom(vp).convertToViewportRectangle([box[0], box[1], box[2], box[3]])
   return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
 }
 const PdfPage = ({
@@ -3301,8 +3301,8 @@ const PdfPage = ({
   }
   const drawEnd = () => {
     if (!(drag && vp && onRegionDraw)) return setDrag(null)
-    const [x0, y0] = vp.convertToPdfPoint(Math.min(drag.x0, drag.x1), Math.min(drag.y0, drag.y1)) as [number, number]
-    const [x1, y1] = vp.convertToPdfPoint(Math.max(drag.x0, drag.x1), Math.max(drag.y0, drag.y1)) as [number, number]
+    const [x0, y0] = vpGeom(vp).convertToPdfPoint(Math.min(drag.x0, drag.x1), Math.min(drag.y0, drag.y1))
+    const [x1, y1] = vpGeom(vp).convertToPdfPoint(Math.max(drag.x0, drag.x1), Math.max(drag.y0, drag.y1))
     if (Math.abs(drag.x1 - drag.x0) > 4 && Math.abs(drag.y1 - drag.y0) > 4) onRegionDraw([x0, y0, x1, y1], pageNo)
     setDrag(null)
   }
@@ -3356,8 +3356,7 @@ const PdfPage = ({
           onPointerDown={drawStart}
           onPointerMove={drawMove}
           onPointerUp={drawEnd}
-          style={{ height: vp.height, width: vp.width }}
-        >
+          style={{ height: vp.height, width: vp.width }}>
           {drag ? (
             <div
               className='absolute border-2 border-primary bg-primary/15'
@@ -3414,10 +3413,9 @@ const AnnotatorBinding = ({
 }) => {
   const anno = useAnnotator<RecogitoTextAnnotator>()
   useEffect(() => {
-    anno?.setAnnotations(annotations as TextAnnotation[])
+    anno.setAnnotations(annotations as TextAnnotation[])
   }, [anno, annotations])
   useEffect(() => {
-    if (!anno) return undefined
     const handler = (selected: TextAnnotation[]) => onSelect?.(selected.map(s => s.id))
     anno.on('selectionChanged', handler)
     return () => {
@@ -3426,7 +3424,8 @@ const AnnotatorBinding = ({
   }, [anno, onSelect])
   return null
 }
-const TextAnnotationHost = ({ annotations = [], className, onSelect, text }: TextAnnotationHostProps) => (
+const NO_ANNOTATIONS: readonly TextAnnotation[] = []
+const TextAnnotationHost = ({ annotations = NO_ANNOTATIONS, className, onSelect, text }: TextAnnotationHostProps) => (
   <Annotorious>
     <TextAnnotator>
       <div className={cn('whitespace-pre-wrap break-words p-3 text-sm leading-relaxed', className)}>{text}</div>
@@ -3441,11 +3440,14 @@ interface GridEditorHostProps {
   rows: readonly (readonly string[])[]
 }
 const GridEditorHost = ({ className, columns, onCellSelect, rows }: GridEditorHostProps) => {
-  const cols: GridColumn[] = columns.map(title => ({ id: title, title, width: 160 }))
-  const getCellContent = ([col, row]: Item): GridCell => {
-    const data = rows[row]?.[col] ?? ''
-    return { allowOverlay: false, data, displayData: data, kind: GridCellKind.Text }
-  }
+  const cols: GridColumn[] = useMemo(() => columns.map(title => ({ id: title, title, width: 160 })), [columns])
+  const getCellContent = useCallback(
+    ([col, row]: Item): GridCell => {
+      const data = rows[row]?.[col] ?? ''
+      return { allowOverlay: false, data, displayData: data, kind: GridCellKind.Text }
+    },
+    [rows]
+  )
   return (
     <div className={cn('size-full', className)}>
       <DataEditor
@@ -3942,14 +3944,14 @@ export type {
   ConfigShowWhen,
   FileActions,
   FileTreeProps,
+  GridEditorHostProps,
   InputMethod,
   InputMethodSession,
   PdfRegion,
   PdfViewerProps,
-  GridEditorHostProps,
   ScrubInputProps,
-  TextAnnotationHostProps,
   TabProps,
+  TextAnnotationHostProps,
   TreeContextAction,
   TreeDataItem,
   VirtualFile,
@@ -3965,11 +3967,11 @@ export {
   FileTree,
   FolderIcon,
   getIconSvg,
+  GridEditorHost,
   IconButton,
   InfoButton,
   PdfViewer,
   persistConfig,
-  GridEditorHost,
   ScrubInput,
   Tab,
   TextAnnotationHost,
