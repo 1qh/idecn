@@ -7,7 +7,10 @@ import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockv
 import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
 import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
+import type { RecogitoTextAnnotator, TextAnnotation } from '@recogito/react-text-annotator'
 import type { ComponentProps, ComponentType, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, Ref } from 'react'
+import { Annotorious, useAnnotator } from '@annotorious/react'
+import { TextAnnotator } from '@recogito/react-text-annotator'
 import { cn } from '@a/ui'
 import {
   Breadcrumb,
@@ -3393,6 +3396,41 @@ const PdfPage = ({
     </div>
   )
 }
+interface TextAnnotationHostProps {
+  annotations?: readonly TextAnnotation[]
+  className?: string
+  onSelect?: (ids: readonly string[]) => void
+  text: string
+}
+const AnnotatorBinding = ({
+  annotations,
+  onSelect
+}: {
+  annotations: readonly TextAnnotation[]
+  onSelect?: (ids: readonly string[]) => void
+}) => {
+  const anno = useAnnotator<RecogitoTextAnnotator>()
+  useEffect(() => {
+    anno?.setAnnotations(annotations as TextAnnotation[])
+  }, [anno, annotations])
+  useEffect(() => {
+    if (!anno) return undefined
+    const handler = (selected: TextAnnotation[]) => onSelect?.(selected.map(s => s.id))
+    anno.on('selectionChanged', handler)
+    return () => {
+      anno.off('selectionChanged', handler)
+    }
+  }, [anno, onSelect])
+  return null
+}
+const TextAnnotationHost = ({ annotations = [], className, onSelect, text }: TextAnnotationHostProps) => (
+  <Annotorious>
+    <TextAnnotator>
+      <div className={cn('whitespace-pre-wrap break-words p-3 text-sm leading-relaxed', className)}>{text}</div>
+    </TextAnnotator>
+    <AnnotatorBinding annotations={annotations} onSelect={onSelect} />
+  </Annotorious>
+)
 const NO_REGIONS: readonly PdfRegion[] = []
 const PdfThumb = ({
   active,
@@ -3880,6 +3918,7 @@ export type {
   PdfRegion,
   PdfViewerProps,
   ScrubInputProps,
+  TextAnnotationHostProps,
   TabProps,
   TreeContextAction,
   TreeDataItem,
@@ -3902,6 +3941,7 @@ export {
   persistConfig,
   ScrubInput,
   Tab,
+  TextAnnotationHost,
   toLevaSchema,
   Tree,
   TreeFile,
