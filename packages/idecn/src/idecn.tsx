@@ -9,9 +9,12 @@ import type { LucideIcon } from 'lucide-react'
 import type { PageViewport, PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import type { RecogitoTextAnnotator, TextAnnotation } from '@recogito/react-text-annotator'
 import type { ComponentProps, ComponentType, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, Ref } from 'react'
+import type { GridCell, GridColumn, Item } from '@glideapps/glide-data-grid'
 import { Annotorious, useAnnotator } from '@annotorious/react'
+import { DataEditor, GridCellKind } from '@glideapps/glide-data-grid'
 import { TextAnnotator } from '@recogito/react-text-annotator'
 import { cn } from '@a/ui'
+import '@glideapps/glide-data-grid/dist/index.css'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -3431,6 +3434,32 @@ const TextAnnotationHost = ({ annotations = [], className, onSelect, text }: Tex
     <AnnotatorBinding annotations={annotations} onSelect={onSelect} />
   </Annotorious>
 )
+interface GridEditorHostProps {
+  className?: string
+  columns: readonly string[]
+  onCellSelect?: (col: number, row: number) => void
+  rows: readonly (readonly string[])[]
+}
+const GridEditorHost = ({ className, columns, onCellSelect, rows }: GridEditorHostProps) => {
+  const cols: GridColumn[] = columns.map(title => ({ id: title, title, width: 160 }))
+  const getCellContent = ([col, row]: Item): GridCell => {
+    const data = rows[row]?.[col] ?? ''
+    return { allowOverlay: false, data, displayData: data, kind: GridCellKind.Text }
+  }
+  return (
+    <div className={cn('size-full', className)}>
+      <DataEditor
+        columns={cols}
+        getCellContent={getCellContent}
+        onGridSelectionChange={sel => {
+          const c = sel.current?.cell
+          if (c) onCellSelect?.(c[0], c[1])
+        }}
+        rows={rows.length}
+      />
+    </div>
+  )
+}
 const NO_REGIONS: readonly PdfRegion[] = []
 const PdfThumb = ({
   active,
@@ -3917,6 +3946,7 @@ export type {
   InputMethodSession,
   PdfRegion,
   PdfViewerProps,
+  GridEditorHostProps,
   ScrubInputProps,
   TextAnnotationHostProps,
   TabProps,
@@ -3939,6 +3969,7 @@ export {
   InfoButton,
   PdfViewer,
   persistConfig,
+  GridEditorHost,
   ScrubInput,
   Tab,
   TextAnnotationHost,
