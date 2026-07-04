@@ -39,8 +39,11 @@
   },
   "dependencies": {
     "@a/ui": "workspace:*",
+    "@annotorious/react": "latest",
+    "@glideapps/glide-data-grid": "latest",
     "@icons-pack/react-simple-icons": "latest",
     "@monaco-editor/react": "latest",
+    "@recogito/react-text-annotator": "latest",
     "@shikijs/monaco": "latest",
     "@tanstack/react-hotkeys": "latest",
     "@tanstack/react-virtual": "latest",
