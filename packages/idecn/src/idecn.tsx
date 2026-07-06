@@ -3249,11 +3249,39 @@ interface PdfViewerProps {
   className?: string
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
+  onRegionResize?: (id: string, box: readonly [number, number, number, number], page: number) => void
   regions?: readonly PdfRegion[]
   scale?: number
   selectedRegionId?: null | string
   src: string
 }
+interface RegionDrag {
+  id: string
+  mode: ResizeMode
+  x0: number
+  x1: number
+  y0: number
+  y1: number
+}
+type ResizeMode = 'move' | 'ne' | 'nw' | 'se' | 'sw'
+const nextBox = (d: RegionDrag, dx: number, dy: number): RegionDrag => {
+  if (d.mode === 'move') return { ...d, x0: d.x0 + dx, x1: d.x1 + dx, y0: d.y0 + dy, y1: d.y1 + dy }
+  const west = d.mode === 'nw' || d.mode === 'sw'
+  const north = d.mode === 'nw' || d.mode === 'ne'
+  return {
+    ...d,
+    x0: west ? d.x0 + dx : d.x0,
+    x1: west ? d.x1 : d.x1 + dx,
+    y0: north ? d.y0 + dy : d.y0,
+    y1: north ? d.y1 : d.y1 + dy
+  }
+}
+const RESIZE_CORNERS = [
+  { cursor: 'nwse-resize', mode: 'nw', style: { left: -4, top: -4 } },
+  { cursor: 'nesw-resize', mode: 'ne', style: { right: -4, top: -4 } },
+  { cursor: 'nesw-resize', mode: 'sw', style: { bottom: -4, left: -4 } },
+  { cursor: 'nwse-resize', mode: 'se', style: { bottom: -4, right: -4 } }
+] as const
 interface ViewportGeom {
   convertToPdfPoint: (x: number, y: number) => [number, number]
   convertToViewportPoint: (x: number, y: number) => [number, number]
@@ -3267,6 +3295,7 @@ const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, nu
 const PdfPage = ({
   onRegionClick,
   onRegionDraw,
+  onRegionResize,
   pageNo,
   pdf,
   regions,
@@ -3275,6 +3304,7 @@ const PdfPage = ({
 }: {
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
+  onRegionResize?: (id: string, box: readonly [number, number, number, number], page: number) => void
   pageNo: number
   pdf: PDFDocumentProxy
   regions: readonly PdfRegion[]
@@ -3283,9 +3313,42 @@ const PdfPage = ({
 }) => {
   const ref = useRef<HTMLCanvasElement>(null)
   const taskRef = useRef<null | RenderTask>(null)
-  const selectedRef = useRef<HTMLButtonElement>(null)
+  const selectedRef = useRef<HTMLElement>(null)
+  const setSelRef = useCallback((el: HTMLElement | null) => {
+    selectedRef.current = el
+  }, [])
   const [vp, setVp] = useState<PageViewport>()
   const [drag, setDrag] = useState<null | { x0: number; x1: number; y0: number; y1: number }>(null)
+  const [rDrag, setRDrag] = useState<null | RegionDrag>(null)
+  const originRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+  const movedRef = useRef(false)
+  const rStart = (e: ReactPointerEvent<HTMLElement>, id: string, mode: ResizeMode) => {
+    if (!onRegionResize || e.button !== 0) return
+    const r = regions.find(x => x.id === id)
+    if (!(r && vp)) return
+    e.stopPropagation()
+    const [x0, y0] = vpGeom(vp).convertToViewportPoint(r.box[0], r.box[1])
+    const [x1, y1] = vpGeom(vp).convertToViewportPoint(r.box[2], r.box[3])
+    originRef.current = { x: e.clientX, y: e.clientY }
+    movedRef.current = false
+    setRDrag({ id, mode, x0: Math.min(x0, x1), x1: Math.max(x0, x1), y0: Math.min(y0, y1), y1: Math.max(y0, y1) })
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const rMove = (e: ReactPointerEvent<HTMLElement>) => {
+    if (!rDrag) return
+    movedRef.current = true
+    setRDrag(nextBox(rDrag, e.clientX - originRef.current.x, e.clientY - originRef.current.y))
+    originRef.current = { x: e.clientX, y: e.clientY }
+  }
+  const rEnd = () => {
+    if (!(rDrag && vp && onRegionResize)) return setRDrag(null)
+    if (movedRef.current) {
+      const [px0, py0] = vpGeom(vp).convertToPdfPoint(Math.min(rDrag.x0, rDrag.x1), Math.min(rDrag.y0, rDrag.y1))
+      const [px1, py1] = vpGeom(vp).convertToPdfPoint(Math.max(rDrag.x0, rDrag.x1), Math.max(rDrag.y0, rDrag.y1))
+      onRegionResize(rDrag.id, [px0, py0, px1, py1], pageNo)
+    }
+    setRDrag(null)
+  }
   const drawStart = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!onRegionDraw || e.button !== 0) return
     const rect = e.currentTarget.getBoundingClientRect()
@@ -3372,24 +3435,60 @@ const PdfPage = ({
         ? pageRegions.map((r, i) => {
             const color = r.color ?? 'var(--primary)'
             const isSelected = r.id === selectedRegionId
+            const editable = isSelected && Boolean(onRegionResize)
+            const active = rDrag?.id === r.id ? rDrag : null
+            const geom = active
+              ? {
+                  height: Math.abs(active.y1 - active.y0),
+                  left: Math.min(active.x0, active.x1),
+                  top: Math.min(active.y0, active.y1),
+                  width: Math.abs(active.x1 - active.x0)
+                }
+              : pdfBoxStyle(vp, r.box)
+            const fill = { backgroundColor: `color-mix(in oklch, ${color} 15%, transparent)`, borderColor: color }
+            const key = `${r.id}-${String(i)}`
+            if (!editable)
+              return (
+                <button
+                  aria-label={r.label ?? `region ${r.id}`}
+                  className={cn(
+                    'absolute rounded-sm border-2 transition-[filter] hover:brightness-125',
+                    isSelected && 'ring-2 ring-offset-1'
+                  )}
+                  key={key}
+                  onClick={() => onRegionClick?.(r.id)}
+                  ref={isSelected ? setSelRef : undefined}
+                  style={{ ...geom, ...fill }}
+                  title={r.label}
+                  type='button'
+                />
+              )
             return (
               <button
                 aria-label={r.label ?? `region ${r.id}`}
-                className={cn(
-                  'absolute rounded-sm border-2 transition-[filter] hover:brightness-125',
-                  isSelected && 'ring-2 ring-offset-1'
-                )}
-                key={`${r.id}-${String(i)}`}
-                onClick={() => onRegionClick?.(r.id)}
-                ref={isSelected ? selectedRef : undefined}
-                style={{
-                  ...pdfBoxStyle(vp, r.box),
-                  backgroundColor: `color-mix(in oklch, ${color} 15%, transparent)`,
-                  borderColor: color
+                className='absolute cursor-move touch-none rounded-sm border-2 ring-2 ring-offset-1'
+                key={key}
+                onClick={() => {
+                  if (movedRef.current) return
+                  onRegionClick?.(r.id)
                 }}
-                title={r.label}
-                type='button'
-              />
+                onPointerDown={e =>
+                  rStart(e, r.id, ((e.target as HTMLElement).dataset.mode as ResizeMode | undefined) ?? 'move')
+                }
+                onPointerMove={rMove}
+                onPointerUp={rEnd}
+                ref={setSelRef}
+                style={{ ...geom, ...fill }}
+                type='button'>
+                {RESIZE_CORNERS.map(c => (
+                  <span
+                    className='absolute block size-2 rounded-full border border-background bg-primary'
+                    data-mode={c.mode}
+                    key={c.mode}
+                    style={{ ...c.style, cursor: c.cursor }}
+                  />
+                ))}
+              </button>
             )
           })
         : null}
@@ -3462,6 +3561,7 @@ const PdfViewer = ({
   className,
   onRegionClick,
   onRegionDraw,
+  onRegionResize,
   regions = NO_REGIONS,
   scale,
   selectedRegionId = null,
@@ -3558,6 +3658,7 @@ const PdfViewer = ({
               key={n}
               onRegionClick={onRegionClick}
               onRegionDraw={onRegionDraw}
+              onRegionResize={onRegionResize}
               pageNo={n}
               pdf={doc}
               regions={showRegions ? regions : NO_REGIONS}
