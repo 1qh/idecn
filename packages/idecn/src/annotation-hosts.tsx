@@ -5,7 +5,7 @@ import { cn } from '@a/ui'
 import { Annotorious, useAnnotator } from '@annotorious/react'
 import { DataEditor, GridCellKind } from '@glideapps/glide-data-grid'
 import { TextAnnotator } from '@recogito/react-text-annotator'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import '@glideapps/glide-data-grid/dist/index.css'
 
 interface GridEditorHostProps {
@@ -17,10 +17,22 @@ interface GridEditorHostProps {
 interface TextAnnotationHostProps {
   annotations?: readonly TextAnnotation[]
   className?: string
+  onCreateSelection?: (span: { end: number; start: number }) => void
   onSelect?: (ids: readonly string[]) => void
   text: string
 }
 const NO_ANNOTATIONS: readonly TextAnnotation[] = []
+const charOffset = (root: Node, node: Node, offset: number): number => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let total = 0
+  let current = walker.nextNode()
+  while (current) {
+    if (current === node) return total + offset
+    total += current.textContent?.length ?? 0
+    current = walker.nextNode()
+  }
+  return total
+}
 const AnnotatorBinding = ({
   annotations,
   onSelect
@@ -41,14 +53,44 @@ const AnnotatorBinding = ({
   }, [anno, onSelect])
   return null
 }
-const TextAnnotationHost = ({ annotations = NO_ANNOTATIONS, className, onSelect, text }: TextAnnotationHostProps) => (
-  <Annotorious>
-    <TextAnnotator>
-      <div className={cn('whitespace-pre-wrap break-words p-3 text-sm leading-relaxed', className)}>{text}</div>
-    </TextAnnotator>
-    <AnnotatorBinding annotations={annotations} onSelect={onSelect} />
-  </Annotorious>
-)
+const TextAnnotationHost = ({
+  annotations = NO_ANNOTATIONS,
+  className,
+  onCreateSelection,
+  onSelect,
+  text
+}: TextAnnotationHostProps) => {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = ref.current
+    if (!(onCreateSelection && root)) return
+    const handler = () => {
+      const sel = globalThis.getSelection()
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return
+      const range = sel.getRangeAt(0)
+      if (!root.contains(range.commonAncestorContainer)) return
+      const a = charOffset(root, range.startContainer, range.startOffset)
+      const b = charOffset(root, range.endContainer, range.endOffset)
+      const start = Math.min(a, b)
+      const end = Math.max(a, b)
+      if (end > start) onCreateSelection({ end, start })
+    }
+    root.addEventListener('mouseup', handler)
+    return () => {
+      root.removeEventListener('mouseup', handler)
+    }
+  }, [onCreateSelection])
+  return (
+    <Annotorious>
+      <TextAnnotator>
+        <div className={cn('whitespace-pre-wrap break-words p-3 text-sm leading-relaxed', className)} ref={ref}>
+          {text}
+        </div>
+      </TextAnnotator>
+      <AnnotatorBinding annotations={annotations} onSelect={onSelect} />
+    </Annotorious>
+  )
+}
 const GridEditorHost = ({ className, columns, onCellSelect, rows }: GridEditorHostProps) => {
   const cols: GridColumn[] = useMemo(() => columns.map(title => ({ id: title, title, width: 160 })), [columns])
   const getCellContent = useCallback(
