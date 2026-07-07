@@ -42,9 +42,10 @@ const AnnotatorBinding = ({
 }) => {
   const anno = useAnnotator<RecogitoTextAnnotator>()
   useEffect(() => {
-    anno.setAnnotations(annotations as TextAnnotation[])
+    if (anno) anno.setAnnotations(annotations as TextAnnotation[])
   }, [anno, annotations])
   useEffect(() => {
+    if (!anno) return undefined
     const handler = (selected: TextAnnotation[]) => onSelect?.(selected.map(s => s.id))
     anno.on('selectionChanged', handler)
     return () => {
