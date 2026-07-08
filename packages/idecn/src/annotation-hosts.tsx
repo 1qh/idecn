@@ -42,10 +42,12 @@ const AnnotatorBinding = ({
 }) => {
   const anno = useAnnotator<RecogitoTextAnnotator>()
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- useAnnotator returns null until the annotator mounts
     if (anno) anno.setAnnotations(annotations as TextAnnotation[])
   }, [anno, annotations])
   useEffect(() => {
-    if (!anno) return undefined
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- useAnnotator returns null until the annotator mounts
+    if (!anno) return
     const handler = (selected: TextAnnotation[]) => onSelect?.(selected.map(s => s.id))
     anno.on('selectionChanged', handler)
     return () => {

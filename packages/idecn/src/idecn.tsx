@@ -746,11 +746,22 @@ const Tree = ({
           props.className
         )}
         onKeyDownCapture={e => {
-          if (![' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return
+          const del = e.key === 'Delete' || e.key === 'Backspace'
+          const rename = e.key === 'F2'
+          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename)) return
           const target = e.target as HTMLElement
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
           e.stopPropagation()
+          if (del) {
+            const paths = selectedIds.size > 0 ? [...selectedIds] : selectedId ? [selectedId] : []
+            if (paths.length > 0) fileActions?.onDelete?.(paths)
+            return
+          }
+          if (rename) {
+            if (selectedId) setRenamingId(selectedId)
+            return
+          }
           const items = e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')
           const treeItem = target.closest('[role=treeitem]')
           const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
