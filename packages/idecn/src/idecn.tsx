@@ -748,11 +748,19 @@ const Tree = ({
         onKeyDownCapture={e => {
           const del = e.key === 'Delete' || e.key === 'Backspace'
           const rename = e.key === 'F2'
-          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename)) return
+          const selectAll = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a'
+          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename || selectAll)) return
           const target = e.target as HTMLElement
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
           e.stopPropagation()
+          if (selectAll) {
+            const ids = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
+              .map(el => el.dataset.itemId)
+              .filter((x): x is string => Boolean(x))
+            setSelectedIds(new Set(ids))
+            return
+          }
           if (del) {
             const paths = selectedIds.size > 0 ? [...selectedIds] : selectedId ? [selectedId] : []
             if (paths.length > 0) fileActions?.onDelete?.(paths)
