@@ -699,6 +699,7 @@ const Tree = ({
   const [renamingId, setRenamingId] = useState<null | string>(null)
   const [cutIds, setCutIds] = useState<Set<string>>(EMPTY_SET)
   const navRef = useRef<HTMLDivElement>(null)
+  const typeaheadRef = useRef({ buf: '', t: 0 })
   const selectedId = controlledSelectedId ?? internalSelectedId
   const changeRef = useRef(onSelectionChange)
   useEffect(() => {
@@ -759,12 +760,33 @@ const Tree = ({
           const selectAll = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a'
           const cut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x'
           const paste = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v'
-          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename || selectAll || cut || paste))
+          const typeahead = e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey && e.key !== ' '
+          if (
+            !(
+              [' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) ||
+              del ||
+              rename ||
+              selectAll ||
+              cut ||
+              paste ||
+              typeahead
+            )
+          )
             return
           const target = e.target as HTMLElement
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
           e.stopPropagation()
+          if (typeahead) {
+            const now = Date.now()
+            const ta = typeaheadRef.current
+            ta.buf = now - ta.t > 600 ? e.key : ta.buf + e.key
+            ta.t = now
+            const all = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
+            const match = all.find(el => el.textContent.trim().toLowerCase().startsWith(ta.buf.toLowerCase()))
+            match?.focus()
+            return
+          }
           if (selectAll) {
             const ids = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
               .map(el => el.dataset.itemId)
