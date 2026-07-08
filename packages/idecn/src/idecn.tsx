@@ -518,6 +518,7 @@ const dropMove = (
 }
 interface TreeContextValue {
   creatingIn: null | { parentPath: string; type: 'file' | 'folder' }
+  cutIds: Set<string>
   expandDepth: number
   expandExclude?: string[]
   fileActions?: FileActions
@@ -560,6 +561,7 @@ interface WorkspaceRef {
 const EMPTY_SET = new Set<string>()
 const TreeContext = createContext<TreeContextValue>({
   creatingIn: null,
+  cutIds: EMPTY_SET,
   expandDepth: 0,
   indent: 16,
   navRef: { current: null },
@@ -577,6 +579,7 @@ const DepthContext = createContext(0)
 const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
   const {
     creatingIn,
+    cutIds,
     expandDepth,
     expandExclude,
     fileActions,
@@ -597,6 +600,7 @@ const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: str
   const itemId = id ?? path ?? name
   const isSelected = selectedIds.size > 0 ? selectedIds.has(itemId) : selectedId === itemId
   const isMultiSelected = selectedIds.has(itemId)
+  const isCut = cutIds.has(itemId)
   const pl = `${String(depth * indent + 8)}px`
   const select = (e?: { metaKey?: boolean; shiftKey?: boolean }) => {
     if (e?.metaKey) {
@@ -629,6 +633,7 @@ const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: str
     fileActions,
     iconClass: ICON_CLASS_HOVER,
     indent,
+    isCut,
     isMultiSelected,
     isSelected,
     itemId,
@@ -692,6 +697,7 @@ const Tree = ({
   const [creatingIn, setCreatingIn] = useState<null | { parentPath: string; type: 'file' | 'folder' }>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(EMPTY_SET)
   const [renamingId, setRenamingId] = useState<null | string>(null)
+  const [cutIds, setCutIds] = useState<Set<string>>(EMPTY_SET)
   const navRef = useRef<HTMLDivElement>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
   const changeRef = useRef(onSelectionChange)
@@ -704,6 +710,7 @@ const Tree = ({
   const ctx = useMemo(
     () => ({
       creatingIn,
+      cutIds,
       expandDepth,
       expandExclude,
       fileActions,
@@ -722,6 +729,7 @@ const Tree = ({
     }),
     [
       creatingIn,
+      cutIds,
       expandDepth,
       expandExclude,
       fileActions,
@@ -749,7 +757,10 @@ const Tree = ({
           const del = e.key === 'Delete' || e.key === 'Backspace'
           const rename = e.key === 'F2'
           const selectAll = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a'
-          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename || selectAll)) return
+          const cut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x'
+          const paste = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v'
+          if (!([' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) || del || rename || selectAll || cut || paste))
+            return
           const target = e.target as HTMLElement
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
@@ -759,6 +770,20 @@ const Tree = ({
               .map(el => el.dataset.itemId)
               .filter((x): x is string => Boolean(x))
             setSelectedIds(new Set(ids))
+            return
+          }
+          if (cut) {
+            const paths = selectedIds.size > 0 ? [...selectedIds] : selectedId ? [selectedId] : []
+            setCutIds(new Set(paths))
+            return
+          }
+          if (paste) {
+            const t = target.closest<HTMLElement>('[role=treeitem]')
+            const folderPath = t?.dataset.folder === 'true' ? t.dataset.itemId : undefined
+            if (folderPath !== undefined && cutIds.size > 0) {
+              for (const p of cutIds) fileActions?.onMove?.(p, folderPath)
+              setCutIds(EMPTY_SET)
+            }
             return
           }
           if (del) {
@@ -919,6 +944,7 @@ const TreeFolder = ({
     iconClass,
     indent,
     log: treeLog,
+    isCut,
     isMultiSelected,
     isSelected,
     itemId,
@@ -972,9 +998,11 @@ const TreeFolder = ({
                 className={cn(
                   ITEM_CLASS,
                   (isSelected || isMultiSelected) && 'bg-accent',
+                  isCut && 'opacity-50',
                   disabled && 'pointer-events-none opacity-50',
                   props.className
                 )}
+                data-folder='true'
                 data-item-id={itemId}
                 draggable={Boolean(mutable && fileActions?.onMove)}
                 onClick={e => {
@@ -1133,6 +1161,7 @@ const TreeFile = ({
     fileActions,
     iconClass,
     indent,
+    isCut,
     isMultiSelected,
     isSelected,
     itemId,
@@ -1176,6 +1205,7 @@ const TreeFile = ({
             className={cn(
               ITEM_CLASS,
               (isSelected || isMultiSelected) && 'bg-accent',
+              isCut && 'opacity-50',
               disabled && 'pointer-events-none opacity-50',
               props.className
             )}
