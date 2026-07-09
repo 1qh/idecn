@@ -677,6 +677,7 @@ const Tree = ({
   fileActions,
   indent = 16,
   log: treePropLog,
+  onReachEnd,
   onSelect,
   onSelectionChange,
   selectedId: controlledSelectedId,
@@ -688,6 +689,7 @@ const Tree = ({
   fileActions?: FileActions
   indent?: number
   log?: (msg: string) => void
+  onReachEnd?: () => void
   onSelect?: (item: { id: string; name: string; path: string }) => void
   onSelectionChange?: (ids: string[]) => void
   selectedId?: null | string
@@ -823,6 +825,12 @@ const Tree = ({
           if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
           else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
           else target.click()
+        }}
+        onScroll={e => {
+          props.onScroll?.(e)
+          if (!onReachEnd) return
+          const el = e.currentTarget
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight * 1.5) onReachEnd()
         }}>
         {children}
       </div>
@@ -1381,6 +1389,7 @@ const FileTree = ({
   itemClassName,
   log: fileTreeLog,
   onDoubleClick: onDoubleClickProp,
+  onReachEnd,
   onSelectChange,
   onSelectionChange,
   selectableFolders,
@@ -1397,6 +1406,7 @@ const FileTree = ({
   itemClassName?: (depth: number) => string | undefined
   log?: (msg: string) => void
   onDoubleClick?: (item: TreeDataItem) => void
+  onReachEnd?: () => void
   onSelectChange?: (item: TreeDataItem | undefined) => void
   onSelectionChange?: (ids: string[]) => void
   selectableFolders?: boolean
@@ -1411,6 +1421,7 @@ const FileTree = ({
       expandExclude={expandExclude}
       fileActions={fileActions}
       log={fileTreeLog}
+      onReachEnd={onReachEnd}
       onSelectionChange={onSelectionChange}
       selectedId={controlledId ?? initialSelectedItemId}
       triggerUpload={triggerUpload}>
