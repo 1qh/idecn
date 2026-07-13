@@ -2089,6 +2089,7 @@ const Workspace = ({
   const [treeKey, setTreeKey] = useState(0)
   const [internalWordWrap, setInternalWordWrap] = useAtom(wordWrapAtom)
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null)
+  const dvHostRef = useRef<HTMLDivElement>(null)
   const [currentPreviewId, setPreviewId] = useAtom(previewPanelAtom)
   const previewIdRef = useRef(currentPreviewId)
   const [closedTabs, setClosedTabs] = useAtom(closedTabsAtom)
@@ -2709,6 +2710,15 @@ const Workspace = ({
           openVirtualFile(f)
           log(`Virtual file: ${f.name}`)
         }
+    const forceLayout = (): void => {
+      const el = dvHostRef.current?.querySelector<HTMLElement>('.dv-reset')
+      if (el && el.clientWidth > 0 && el.clientHeight > 0) event.api.layout(el.clientWidth, el.clientHeight, true)
+    }
+    requestAnimationFrame(() => {
+      forceLayout()
+      requestAnimationFrame(forceLayout)
+    })
+    setTimeout(forceLayout, 150)
     requestAnimationFrame(() => {
       const filesToOpen = initialFiles
       if (filesToOpen) {
@@ -2943,7 +2953,7 @@ const Workspace = ({
   )
   const dockview = (
     <ResizablePanel minSize={20}>
-      <div className='flex h-full flex-col'>
+      <div className='flex h-full flex-col' ref={dvHostRef}>
         <DockviewApiContext value={dockviewApi}>
           <TabContentContext value={tabContent}>
             <DockviewReact
