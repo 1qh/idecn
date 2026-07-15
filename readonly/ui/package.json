@@ -15,6 +15,7 @@
     "@base-ui/react": "latest",
     "@radix-ui/react-use-controllable-state": "latest",
     "@rive-app/react-webgl2": "latest",
+    "@shadcn/react": "latest",
     "@streamdown/cjk": "latest",
     "@streamdown/code": "latest",
     "@streamdown/math": "latest",
@@ -47,7 +48,6 @@
     "tokenlens": "latest",
     "tw-animate-css": "latest",
     "use-stick-to-bottom": "latest",
-    "vaul": "latest",
     "zod": "latest"
   },
   "devDependencies": {
