@@ -30,7 +30,7 @@
     "simple-git-hooks": "latest",
     "tsdown": "latest",
     "turbo": "latest",
-    "typescript": "latest",
+    "typescript": "~6.0.3",
     "unrun": "latest"
   },
   "packageManager": "bun@1.3.14",
