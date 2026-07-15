@@ -570,9 +570,13 @@ const TreeContext = createContext<TreeContextValue>({
   setSelectedId: () => undefined,
   setSelectedIds: () => undefined
 })
+TreeContext.displayName = 'TreeContext'
 const DockviewApiContext = createContext<DockviewApi | null>(null)
+DockviewApiContext.displayName = 'DockviewApiContext'
 const TabContentContext = createContext<Map<string, ReactNode>>(new Map())
+TabContentContext.displayName = 'TabContentContext'
 const DepthContext = createContext(0)
+DepthContext.displayName = 'DepthContext'
 const useTreeItem = ({ id, name, path }: { id?: string; name: string; path?: string }) => {
   const {
     creatingIn,
