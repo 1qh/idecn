@@ -12,7 +12,7 @@
     "check": "lintmax check",
     "clean": "sh clean.sh",
     "fix": "lintmax fix",
-    "postinstall": "sherif",
+    "postinstall": "sherif -i typescript",
     "prepare": "bunx simple-git-hooks"
   },
   "simple-git-hooks": {
