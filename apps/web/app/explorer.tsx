@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: Tab id is the dockview panel identifier, not a DOM element id */
-/* eslint-disable @eslint-react/hooks-extra/no-direct-set-state-in-use-effect */
+/* eslint-disable @eslint-react/set-state-in-effect */
 /* oxlint-disable promise/prefer-await-to-then */
 'use client'
 import type { FileActions, TreeDataItem, VirtualFile, WorkspaceRef } from 'idecn'
@@ -52,7 +52,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps, @eslint-react/exhaustive-deps
   useEffect(() => {
     setError(null)
     if (repo === DEFAULT_REPO) {

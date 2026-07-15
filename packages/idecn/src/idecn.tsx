@@ -1,4 +1,4 @@
-/* eslint-disable @eslint-react/dom/no-dangerously-set-innerhtml, @eslint-react/hooks-extra/no-direct-set-state-in-use-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element */
+/* eslint-disable @eslint-react/dom-no-dangerously-set-innerhtml, @eslint-react/set-state-in-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import 'dockview-core/dist/styles/dockview.css'
@@ -263,7 +263,6 @@ const inputMethodAtom = atom<InputMethod | null>(null)
 const onEditorChangeAtom = atom<((id: string, content: string) => void) | null>(null)
 let iconManifest: IconManifest | null = null
 let iconSvgs: Record<string, string> = {}
-let cachedMonoFont: string | undefined
 const iconsReady =
   'location' in globalThis
     ? import('./_generated/icons').then((mod: { icons: { manifest: IconManifest; svgs: Record<string, string> } }) => {
@@ -369,10 +368,8 @@ const resolveFolderIcon = (folderName: string, open: boolean): string => {
 const getIconSvg = (filename: string): string => getSvg(resolveFileIcon(filename))
 const langOf = (path: string): string => LANG[path.split('.').at(-1) ?? ''] ?? 'plaintext'
 const monoFont = (): string => {
-  if (cachedMonoFont !== undefined) return cachedMonoFont
   if (typeof document === 'undefined') return ''
-  cachedMonoFont = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
-  return cachedMonoFont
+  return getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim()
 }
 const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: string } => {
   let current = item
