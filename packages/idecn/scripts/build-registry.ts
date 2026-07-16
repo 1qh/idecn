@@ -17,14 +17,17 @@ const knownDeps = { ...uiPkg.dependencies, ...pkg.dependencies }
 /** The consumer's own app already provides these; declaring them would fight their versions. */
 const peerProvided = new Set(['next', 'react', 'react-dom'])
 const src = await read('src/idecn.tsx')
+const fileExtRe = /\.tsx?$/u
+const workspaceLeakRe = /@a\/ui[^'"]*/gu
+const aliasImportRe = /from\s+(?<q>['"])@\/(?<path>[^'"]+)\k<q>/gu
 /** The npm package an import specifier resolves to — `@scope/pkg/deep` is `@scope/pkg`, `pkg/deep` is `pkg`. */
 const packageOf = (specifier: string): string =>
   specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : (specifier.split('/')[0] ?? specifier)
-/** Every non-relative import in a source, either quote style. A pattern that excludes `@` cannot see a scoped package at all, so every `@scope/...` dep silently misses the manifest while the code that reads it looks correct. */
+/** Every npm import in a source, either quote style. A pattern that excludes `@` cannot see a scoped package at all, so every `@scope/...` dep silently misses the manifest while the code that reads it looks correct — but `@/` is the consumer's own path alias, not a scope, and counting it as a package invents a dependency nothing can install. */
 const externalPackages = (source: string): string[] =>
   [...source.matchAll(/from\s+(?<q>['"])(?<spec>[^.'"][^'"]*)\k<q>/gu)]
     .map(m => m.groups?.spec)
-    .filter((s): s is string => s !== undefined)
+    .filter((s): s is string => s !== undefined && !s.startsWith('@/'))
     .map(packageOf)
 const uiImports = [
   ...new Set(
@@ -106,6 +109,25 @@ const files = [
   },
   ...uiFiles
 ]
+/** Refuses to emit a registry a consumer cannot build. Every rule here is a way this artifact has silently shipped broken: an import rewrite that no-ops (a pattern matching the wrong quote style) leaves a workspace-private path, a dep scan that misses a source leaves an import nothing installs, and a sibling module that is aliased but never emitted resolves to nothing. Each failure mode is invisible in the JSON and only surfaces in someone else's `next build`, so the generator asserts rather than trusting the transforms above. */
+/** `shadcn init` writes `lib/utils.ts` (the `cn` helper) into every scaffold, so an import of it resolves in the consumer's app without this registry shipping or declaring it. */
+const scaffoldProvided = new Set(['lib/utils'])
+const emittedModules = new Set([...files.map(f => f.path.replace(fileExtRe, '')), ...scaffoldProvided])
+const aliasImportsOf = (source: string): string[] =>
+  [...source.matchAll(aliasImportRe)].map(m => m.groups?.path).filter((p): p is string => p !== undefined)
+const problems = files.flatMap(f => [
+  ...(f.content.match(workspaceLeakRe) ?? []).map(spec => `${f.path}: workspace-private import survived — ${spec}`),
+  ...aliasImportsOf(f.content)
+    .filter(target => !(emittedModules.has(target) || nestedRegistryDeps.has(target.split('/').at(-1) ?? target)))
+    .map(target => `${f.path}: imports @/${target}, which is neither emitted nor a declared registryDependency`),
+  ...externalPackages(f.content)
+    .filter(dep => !(deps.includes(dep) || peerProvided.has(dep)))
+    .map(dep => `${f.path}: imports ${dep}, which no manifest declares — the consumer installs nothing for it`)
+])
+if (problems.length > 0)
+  throw new Error(
+    `refusing to write a registry a consumer cannot build:\n${[...new Set(problems)].map(p => `  - ${p}`).join('\n')}`
+  )
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(
