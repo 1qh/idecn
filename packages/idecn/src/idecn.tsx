@@ -3027,7 +3027,7 @@ type ConfigSide = 'bottom' | 'left' | 'right' | 'top'
 const swallow = () => undefined
 const configTitleCase = (key: string, acronyms?: ReadonlySet<string>): string =>
   key
-    .replaceAll(/(?<lower>[a-z])(?<upper>[A-Z])/gu, '$<lower> $<upper>')
+    .replaceAll(/[a-z][A-Z]/gu, matched => `${matched[0]} ${matched[1]}`)
     .replaceAll(/[_-]+/gu, ' ')
     .split(' ')
     .filter(Boolean)

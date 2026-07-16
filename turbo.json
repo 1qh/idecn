@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["NEXT_DIST_DIR"],
       "outputs": [".next/**", "dist/**"]
     },
     "check": {
