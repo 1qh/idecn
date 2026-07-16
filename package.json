@@ -7,7 +7,7 @@
     "readonly/ui"
   ],
   "scripts": {
-    "action": "sh up.sh",
+    "action": "sh up.sh && sh packages/idecn/scripts/validate-registry.sh",
     "build": "bash -c \"turbo build --output-logs=errors-only 2> >(grep -vE 'WARNING|Could not resolve workspaces|missing field|Turborepo will still function' >&2)\"",
     "check": "lintmax check",
     "clean": "sh clean.sh",
