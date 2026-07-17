@@ -92,15 +92,26 @@ if (released.exitCode !== 0) {
   )
   process.exit(1)
 }
-const remoteTags = (await $`git ls-remote --tags origin`.quiet().nothrow()).stdout
-  .toString()
-  .split('\n')
-  .map(line => line.split('/').at(-1) ?? '')
-  .filter(t => t && t !== tag && !t.endsWith('^{}'))
+const staleTags = async (): Promise<string[]> => {
+  const ls = await $`git ls-remote --tags origin`.quiet().nothrow()
+  if (ls.exitCode !== 0)
+    throw new Error(`cannot list remote tags, so whether older ones remain is unknown: ${ls.stderr.toString().trim()}`)
+  const names = ls.stdout
+    .toString()
+    .split('\n')
+    .map(line => line.split('/').at(-1) ?? '')
+    .filter(t => t && t !== tag && !t.endsWith('^{}'))
+  return [...new Set(names)]
+}
 await Promise.all(
-  [...new Set(remoteTags)].map(async t => {
+  (await staleTags()).map(async t => {
     await $`gh release delete ${t} --yes --cleanup-tag`.nothrow()
     await $`git push origin :refs/tags/${t}`.nothrow()
   })
 )
+const survivors = await staleTags()
+if (survivors.length > 0) {
+  console.error(`released ${tag} but older tags remain on the remote: ${survivors.join(', ')}`)
+  process.exit(1)
+}
 console.log(`released: ${results.map(r => `${r.name}@${r.version}`).join(', ')}`)
