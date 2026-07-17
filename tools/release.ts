@@ -16,6 +16,8 @@ interface Target {
   published: boolean
   version: string
 }
+/** Only a 404 means the package is genuinely not on npm; every other npm failure is the registry declining to answer. */
+const notFoundRe = /E404|404 Not Found/u
 const root = process.cwd()
 const rootPkg = (await file(join(root, 'package.json'))
   .json()
@@ -39,6 +41,10 @@ const pkgs = await Promise.all(
 const resolve = async (path: string, pkg: Pkg): Promise<null | Target> => {
   if (!(pkg.name && pkg.version) || pkg.private) return null
   const view = await $`npm view ${pkg.name} versions --json`.quiet().nothrow()
+  if (view.exitCode !== 0 && !notFoundRe.test(view.stderr.toString()))
+    throw new Error(
+      `npm view ${pkg.name} failed, so whether it needs publishing is unknown: ${view.stderr.toString().trim()}`
+    )
   const versions = view.exitCode === 0 ? (JSON.parse(view.stdout.toString().trim() || '[]') as string | string[]) : []
   const all = Array.isArray(versions) ? versions : [versions]
   return {
@@ -76,9 +82,16 @@ if (failed.length > 0) {
 }
 const first = results[0]
 const tag = `v${first?.version ?? '0.0.0'}`
-await $`git tag ${tag}`.nothrow()
-await $`git push origin ${tag}`.nothrow()
-await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow()
+const tagged = await $`git tag ${tag}`.nothrow()
+const pushed = tagged.exitCode === 0 ? await $`git push origin ${tag}`.nothrow() : tagged
+const released =
+  pushed.exitCode === 0 ? await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow() : pushed
+if (released.exitCode !== 0) {
+  console.error(
+    `published ${results.map(r => `${r.name}@${r.version}`).join(', ')} but ${tag} did not land: ${released.stderr.toString().trim()}`
+  )
+  process.exit(1)
+}
 const remoteTags = (await $`git ls-remote --tags origin`.quiet().nothrow()).stdout
   .toString()
   .split('\n')
