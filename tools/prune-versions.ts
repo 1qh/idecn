@@ -9,7 +9,13 @@ if (!(pkg.name && pkg.version)) {
   console.error('package.json missing name or version')
   process.exit(1)
 }
+/** Only a 404 means the package is genuinely absent; every other npm failure is the registry declining to answer. */
+const notFoundRe = /E404|404 Not Found/u
 const view = await $`npm view ${pkg.name} versions --json`.quiet().nothrow()
+if (view.exitCode !== 0 && !notFoundRe.test(view.stderr.toString())) {
+  console.error(`npm view ${pkg.name} failed, so its old versions are unknown: ${view.stderr.toString().trim()}`)
+  process.exit(1)
+}
 if (view.exitCode !== 0) {
   console.log(`${pkg.name}: first publish, nothing to clean`)
   process.exit(0)
@@ -28,3 +34,8 @@ const results = await Promise.all(
   })
 )
 for (const { ok, v } of results) if (ok) console.log(`${pkg.name}@${v} unpublished`)
+const stuck = results.filter(r => !r.ok)
+if (stuck.length > 0) {
+  console.error(`${pkg.name}: still on npm after prune: ${stuck.map(s => s.v).join(', ')}`)
+  process.exit(1)
+}
