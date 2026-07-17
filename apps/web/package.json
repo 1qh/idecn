@@ -4,7 +4,8 @@
   "scripts": {
     "prebuild": "bun scripts/gen-repo.ts",
     "build": "bun scripts/gen-repo.ts && next build",
-    "dev": "next dev --turbopack"
+    "dev": "next dev --turbopack",
+    "test": "sh scripts/e2e.sh"
   },
   "dependencies": {
     "@a/ui": "workspace:*",

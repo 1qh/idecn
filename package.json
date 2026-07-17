@@ -7,13 +7,14 @@
     "readonly/ui"
   ],
   "scripts": {
-    "action": "sh up.sh && sh packages/idecn/scripts/validate-registry.sh",
+    "action": "sh up.sh && sh packages/idecn/scripts/validate-registry.sh && bun run test",
     "build": "bash -c \"turbo build --output-logs=errors-only 2> >(grep -vE 'WARNING|Could not resolve workspaces|missing field|Turborepo will still function' >&2)\"",
     "check": "lintmax check",
     "clean": "sh clean.sh",
     "fix": "lintmax fix",
     "postinstall": "sherif -i typescript",
-    "prepare": "bunx simple-git-hooks"
+    "prepare": "bunx simple-git-hooks",
+    "test": "bash -c \"turbo test --output-logs=errors-only 2> >(grep -vE 'WARNING|Could not resolve workspaces|missing field|Turborepo will still function' >&2)\""
   },
   "simple-git-hooks": {
     "pre-commit": "sh up.sh && git add -u"

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-
-const TREE = 'nav[aria-label="File tree"]'
+/** Matches on the label and role rather than the tag: the tree is a div, and a selector naming an element name breaks on markup that carries the same semantics. */
+const TREE = '[aria-label="File tree"]'
 const waitTree = async (page: Page) => {
   await page.goto('/')
   await page.locator(TREE).first().waitFor()
