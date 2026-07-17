@@ -419,6 +419,7 @@ const deduplicateTitle = (
   const parts = path.split('/')
   return parts.length >= 2 ? `${parts.at(-2)}/${name}` : name
 }
+type IconComponent = ComponentType<{ className?: string }>
 interface IconManifest {
   file: string
   fileExtensions: Record<string, string>
@@ -429,13 +430,14 @@ interface IconManifest {
   folderNamesExpanded: Record<string, string>
   languageIds: Record<string, string>
 }
+type IconValue = false | IconComponent | string
 interface PanelPosition {
   direction: 'above' | 'below' | 'left' | 'right' | 'within'
   referenceGroup: string
 }
 interface VirtualFile {
   content: string
-  icon?: ComponentType<{ className?: string }>
+  icon?: IconComponent
   id?: string
   language?: string
   name: string
@@ -466,7 +468,7 @@ interface FileActions {
 }
 interface TreeContextAction {
   destructive?: boolean
-  icon?: ComponentType<{ className?: string }>
+  icon?: IconComponent
   label: string
   onSelect: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => void
 }
@@ -537,7 +539,7 @@ interface TreeDataItem {
   children?: TreeDataItem[]
   className?: string
   disabled?: boolean
-  icon?: ComponentType<{ className?: string }> | false | string
+  icon?: IconValue
   id: string
   mutable?: boolean
   name: string
@@ -556,6 +558,49 @@ interface WorkspaceRef {
   toggleSidebar: () => void
 }
 const EMPTY_SET = new Set<string>()
+const pickPaths = (ids: Set<string>, id: null | string): string[] => {
+  if (ids.size > 0) return [...ids]
+  return id ? [id] : []
+}
+const resolveTheme = (theme: string | undefined | { dark: string; light: string }, dark: boolean): string => {
+  if (typeof theme === 'string') return theme
+  if (dark) return theme?.dark ?? 'monokai-lite'
+  return theme?.light ?? 'github-light'
+}
+const classifyTreeKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const mod = e.metaKey || e.ctrlKey
+  return {
+    cut: mod && e.key.toLowerCase() === 'x',
+    del: e.key === 'Delete' || e.key === 'Backspace',
+    paste: mod && e.key.toLowerCase() === 'v',
+    rename: e.key === 'F2',
+    selectAll: mod && e.key.toLowerCase() === 'a',
+    typeahead: e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey && e.key !== ' '
+  }
+}
+const runNav = (e: React.KeyboardEvent<HTMLDivElement>, target: HTMLElement): void => {
+  const items = e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')
+  const treeItem = target.closest('[role=treeitem]')
+  const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
+  if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
+  else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
+  else target.click()
+}
+const focusPanelById = (api: DockviewApi, id: string): void => {
+  const panel = api.panels.find(p => p.id === id)
+  if (panel) panel.focus()
+}
+type FitMode = 'none' | 'page' | 'width'
+const nextFit = (f: FitMode): FitMode => {
+  if (f === 'width') return 'page'
+  if (f === 'page') return 'none'
+  return 'width'
+}
+const fitLabel = (f: FitMode): string => {
+  if (f === 'width') return 'Fit width'
+  if (f === 'page') return 'Fit page'
+  return 'Manual zoom'
+}
 const TreeContext = createContext<TreeContextValue>({
   creatingIn: null,
   cutIds: EMPTY_SET,
@@ -746,6 +791,29 @@ const Tree = ({
       triggerUpload
     ]
   )
+  const runTypeahead = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const now = Date.now()
+    const ta = typeaheadRef.current
+    ta.buf = now - ta.t > 600 ? e.key : ta.buf + e.key
+    ta.t = now
+    const all = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
+    const match = all.find(el => el.textContent.trim().toLowerCase().startsWith(ta.buf.toLowerCase()))
+    match?.focus()
+  }
+  const runSelectAll = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const ids = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
+      .map(el => el.dataset.itemId)
+      .filter((x): x is string => Boolean(x))
+    setSelectedIds(new Set(ids))
+  }
+  const runPaste = (target: HTMLElement): void => {
+    const t = target.closest<HTMLElement>('[role=treeitem]')
+    const folderPath = t?.dataset.folder === 'true' ? t.dataset.itemId : undefined
+    if (folderPath !== undefined && cutIds.size > 0) {
+      for (const p of cutIds) fileActions?.onMove?.(p, folderPath)
+      setCutIds(EMPTY_SET)
+    }
+  }
   return (
     <TreeContext value={ctx}>
       <div
@@ -758,12 +826,7 @@ const Tree = ({
           props.className
         )}
         onKeyDownCapture={e => {
-          const del = e.key === 'Delete' || e.key === 'Backspace'
-          const rename = e.key === 'F2'
-          const selectAll = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a'
-          const cut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x'
-          const paste = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v'
-          const typeahead = e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey && e.key !== ' '
+          const { cut, del, paste, rename, selectAll, typeahead } = classifyTreeKey(e)
           if (
             !(
               [' ', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key) ||
@@ -781,38 +844,23 @@ const Tree = ({
           e.preventDefault()
           e.stopPropagation()
           if (typeahead) {
-            const now = Date.now()
-            const ta = typeaheadRef.current
-            ta.buf = now - ta.t > 600 ? e.key : ta.buf + e.key
-            ta.t = now
-            const all = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
-            const match = all.find(el => el.textContent.trim().toLowerCase().startsWith(ta.buf.toLowerCase()))
-            match?.focus()
+            runTypeahead(e)
             return
           }
           if (selectAll) {
-            const ids = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
-              .map(el => el.dataset.itemId)
-              .filter((x): x is string => Boolean(x))
-            setSelectedIds(new Set(ids))
+            runSelectAll(e)
             return
           }
           if (cut) {
-            const paths = selectedIds.size > 0 ? [...selectedIds] : selectedId ? [selectedId] : []
-            setCutIds(new Set(paths))
+            setCutIds(new Set(pickPaths(selectedIds, selectedId)))
             return
           }
           if (paste) {
-            const t = target.closest<HTMLElement>('[role=treeitem]')
-            const folderPath = t?.dataset.folder === 'true' ? t.dataset.itemId : undefined
-            if (folderPath !== undefined && cutIds.size > 0) {
-              for (const p of cutIds) fileActions?.onMove?.(p, folderPath)
-              setCutIds(EMPTY_SET)
-            }
+            runPaste(target)
             return
           }
           if (del) {
-            const paths = selectedIds.size > 0 ? [...selectedIds] : selectedId ? [selectedId] : []
+            const paths = pickPaths(selectedIds, selectedId)
             if (paths.length > 0) fileActions?.onDelete?.(paths)
             return
           }
@@ -820,12 +868,7 @@ const Tree = ({
             if (selectedId) setRenamingId(selectedId)
             return
           }
-          const items = e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')
-          const treeItem = target.closest('[role=treeitem]')
-          const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
-          if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
-          else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
-          else target.click()
+          runNav(e, target)
         }}
         onScroll={e => {
           props.onScroll?.(e)
@@ -896,7 +939,7 @@ const RenameInput = ({
 }: {
   currentName: string
   depth: number
-  icon?: ComponentType<{ className?: string }> | false | string
+  icon?: IconValue
   indent: number
   isFolder: boolean
   onCancel: () => void
@@ -918,13 +961,16 @@ const RenameInput = ({
     if (trimmed && trimmed !== currentName) onSubmit(trimmed)
     else onCancel()
   }
+  let iconNode: ReactNode = null
+  if (icon !== false)
+    iconNode = isFolder ? (
+      <FolderIcon className={ICON_CLASS} name={value || currentName} />
+    ) : (
+      <FileIcon className={ICON_CLASS} name={value || currentName} />
+    )
   return (
     <div className={cn(ITEM_CLASS, 'gap-1')} style={{ paddingLeft: `${String(depth * indent + 8)}px` }}>
-      {icon === false ? null : isFolder ? (
-        <FolderIcon className={ICON_CLASS} name={value || currentName} />
-      ) : (
-        <FileIcon className={ICON_CLASS} name={value || currentName} />
-      )}
+      {iconNode}
       <input
         aria-label='Rename new'
         className='min-w-0 flex-1 bg-transparent text-sm outline-none border border-primary/50 px-1 rounded-sm'
@@ -959,12 +1005,13 @@ const TreeFolder = ({
   className?: string
   defaultOpen?: boolean
   disabled?: boolean
-  icon?: ComponentType<{ className?: string }> | false | string
+  icon?: IconValue
   id?: string
   mutable?: boolean
   name: string
   onSelect?: () => void
   path?: string
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level tree component; branch count is inherent conditional rendering of an independent context-menu item set
 }) => {
   const {
     creatingIn,
@@ -1181,11 +1228,12 @@ const TreeFile = ({
 }: Omit<ComponentProps<'button'>, 'id'> & {
   actions?: ReactNode
   disabled?: boolean
-  icon?: ComponentType<{ className?: string }> | false | string
+  icon?: IconValue
   id?: string
   mutable?: boolean
   name: string
   path?: string
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level tree component; branch count is inherent conditional rendering of an independent context-menu item set
 }) => {
   const {
     depth,
@@ -1209,6 +1257,15 @@ const TreeFile = ({
   const CustomIcon = typeof icon === 'function' ? icon : undefined
   const isRenaming = renamingId === itemId
   useIconsReady()
+  let iconNode: ReactNode
+  if (icon === false) iconNode = null
+  else if (CustomIcon) iconNode = <CustomIcon className={iconClass} />
+  else if (typeof icon === 'string')
+    iconNode = (
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (getSvg → ./_generated/icons), not user input
+      <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
+    )
+  else iconNode = <FileIcon className={iconClass} name={name} />
   if (isRenaming)
     return (
       <RenameInput
@@ -1247,14 +1304,7 @@ const TreeFile = ({
             }}
             onDragStart={e => startMove(e.dataTransfer, path ?? name)}
             style={{ paddingLeft: pl, ...props.style }}>
-            {icon === false ? null : CustomIcon ? (
-              <CustomIcon className={iconClass} />
-            ) : typeof icon === 'string' ? (
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (getSvg → ./_generated/icons), not user input
-              <span className={iconClass} dangerouslySetInnerHTML={{ __html: getSvg(icon) }} />
-            ) : (
-              <FileIcon className={iconClass} name={name} />
-            )}
+            {iconNode}
             {name}
           </button>
           {actions ? <span className='absolute inset-y-0 right-1 flex items-center'>{actions}</span> : null}
@@ -1446,7 +1496,7 @@ const Tab = (_props: {
   closable?: boolean
   defaultOpen?: boolean
   headerClassName?: string
-  icon?: boolean | ComponentType<{ className?: string }>
+  icon?: boolean | IconComponent
   id?: string
   inactive?: boolean
   inactiveClassName?: string
@@ -1636,13 +1686,7 @@ const FilePanel = ({
           ...editorOpts
         }}
         path={api.id}
-        theme={
-          typeof params.theme === 'string'
-            ? params.theme
-            : dark
-              ? (params.theme?.dark ?? 'monokai-lite')
-              : (params.theme?.light ?? 'github-light')
-        }
+        theme={resolveTheme(params.theme, dark)}
         value={content}
       />
     </div>
@@ -1655,7 +1699,7 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
         activeClassName?: string
         closable?: boolean
         headerClassName?: string
-        icon?: boolean | ComponentType<{ className?: string }>
+        icon?: boolean | IconComponent
         iconName?: string
         inactiveClassName?: string
         preview?: boolean
@@ -1675,6 +1719,30 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
       d.dispose()
     }
   }, [api])
+  let tabIcon: ReactNode = null
+  if (TabIcon) tabIcon = <TabIcon className={ICON_CLASS_TAB_HOVER} />
+  else if (showIcon) tabIcon = <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} />
+  let tabTrailing: ReactNode = null
+  if (isPinned)
+    tabTrailing = (
+      <Pin
+        className='-ml-1 size-4 rotate-45 p-0.5 opacity-50 hover:p-0 hover:cursor-pointer hover:opacity-100 transition-all'
+        onClick={e => {
+          e.stopPropagation()
+          setPinnedTabs(prev => prev.filter(id => id !== api.id))
+        }}
+      />
+    )
+  else if (closable)
+    tabTrailing = (
+      <X
+        className='-ml-[3px] size-4 text-destructive opacity-0 p-0.5 hover:p-0 hover:cursor-pointer transition-all hover:opacity-100 group-hover/tab:opacity-50'
+        onClick={e => {
+          e.stopPropagation()
+          api.close()
+        }}
+      />
+    )
   return (
     <ContextMenu>
       <ContextMenuTrigger
@@ -1691,29 +1759,9 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
             api.close()
           }
         }}>
-        {TabIcon ? (
-          <TabIcon className={ICON_CLASS_TAB_HOVER} />
-        ) : showIcon ? (
-          <FileIcon className={ICON_CLASS_TAB_HOVER} name={p?.iconName ?? api.title ?? ''} />
-        ) : null}
+        {tabIcon}
         {api.title}
-        {isPinned ? (
-          <Pin
-            className='-ml-1 size-4 rotate-45 p-0.5 opacity-50 hover:p-0 hover:cursor-pointer hover:opacity-100 transition-all'
-            onClick={e => {
-              e.stopPropagation()
-              setPinnedTabs(prev => prev.filter(id => id !== api.id))
-            }}
-          />
-        ) : closable ? (
-          <X
-            className='-ml-[3px] size-4 text-destructive opacity-0 p-0.5 hover:p-0 hover:cursor-pointer transition-all hover:opacity-100 group-hover/tab:opacity-50'
-            onClick={e => {
-              e.stopPropagation()
-              api.close()
-            }}
-          />
-        ) : null}
+        {tabTrailing}
       </ContextMenuTrigger>
       {dv ? (
         <ContextMenuContent>
@@ -2083,6 +2131,7 @@ const Workspace = ({
   statusBar?: boolean
   theme?: string | { dark: string; light: string }
   tree?: TreeDataItem[]
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level workspace orchestrator component; wires many independent handlers, refs, and effects that cannot be hoisted out of its hook scope
 }) => {
   const [mounted, setMounted] = useState(false)
   const [activeFileId, setActiveFileId] = useState<null | string>(null)
@@ -2364,11 +2413,10 @@ const Workspace = ({
     }
     const refId = tab.position?.referenceTab
     const refPanel = refId === undefined ? undefined : api.panels.find(p => p.id === refId)
-    const refTarget = refPanel
-      ? tab.position?.direction === 'within'
-        ? { referenceGroup: refPanel.group.id }
-        : { referencePanel: refPanel.id }
-      : {}
+    let refTarget: { referenceGroup?: string; referencePanel?: string } = {}
+    if (refPanel)
+      refTarget =
+        tab.position?.direction === 'within' ? { referenceGroup: refPanel.group.id } : { referencePanel: refPanel.id }
     const position = tab.position ? { direction: tab.position.direction, ...refTarget } : undefined
     api.addPanel({
       component: 'custom',
@@ -2423,6 +2471,7 @@ const Workspace = ({
     })
   }, [])
   const openFileInPanel = useCallback(
+    // eslint-disable-next-line sonarjs/cognitive-complexity -- inherent branching over binary/image/text files across sync and async load paths; each branch already delegates panel work
     (item: TreeDataItem, preview: boolean) => {
       const { api } = stateRef.current
       const onOpen = onOpenFileRef.current
@@ -2695,6 +2744,7 @@ const Workspace = ({
     }, 100)
     return () => clearTimeout(tid)
   }, [files])
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- dockview ready orchestrator; sequences layout restore, tab open, and many panel-lifecycle disposables that close over this scope
   const handleReady = (event: DockviewReadyEvent) => {
     stateRef.current.api = event.api
     setDockviewApi(event.api)
@@ -2725,10 +2775,7 @@ const Workspace = ({
       if (filesToOpen) {
         log(`Opening files: ${filesToOpen.join(', ')}`)
         for (const fpath of filesToOpen) pinFile({ id: fpath, name: fpath.split('/').pop() ?? fpath, path: fpath })
-        requestAnimationFrame(() => {
-          const first = event.api.panels.find(p => p.id === filesToOpen[0])
-          if (first) first.focus()
-        })
+        requestAnimationFrame(() => focusPanelById(event.api, filesToOpen[0]))
       }
     })
     log('Workspace ready')
@@ -3078,6 +3125,36 @@ const configRender = (showWhen: ConfigJsonNode['showWhen']): ((get: (key: string
   const conds = Array.isArray(showWhen) ? showWhen : [showWhen]
   return (get: (key: string) => unknown) => conds.every(c => get(c.field) === c.equals)
 }
+const configEnumLeaf = ({
+  base,
+  enumVals,
+  node,
+  saved
+}: {
+  base: Record<string, unknown>
+  enumVals: string[]
+  node: ConfigJsonNode
+  saved: unknown
+}): Record<string, unknown> => {
+  const value = typeof saved === 'string' && enumVals.includes(saved) ? saved : (node.default ?? enumVals[0])
+  const labels = node.enumLabels
+  const options =
+    labels?.length === enumVals.length ? Object.fromEntries(enumVals.map((opt, i) => [labels[i] ?? opt, opt])) : enumVals
+  return { ...base, options, value }
+}
+const configNumberLeaf = (
+  node: ConfigJsonNode,
+  saved: unknown,
+  base: Record<string, unknown>
+): Record<string, unknown> => {
+  const min = node.minimum
+  const max = node.maximum
+  let { step } = node
+  if (step === undefined)
+    if (node.type === 'integer') step = 1
+    else if (min !== undefined && max !== undefined) step = (max - min) / 100
+  return { ...base, max, min, step, value: saved ?? node.default ?? min ?? 0 }
+}
 const configLeaf = (
   key: string,
   node: ConfigJsonNode,
@@ -3089,24 +3166,9 @@ const configLeaf = (
     label: configLabel(key, node, { acronyms: ctx?.acronyms, icons: ctx?.icons }),
     render: configRender(node.showWhen)
   }
-  if (node.enum) {
-    const savedValid = typeof saved === 'string' && node.enum.includes(saved)
-    const value = savedValid ? saved : (node.default ?? node.enum[0])
-    const labels = node.enumLabels
-    const options =
-      labels?.length === node.enum.length
-        ? Object.fromEntries(node.enum.map((opt, i) => [labels[i] ?? opt, opt]))
-        : node.enum
-    return { ...base, options, value }
-  }
+  if (node.enum) return configEnumLeaf({ base, enumVals: node.enum, node, saved })
   if (node.type === 'boolean') return { ...base, value: saved ?? node.default ?? false }
-  if (node.type === 'integer' || node.type === 'number') {
-    const min = node.minimum
-    const max = node.maximum
-    const step =
-      node.step ?? (node.type === 'integer' ? 1 : min !== undefined && max !== undefined ? (max - min) / 100 : undefined)
-    return { ...base, max, min, step, value: saved ?? node.default ?? min ?? 0 }
-  }
+  if (node.type === 'integer' || node.type === 'number') return configNumberLeaf(node, saved, base)
   if (node.type === 'string') return { ...base, value: saved ?? node.default ?? '' }
   return null
 }
@@ -3662,7 +3724,7 @@ const PdfViewer = ({
 }: PdfViewerProps) => {
   const [doc, setDoc] = useState<PDFDocumentProxy>()
   const [zoom, setZoom] = useState(scale ?? 1.4)
-  const [fit, setFit] = useState<'none' | 'page' | 'width'>('width')
+  const [fit, setFit] = useState<FitMode>('width')
   const [base, setBase] = useState<null | { h: number; w: number }>(null)
   const [box, setBox] = useState({ h: 0, w: 0 })
   const [page, setPage] = useState(1)
@@ -3723,10 +3785,10 @@ const PdfViewer = ({
   }
   if (!doc) return <div className={cn(CENTER, 'text-sm text-muted-foreground', className)}>Loading…</div>
   const pages = Array.from({ length: doc.numPages }, (_, i) => i + 1)
-  const effZoom =
-    fit === 'none' || !base || box.w === 0
-      ? zoom
-      : fit === 'width'
+  let effZoom = zoom
+  if (!(fit === 'none' || !base || box.w === 0))
+    effZoom =
+      fit === 'width'
         ? Math.max(0.2, (box.w - 24) / base.w)
         : Math.max(0.2, Math.min((box.w - 24) / base.w, (box.h - 24) / base.h))
   const setManualZoom = (next: number): void => {
@@ -3807,8 +3869,8 @@ const PdfViewer = ({
             aria-label='Fit'
             aria-pressed={fit !== 'none'}
             className={TBTN}
-            onClick={() => setFit(f => (f === 'width' ? 'page' : f === 'page' ? 'none' : 'width'))}
-            title={fit === 'width' ? 'Fit width' : fit === 'page' ? 'Fit page' : 'Manual zoom'}
+            onClick={() => setFit(nextFit)}
+            title={fitLabel(fit)}
             type='button'>
             <Maximize className='size-3.5' />
           </button>
@@ -3853,7 +3915,8 @@ const ScrubInput = ({
 }: ScrubInputProps) => {
   const chars = Math.max(2, String(value ?? placeholder ?? '').length)
   const style = useMemo(() => ({ width: `calc(${chars}ch + 1.25rem)` }), [chars])
-  const tip = label === undefined ? title : title === undefined ? label : `${label} · ${title}`
+  let tip = title
+  if (label !== undefined) tip = title === undefined ? label : `${label} · ${title}`
   return (
     <NumberField.Root
       className='inline-flex text-xs'
@@ -3966,7 +4029,9 @@ const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreePr
             const { depth, isFolder, item } = row
             const ids = isFolder ? fileIdsOf(item) : [item.id]
             const onCount = ids.filter(id => checkedIds.has(id)).length
-            const state = onCount === 0 ? 'off' : onCount === ids.length ? 'on' : 'mixed'
+            let state: 'mixed' | 'off' | 'on' = 'mixed'
+            if (onCount === 0) state = 'off'
+            else if (onCount === ids.length) state = 'on'
             const open = expanded.has(item.id) || q !== ''
             return (
               <div
@@ -4013,7 +4078,7 @@ const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreePr
 }
 interface CommandAction {
   group: string
-  icon?: ComponentType<{ className?: string }>
+  icon?: IconComponent
   id: string
   keywords?: string
   label: string

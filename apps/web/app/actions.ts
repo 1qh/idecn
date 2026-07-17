@@ -92,13 +92,14 @@ const buildTreeFromPaths = (paths: string[]): TreeItem[] => {
   }
   return items
 }
+// eslint-disable-next-line sonarjs/cognitive-complexity -- cohesive repo-tree fetch+assemble orchestrator (default-repo local read vs GitHub API branch)
 const fetchTree = async (repo: string): Promise<TreeItem[]> => {
   if (repo === DEFAULT_REPO) {
     if (root) {
       const tree: { path: string; type: 'blob' | 'tree' }[] = []
       const walk = (dir: string, prefix: string) => {
         // oxlint-disable-next-line node/no-sync
-        for (const name of readdirSync(dir).toSorted())
+        for (const name of readdirSync(dir).toSorted((a, b) => (a < b ? -1 : Number(a > b))))
           if (!ignored.has(name)) {
             const full = resolve(dir, name)
             const rel = prefix ? `${prefix}/${name}` : name
@@ -197,7 +198,7 @@ const collectLocalFiles = (prefix: string): { content: Buffer; path: string }[] 
     const fullPrefix = resolve(root, prefix)
     const walk = (dir: string, rel: string) => {
       // oxlint-disable-next-line node/no-sync
-      for (const name of readdirSync(dir).toSorted())
+      for (const name of readdirSync(dir).toSorted((a, b) => (a < b ? -1 : Number(a > b))))
         if (!ignored.has(name)) {
           const full = resolve(dir, name)
           const r = rel ? `${rel}/${name}` : name

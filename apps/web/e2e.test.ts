@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/assertions-in-tests -- every test asserts via Playwright expect(...) / expect.poll(...).toMatcher(); sonarjs does not recognize the expect.poll idiom as an assertion */
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 /** Matches on the label and role rather than the tag: the tree is a div, and a selector naming an element name breaks on markup that carries the same semantics. */

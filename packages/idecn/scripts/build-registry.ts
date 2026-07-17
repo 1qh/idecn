@@ -59,7 +59,7 @@ for (const { name, uiSrc } of uiResults) {
       .replaceAll(/'\.\/(?<path>[^']+)'/gu, "'@/components/ui/$<path>'")
   )
   uiFiles.push({ content: uiContent, path: `components/ui/${name}.tsx`, type: 'registry:component' })
-  const nested = uiSrc.match(/from ['"]\.\/(?<path>[^'"]+)['"]/gu)?.map(m => m.slice(8, -1))
+  const nested = uiSrc.match(/from ['"]\.\/[^'"]+['"]/gu)?.map(m => m.slice(8, -1))
   if (nested) for (const n of nested) if (!uiImports.includes(n)) nestedRegistryDeps.add(n)
   for (const m of uiSrc.matchAll(/from\s+(?<q>['"])@a\/ui\/components\/(?<name>[^'"]+)\k<q>/gu)) {
     const dep = m.groups?.name
@@ -85,7 +85,7 @@ const deps = [
   ...new Set([content, annotationHosts, icons, monokai, ...uiFiles.map(f => f.content)].flatMap(externalPackages))
 ]
   .filter(dep => dep in knownDeps && !peerProvided.has(dep))
-  .toSorted()
+  .toSorted((a, b) => (a < b ? -1 : Number(a > b)))
 const files = [
   {
     content,
@@ -124,10 +124,10 @@ const problems = files.flatMap(f => [
     .filter(dep => !(deps.includes(dep) || peerProvided.has(dep)))
     .map(dep => `${f.path}: imports ${dep}, which no manifest declares — the consumer installs nothing for it`)
 ])
-if (problems.length > 0)
-  throw new Error(
-    `refusing to write a registry a consumer cannot build:\n${[...new Set(problems)].map(p => `  - ${p}`).join('\n')}`
-  )
+if (problems.length > 0) {
+  const problemLines = [...new Set(problems)].map(p => `  - ${p}`).join('\n')
+  throw new Error(`refusing to write a registry a consumer cannot build:\n${problemLines}`)
+}
 await write(
   resolve(outDir, 'idecn.json'),
   JSON.stringify(

@@ -3,6 +3,7 @@
 import { $, file, Glob } from 'bun'
 import { dirname, join } from 'node:path'
 
+const nameVer = (p: { name: string; version: string }): string => `${p.name}@${p.version}`
 interface Pkg {
   name?: string
   private?: boolean
@@ -65,7 +66,7 @@ if (onNpm.length === 0) {
 }
 const toPublish = onNpm.filter(t => !t.published)
 if (toPublish.length === 0) {
-  console.log(`already published: ${onNpm.map(t => `${t.name}@${t.version}`).join(', ')}`)
+  console.log(`already published: ${onNpm.map(nameVer).join(', ')}`)
   process.exit(0)
 }
 const publishOne = async (t: Target): Promise<Target & { ok: boolean }> => {
@@ -77,7 +78,7 @@ const publishOne = async (t: Target): Promise<Target & { ok: boolean }> => {
 const results = await Promise.all(toPublish.map(publishOne))
 const failed = results.filter(r => !r.ok)
 if (failed.length > 0) {
-  console.error(`publish failed: ${failed.map(f => `${f.name}@${f.version}`).join(', ')}`)
+  console.error(`publish failed: ${failed.map(nameVer).join(', ')}`)
   process.exit(1)
 }
 const first = results[0]
@@ -88,7 +89,7 @@ const released =
   pushed.exitCode === 0 ? await $`gh release create ${tag} --title ${tag} --generate-notes`.nothrow() : pushed
 if (released.exitCode !== 0) {
   console.error(
-    `published ${results.map(r => `${r.name}@${r.version}`).join(', ')} but ${tag} did not land: ${released.stderr.toString().trim()}`
+    `published ${results.map(nameVer).join(', ')} but ${tag} did not land: ${released.stderr.toString().trim()}`
   )
   process.exit(1)
 }
@@ -114,4 +115,4 @@ if (survivors.length > 0) {
   console.error(`released ${tag} but older tags remain on the remote: ${survivors.join(', ')}`)
   process.exit(1)
 }
-console.log(`released: ${results.map(r => `${r.name}@${r.version}`).join(', ')}`)
+console.log(`released: ${results.map(nameVer).join(', ')}`)

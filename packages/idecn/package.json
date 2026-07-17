@@ -16,7 +16,11 @@
     "url": "git+https://github.com/1qh/idecn.git"
   },
   "license": "MIT",
-  "author": "",
+  "author": {
+    "name": "Lai Quang Huy",
+    "email": "laiquanghuy24122001@gmail.com"
+  },
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {

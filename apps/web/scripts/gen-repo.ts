@@ -22,7 +22,7 @@ const ignored = new Set([
 const files: Record<string, string> = {}
 const walk = (dir: string, prefix: string) => {
   // oxlint-disable-next-line node/no-sync
-  for (const name of readdirSync(dir).toSorted())
+  for (const name of readdirSync(dir).toSorted((a, b) => (a < b ? -1 : Number(a > b))))
     if (!ignored.has(name)) {
       const full = resolve(dir, name)
       const rel = prefix ? `${prefix}/${name}` : name

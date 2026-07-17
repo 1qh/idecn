@@ -1,6 +1,7 @@
 {
   "name": "@idecn/web",
   "private": true,
+  "description": "idecn showcase and documentation web app",
   "scripts": {
     "prebuild": "bun scripts/gen-repo.ts",
     "build": "bun scripts/gen-repo.ts && next build",

@@ -36,7 +36,7 @@ const collectLocalFiles = (prefix: string): { content: Uint8Array; path: string 
     const fullPrefix = resolve(root, prefix)
     const walk = (dir: string, rel: string) => {
       // oxlint-disable-next-line node/no-sync
-      for (const name of readdirSync(dir).toSorted())
+      for (const name of readdirSync(dir).toSorted((a, b) => (a < b ? -1 : Number(a > b))))
         if (!ignored.has(name)) {
           const full = resolve(dir, name)
           const r = rel ? `${rel}/${name}` : name
