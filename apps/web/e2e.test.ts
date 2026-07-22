@@ -70,6 +70,33 @@ test.describe('tree basics', () => {
     await folder.click()
     await expect(child).not.toBeVisible({ timeout: 3000 })
   })
+  test('marquee drag over tree items selects them', async ({ page }) => {
+    await waitTree(page)
+    const tree = page.locator(TREE)
+    const start = await page.evaluate(selector => {
+      const host = document.querySelector(selector)
+      if (!host) return null
+      const box = host.getBoundingClientRect()
+      for (let y = box.bottom - 6; y > box.top; y -= 6)
+        for (let x = box.right - 8; x > box.left; x -= 12) {
+          const hit = document.elementFromPoint(x, y)
+          if (hit && host.contains(hit) && !hit.closest('[role=treeitem]')) return { x, y }
+        }
+      return null
+    }, TREE)
+    if (!start) throw new Error('tree has no empty point to start a marquee from')
+    const items = tree.locator('[role=treeitem]')
+    const first = await items.first().boundingBox()
+    if (!first) throw new Error('tree items have no box')
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(first.x + 8, first.y + 2, { steps: 10 })
+    await expect(tree.locator('.pointer-events-none.absolute')).toBeVisible({ timeout: 2000 })
+    await page.mouse.up()
+    await expect
+      .poll(async () => tree.locator('[role=treeitem][aria-selected=true]').count(), { timeout: 3000 })
+      .toBeGreaterThan(1)
+  })
   test('keyboard arrow navigation in tree', async ({ page }) => {
     await waitTree(page)
     const first = page.locator(`${TREE} [role=treeitem]`).first()

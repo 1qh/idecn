@@ -911,10 +911,13 @@ const Tree = ({
           runNav(e, target)
         }}
         onPointerDown={e => {
-          if (e.button !== 0 || (e.target as HTMLElement).closest('[role=treeitem]')) return
-          const host = e.currentTarget
+          const inside = e.currentTarget.contains(e.target as Node)
+          if (e.button !== 0 || !inside || (e.target as HTMLElement).closest('[role=treeitem]')) return
           marqueeRef.current = localPoint(e)
-          host.setPointerCapture(e.pointerId)
+          setMarquee(null)
+        }}
+        onPointerLeave={() => {
+          marqueeRef.current = null
           setMarquee(null)
         }}
         onPointerMove={e => {
@@ -1142,6 +1145,7 @@ const TreeFolder = ({
           <ContextMenu>
             <ContextMenuTrigger>
               <Accordion.Trigger
+                aria-selected={isSelected || isMultiSelected}
                 className={cn(
                   ITEM_CLASS,
                   (isSelected || isMultiSelected) && 'bg-accent',
@@ -1355,6 +1359,7 @@ const TreeFile = ({
       <ContextMenuTrigger>
         <div className='relative'>
           <button
+            aria-selected={isSelected || isMultiSelected}
             data-item-id={itemId}
             role='treeitem'
             type='button'
