@@ -567,6 +567,44 @@ const resolveTheme = (theme: string | undefined | { dark: string; light: string 
   if (dark) return theme?.dark ?? 'monokai-lite'
   return theme?.light ?? 'github-light'
 }
+const MARQUEE_MIN = 4
+interface Rect {
+  height: number
+  left: number
+  top: number
+  width: number
+}
+const rectBetween = (a: { x: number; y: number }, b: { x: number; y: number }): Rect => ({
+  height: Math.abs(a.y - b.y),
+  left: Math.min(a.x, b.x),
+  top: Math.min(a.y, b.y),
+  width: Math.abs(a.x - b.x)
+})
+const intersects = (el: DOMRect, box: Rect): boolean =>
+  el.left < box.left + box.width && el.right > box.left && el.top < box.top + box.height && el.bottom > box.top
+const MarqueeBox = ({ rect }: { rect: null | Rect }) => {
+  if (!rect) return null
+  return (
+    <div
+      className='pointer-events-none absolute z-10 rounded-xs border border-blue-500 bg-blue-500/15'
+      style={{ height: rect.height, left: rect.left, top: rect.top, width: rect.width }}
+    />
+  )
+}
+const localPoint = (e: React.PointerEvent<HTMLDivElement>): { x: number; y: number } => {
+  const host = e.currentTarget
+  const base = host.getBoundingClientRect()
+  return { x: e.clientX - base.left + host.scrollLeft, y: e.clientY - base.top + host.scrollTop }
+}
+const toViewport = (box: Rect, host: HTMLElement): Rect => {
+  const base = host.getBoundingClientRect()
+  return {
+    height: box.height,
+    left: box.left + base.left - host.scrollLeft,
+    top: box.top + base.top - host.scrollTop,
+    width: box.width
+  }
+}
 const classifyTreeKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
   const mod = e.metaKey || e.ctrlKey
   return {
@@ -748,6 +786,8 @@ const Tree = ({
   const [cutIds, setCutIds] = useState<Set<string>>(EMPTY_SET)
   const navRef = useRef<HTMLDivElement>(null)
   const typeaheadRef = useRef({ buf: '', t: 0 })
+  const marqueeRef = useRef<null | { x: number; y: number }>(null)
+  const [marquee, setMarquee] = useState<null | Rect>(null)
   const selectedId = controlledSelectedId ?? internalSelectedId
   const changeRef = useRef(onSelectionChange)
   useEffect(() => {
@@ -822,7 +862,7 @@ const Tree = ({
         role='tree'
         {...props}
         className={cn(
-          'select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
+          'relative select-none overflow-auto text-sm [scrollbar-width:thin] [scrollbar-color:color-mix(in_oklch,var(--color-foreground,var(--foreground))_15%,transparent)_transparent]',
           props.className
         )}
         onKeyDownCapture={e => {
@@ -870,6 +910,34 @@ const Tree = ({
           }
           runNav(e, target)
         }}
+        onPointerDown={e => {
+          if (e.button !== 0 || (e.target as HTMLElement).closest('[role=treeitem]')) return
+          const host = e.currentTarget
+          marqueeRef.current = localPoint(e)
+          host.setPointerCapture(e.pointerId)
+          setMarquee(null)
+        }}
+        onPointerMove={e => {
+          const from = marqueeRef.current
+          if (!from) return
+          setMarquee(rectBetween(from, localPoint(e)))
+        }}
+        onPointerUp={e => {
+          const from = marqueeRef.current
+          marqueeRef.current = null
+          if (!from) return
+          const box = rectBetween(from, localPoint(e))
+          setMarquee(null)
+          if (box.width < MARQUEE_MIN && box.height < MARQUEE_MIN) {
+            setSelectedIds(EMPTY_SET)
+            return
+          }
+          const hit = [...e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')]
+            .filter(el => intersects(el.getBoundingClientRect(), toViewport(box, e.currentTarget)))
+            .map(el => el.dataset.itemId)
+            .filter((x): x is string => Boolean(x))
+          setSelectedIds(new Set(hit))
+        }}
         onScroll={e => {
           props.onScroll?.(e)
           if (!onReachEnd) return
@@ -877,6 +945,7 @@ const Tree = ({
           if (el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight * 1.5) onReachEnd()
         }}>
         {children}
+        <MarqueeBox rect={marquee} />
       </div>
     </TreeContext>
   )
