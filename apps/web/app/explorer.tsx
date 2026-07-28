@@ -28,7 +28,7 @@ const markMutable = (items: TreeDataItem[]): TreeDataItem[] =>
     children: item.children ? markMutable(item.children) : undefined,
     mutable: true
   }))
-const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
+function Explorer({ tree: initialTree }: { tree: TreeDataItem[] }) {
   const [repo, setRepo] = useState(DEFAULT_REPO)
   const [tree, setTree] = useState(initialTree)
   const [error, setError] = useState<null | string>(null)

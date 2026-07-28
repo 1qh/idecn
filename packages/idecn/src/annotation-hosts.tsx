@@ -33,13 +33,13 @@ const charOffset = (root: Node, node: Node, offset: number): number => {
   }
   return total
 }
-const AnnotatorBinding = ({
+function AnnotatorBinding({
   annotations,
   onSelect
 }: {
   annotations: readonly TextAnnotation[]
   onSelect?: (ids: readonly string[]) => void
-}) => {
+}) {
   const anno = useAnnotator<RecogitoTextAnnotator>()
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- useAnnotator returns null until the annotator mounts
@@ -56,13 +56,13 @@ const AnnotatorBinding = ({
   }, [anno, onSelect])
   return null
 }
-const TextAnnotationHost = ({
+function TextAnnotationHost({
   annotations = NO_ANNOTATIONS,
   className,
   onCreateSelection,
   onSelect,
   text
-}: TextAnnotationHostProps) => {
+}: TextAnnotationHostProps) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const root = ref.current
@@ -94,7 +94,7 @@ const TextAnnotationHost = ({
     </Annotorious>
   )
 }
-const GridEditorHost = ({ className, columns, onCellSelect, rows }: GridEditorHostProps) => {
+function GridEditorHost({ className, columns, onCellSelect, rows }: GridEditorHostProps) {
   const cols: GridColumn[] = useMemo(() => columns.map(title => ({ id: title, title, width: 160 })), [columns])
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
