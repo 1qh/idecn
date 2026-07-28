@@ -1,5 +1,5 @@
 {
-  "extends": "../../node_modules/lintmax/tsconfig.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "noEmit": true,

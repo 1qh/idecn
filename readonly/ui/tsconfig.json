@@ -7,7 +7,7 @@
     },
     "strict": false
   },
-  "extends": "lintmax/tsconfig",
+  "extends": "../../tsconfig.json",
   "include": [
     "."
   ]
