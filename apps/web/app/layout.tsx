@@ -8,8 +8,7 @@ import { Providers } from './providers'
 const metadata: Metadata = {
   title: 'idecn'
 }
-function Layout({ children }: { children: ReactNode }) {
- return (
+const Layout = ({ children }: { children: ReactNode }) => (
   // biome-ignore lint/nursery/noUndeclaredClasses: standard tailwind-v4 utilities (font-sans, tracking-*) not resolved by the scanner
   <html className={cn('font-sans tracking-[-0.02em]', sans.variable, mono.variable)} lang='en' suppressHydrationWarning>
     {/* biome-ignore lint/nursery/noUndeclaredClasses: standard tailwind-v4 utilities (min-h-screen, antialiased) not resolved by the scanner */}
@@ -18,6 +17,5 @@ function Layout({ children }: { children: ReactNode }) {
     </body>
   </html>
 )
-}
 export { metadata }
 export default Layout

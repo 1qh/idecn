@@ -472,7 +472,7 @@ interface TreeContextAction {
   label: string
   onSelect: (ctx: { isFolder: boolean; path: string; selectedPaths: string[] }) => void
 }
-function ContextActions({
+const ContextActions = ({
   ctx,
   items,
   separated = true
@@ -480,8 +480,8 @@ function ContextActions({
   ctx: { isFolder: boolean; path: string; selectedPaths: string[] }
   items: TreeContextAction[]
   separated?: boolean
-}): ReactNode {
- return items.length === 0 ? null : (
+}): ReactNode =>
+  items.length === 0 ? null : (
     <>
       {separated ? <ContextMenuSeparator /> : null}
       {items.map(a => (
@@ -494,7 +494,6 @@ function ContextActions({
       ))}
     </>
   )
-}
 const MOVE_MIME = 'application/x-idecn-move'
 const startMove = (dataTransfer: DataTransfer, path: string): void => {
   dataTransfer.setData(MOVE_MIME, path)
@@ -583,7 +582,7 @@ const rectBetween = (a: { x: number; y: number }, b: { x: number; y: number }): 
 })
 const intersects = (el: DOMRect, box: Rect): boolean =>
   el.left < box.left + box.width && el.right > box.left && el.top < box.top + box.height && el.bottom > box.top
-function MarqueeBox({ rect }: { rect: null | Rect }) {
+const MarqueeBox = ({ rect }: { rect: null | Rect }) => {
   if (!rect) return null
   return (
     <div
@@ -738,12 +737,12 @@ const useIconsReady = () => {
     if (!loaded) iconsReady.then(() => setLoaded(true)).catch(() => undefined)
   }, [loaded])
 }
-function FileIcon({ name, ...props }: ComponentProps<'span'> & { name: string }) {
+const FileIcon = ({ name, ...props }: ComponentProps<'span'> & { name: string }) => {
   useIconsReady()
   // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG from build-time bundled icon pack (./_generated/icons), not user input
   return <span dangerouslySetInnerHTML={{ __html: getSvg(resolveFileIcon(name)) }} {...props} />
 }
-function FolderIcon({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) {
+const FolderIcon = ({ name, open, ...props }: ComponentProps<'span'> & { name: string; open?: boolean }) => {
   useIconsReady()
   return (
     <span
@@ -755,7 +754,7 @@ function FolderIcon({ name, open, ...props }: ComponentProps<'span'> & { name: s
     />
   )
 }
-function Tree({
+const Tree = ({
   children,
   expandDepth = 0,
   expandExclude,
@@ -779,7 +778,7 @@ function Tree({
   onSelectionChange?: (ids: string[]) => void
   selectedId?: null | string
   triggerUpload?: (parentPath: string) => void
-}) {
+}) => {
   const [internalSelectedId, setInternalSelectedId] = useState<null | string>(null)
   const [creatingIn, setCreatingIn] = useState<null | { parentPath: string; type: 'file' | 'folder' }>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(EMPTY_SET)
@@ -954,7 +953,7 @@ function Tree({
     </TreeContext>
   )
 }
-function InlineInput({
+const InlineInput = ({
   depth,
   indent,
   onCancel,
@@ -966,7 +965,7 @@ function InlineInput({
   onCancel: () => void
   onSubmit: (name: string) => void
   type: 'file' | 'folder'
-}) {
+}) => {
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -1001,7 +1000,7 @@ function InlineInput({
     </div>
   )
 }
-function RenameInput({
+const RenameInput = ({
   currentName,
   depth,
   icon,
@@ -1017,7 +1016,7 @@ function RenameInput({
   isFolder: boolean
   onCancel: () => void
   onSubmit: (newName: string) => void
-}) {
+}) => {
   const [value, setValue] = useState(currentName)
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -1060,7 +1059,7 @@ function RenameInput({
     </div>
   )
 }
-function TreeFolder({
+const TreeFolder = ({
   chevron = true,
   children,
   defaultOpen = false,
@@ -1085,7 +1084,7 @@ function TreeFolder({
   onSelect?: () => void
   path?: string
   // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level tree component; branch count is inherent conditional rendering of an independent context-menu item set
-}) {
+}) => {
   const {
     creatingIn,
     depth,
@@ -1290,7 +1289,7 @@ function TreeFolder({
     </Accordion.Root>
   )
 }
-function TreeFile({
+const TreeFile = ({
   actions,
   disabled,
   icon,
@@ -1308,7 +1307,7 @@ function TreeFile({
   name: string
   path?: string
   // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level tree component; branch count is inherent conditional rendering of an independent context-menu item set
-}) {
+}) => {
   const {
     depth,
     fileActions,
@@ -1504,7 +1503,7 @@ const renderItems = ({
       )
   return nodes
 }
-function FileTree({
+const FileTree = ({
   chevron = true,
   className,
   data,
@@ -1538,7 +1537,7 @@ function FileTree({
   selectableFolders?: boolean
   selectedId?: null | string
   triggerUpload?: (parentPath: string) => void
-}) {
+}) => {
   const items = Array.isArray(data) ? data : [data]
   return (
     <Tree
@@ -1565,7 +1564,7 @@ function FileTree({
   )
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function Tab(_props: {
+const Tab = (_props: {
   activeClassName?: string
   children: ReactNode
   closable?: boolean
@@ -1579,11 +1578,9 @@ function Tab(_props: {
   onClose?: () => void
   position?: { direction: 'above' | 'below' | 'left' | 'right' | 'within'; referenceTab?: string }
   title: string
-}): null {
- return null
-}
+}): null => null
 Tab._type = TAB_TYPE
-function ContentPanel({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) {
+const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
   const registry = use(TabContentContext)
   const [content, setContent] = useState(params.content)
   useEffect(() => {
@@ -1598,7 +1595,7 @@ function ContentPanel({ api, params }: IDockviewPanelProps<{ content: ReactNode 
   const registered = registry.get(api.id)
   return <div className='h-full overflow-auto'>{registered ?? content}</div>
 }
-function ImagePanel({ api, params }: IDockviewPanelProps<{ src: string }>) {
+const ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
   const [src, setSrc] = useState(params.src)
   useEffect(() => {
     const d = api.onDidParametersChange(e => {
@@ -1618,7 +1615,7 @@ function ImagePanel({ api, params }: IDockviewPanelProps<{ src: string }>) {
     </div>
   )
 }
-function FilePanel({
+const FilePanel = ({
   api,
   params
 }: IDockviewPanelProps<{
@@ -1627,7 +1624,7 @@ function FilePanel({
   language: string
   loading?: ReactNode
   theme?: string | { dark: string; light: string }
-}>) {
+}>) => {
   const editorRef = useRef<null | { revealLine: (line: number) => void }>(null)
   const isVirtual = api.id.startsWith(VIRTUAL_PREFIX)
   const [content, setContent] = useState(params.content)
@@ -1769,7 +1766,7 @@ function FilePanel({
     </div>
   )
 }
-function TabHeader({ api, params }: IDockviewPanelHeaderProps) {
+const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
   const p = params as
     | undefined
     | {
@@ -1917,12 +1914,10 @@ function TabHeader({ api, params }: IDockviewPanelHeaderProps) {
     </ContextMenu>
   )
 }
-function WatermarkPanel() {
- return <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>
-}
+const WatermarkPanel = () => <div className={cn(CENTER, 'text-sm text-muted-foreground/30')}>Open a file</div>
 const COMPONENTS = { custom: ContentPanel, file: FilePanel, image: ImagePanel }
 const TAB_COMPONENTS = { default: TabHeader }
-function StatusBar() {
+const StatusBar = () => {
   const cursor = useAtomValue(cursorAtom)
   const fileInfo = useAtomValue(activeFileInfoAtom)
   return (
@@ -1955,7 +1950,7 @@ const findSiblings = (tree: TreeDataItem[], pathParts: string[], depth: number):
   }
   return nodes
 }
-function BreadcrumbPickerItem({
+const BreadcrumbPickerItem = ({
   close,
   indent,
   item,
@@ -1965,7 +1960,7 @@ function BreadcrumbPickerItem({
   indent: number
   item: TreeDataItem
   openFileFn: ((i: TreeDataItem) => void) | null
-}) {
+}) => {
   const [expanded, setExpanded] = useState(false)
   return (
     <>
@@ -2002,7 +1997,7 @@ function BreadcrumbPickerItem({
     </>
   )
 }
-function BreadcrumbSegment({
+const BreadcrumbSegment = ({
   depth,
   isLast,
   name,
@@ -2012,7 +2007,7 @@ function BreadcrumbSegment({
   isLast: boolean
   name: string
   pathParts: string[]
-}) {
+}) => {
   const tree = useAtomValue(treeAtom)
   const openFileFn = useAtomValue(openFileAtom)
   const [open, setOpen] = useState(false)
@@ -2040,7 +2035,7 @@ function BreadcrumbSegment({
     </BreadcrumbItem>
   )
 }
-function QuickOpenDialog({
+const QuickOpenDialog = ({
   log: logFn,
   onOpenFile,
   open,
@@ -2050,7 +2045,7 @@ function QuickOpenDialog({
   onOpenFile: (item: TreeDataItem) => void
   open: boolean
   tree: TreeDataItem[]
-}) {
+}) => {
   const setOpen = useSetAtom(quickOpenAtom)
   const flatFiles = useMemo(() => flattenTree(tree), [tree])
   const onChange = (v: boolean) => {
@@ -2154,7 +2149,7 @@ const restoreLayout = (api: DockviewApi, key: string, tabs: TabProps[]): boolean
   }
   return api.panels.length > 0
 }
-function Workspace({
+const Workspace = ({
   activityLog,
   children,
   defaultSidebar = true,
@@ -2211,7 +2206,7 @@ function Workspace({
   theme?: string | { dark: string; light: string }
   tree?: TreeDataItem[]
   // eslint-disable-next-line sonarjs/cognitive-complexity -- top-level workspace orchestrator component; wires many independent handlers, refs, and effects that cannot be hoisted out of its hook scope
-}) {
+}) => {
   const [mounted, setMounted] = useState(false)
   const [activeFileId, setActiveFileId] = useState<null | string>(null)
   const [treeCollapsed, setTreeCollapsed] = useState(false)
@@ -3296,11 +3291,9 @@ const configTheme: ConfigLevaTheme = {
   radii: { lg: 'var(--radius)' },
   sizes: { rootWidth: '100%' }
 }
-function ConfigPanel({ store }: { store: StoreType }) {
- return (
+const ConfigPanel = ({ store }: { store: StoreType }) => (
   <LevaPanel fill flat hideCopyButton store={store} theme={configTheme} titleBar={false} />
 )
-}
 const persistConfig = (key: string): { load: () => unknown; save: (values: unknown) => void } => ({
   load: () => {
     try {
@@ -3354,7 +3347,7 @@ const useConfig = <T extends z.ZodObject>(
   }, [values])
   return { store, values }
 }
-function ConfigPopover({
+const ConfigPopover = ({
   icon: Icon = SlidersHorizontal,
   label,
   side = 'top',
@@ -3364,8 +3357,7 @@ function ConfigPopover({
   label: string
   side?: ConfigSide
   store: StoreType
-}) {
- return (
+}) => (
   <Popover>
     <Tooltip>
       <TooltipTrigger
@@ -3392,8 +3384,7 @@ function ConfigPopover({
     </PopoverContent>
   </Popover>
 )
-}
-function InfoButton({
+const InfoButton = ({
   children,
   icon: Icon,
   label,
@@ -3403,8 +3394,7 @@ function InfoButton({
   icon: LucideIcon
   label: string
   side?: ConfigSide
-}) {
- return (
+}) => (
   <Popover>
     <Tooltip>
       <TooltipTrigger
@@ -3431,8 +3421,7 @@ function InfoButton({
     </PopoverContent>
   </Popover>
 )
-}
-function IconButton({
+const IconButton = ({
   busy = false,
   children,
   className,
@@ -3451,7 +3440,7 @@ function IconButton({
   label: string
   reason?: string
   side?: 'bottom' | 'left' | 'right' | 'top'
-}) {
+}) => {
   const blocked = disabled && !busy
   return (
     <Tooltip>
@@ -3532,7 +3521,7 @@ const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, nu
   const [x2, y2] = vpGeom(vp).convertToViewportPoint(box[2], box[3])
   return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
 }
-function PdfPage({
+const PdfPage = ({
   onRegionClick,
   onRegionDraw,
   onRegionResize,
@@ -3550,7 +3539,7 @@ function PdfPage({
   regions: readonly PdfRegion[]
   scale: number
   selectedRegionId: null | string
-}) {
+}) => {
   const ref = useRef<HTMLCanvasElement>(null)
   const taskRef = useRef<null | RenderTask>(null)
   const selectedRef = useRef<HTMLElement>(null)
@@ -3736,23 +3725,19 @@ function PdfPage({
   )
 }
 const TextAnnotationHostLazy = lazy(async () => ({ default: (await import('./annotation-hosts')).TextAnnotationHost }))
-function TextAnnotationHost(props: TextAnnotationHostProps) {
- return (
+const TextAnnotationHost = (props: TextAnnotationHostProps) => (
   <Suspense fallback={null}>
     <TextAnnotationHostLazy {...props} />
   </Suspense>
 )
-}
 const GridEditorHostLazy = lazy(async () => ({ default: (await import('./annotation-hosts')).GridEditorHost }))
-function GridEditorHost(props: GridEditorHostProps) {
- return (
+const GridEditorHost = (props: GridEditorHostProps) => (
   <Suspense fallback={null}>
     <GridEditorHostLazy {...props} />
   </Suspense>
 )
-}
 const NO_REGIONS: readonly PdfRegion[] = []
-function PdfThumb({
+const PdfThumb = ({
   active,
   onClick,
   pageNo,
@@ -3762,7 +3747,7 @@ function PdfThumb({
   onClick: () => void
   pageNo: number
   pdf: PDFDocumentProxy
-}) {
+}) => {
   const ref = useRef<HTMLCanvasElement>(null)
   const taskRef = useRef<null | RenderTask>(null)
   useEffect(() => {
@@ -3801,7 +3786,7 @@ function PdfThumb({
   )
 }
 const TBTN = 'rounded p-1 hover:bg-accent'
-function PdfViewer({
+const PdfViewer = ({
   className,
   onRegionClick,
   onRegionDraw,
@@ -3810,7 +3795,7 @@ function PdfViewer({
   scale,
   selectedRegionId = null,
   src
-}: PdfViewerProps) {
+}: PdfViewerProps) => {
   const [doc, setDoc] = useState<PDFDocumentProxy>()
   const [zoom, setZoom] = useState(scale ?? 1.4)
   const [fit, setFit] = useState<FitMode>('width')
@@ -3990,7 +3975,7 @@ interface ScrubInputProps {
   title?: string
   value: null | number
 }
-function ScrubInput({
+const ScrubInput = ({
   ariaLabel,
   className,
   label,
@@ -4001,7 +3986,7 @@ function ScrubInput({
   step,
   title,
   value
-}: ScrubInputProps) {
+}: ScrubInputProps) => {
   const chars = Math.max(2, String(value ?? placeholder ?? '').length)
   const style = useMemo(() => ({ width: `calc(${chars}ch + 1.25rem)` }), [chars])
   let tip = title
@@ -4069,7 +4054,7 @@ const midTruncate = (name: string, max = 44): string => {
   const tail = Math.floor(max / 2) - 2
   return `${name.slice(0, head)}…${name.slice(name.length - tail)}`
 }
-function CheckTree({ checkedIds, className, data, onCheckedChange }: CheckTreeProps) {
+const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreeProps) => {
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(allFolderIds(data)))
   const q = query.trim().toLowerCase()
@@ -4174,7 +4159,7 @@ interface CommandAction {
   onSelect: () => void
 }
 const paletteRecentsAtom = atomWithStorage<string[]>('idecn:paletteRecents', [])
-function CommandPalette({
+const CommandPalette = ({
   actions,
   onOpenChange,
   open,
@@ -4184,7 +4169,7 @@ function CommandPalette({
   onOpenChange: (open: boolean) => void
   open: boolean
   placeholder?: string
-}) {
+}) => {
   const [recents, setRecents] = useAtom(paletteRecentsAtom)
   const byId = new Map(actions.map(action => [action.id, action]))
   const recentActions = recents

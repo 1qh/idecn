@@ -26,7 +26,7 @@
     "@tailwindcss/typography": "latest",
     "@turbo/gen": "latest",
     "@types/node": "latest",
-    "lintmax": "^0.1.82",
+    "lintmax": "latest",
     "material-icon-theme": "latest",
     "sherif": "latest",
     "simple-git-hooks": "latest",
