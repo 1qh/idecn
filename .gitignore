@@ -27,3 +27,4 @@ CLAUDE.local.md
 .output/
 .wxt/
 *.zip
+readonly/ui/**/*.d.ts
