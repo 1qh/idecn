@@ -97,6 +97,8 @@ import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import type { GridEditorHostProps, TextAnnotationHostProps } from './annotation-hosts'
+import type { ChunkSpan } from './text-annotation'
+import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotation'
 
 let pdfWorkerSet = false
 const loadPdfjs = async () => {
@@ -4218,6 +4220,7 @@ const CommandPalette = ({
 }
 export type {
   CheckTreeProps,
+  ChunkSpan,
   CommandAction,
   ConfigFieldMeta,
   ConfigShowWhen,
@@ -4239,6 +4242,8 @@ export type {
 }
 export {
   CheckTree,
+  chunkSpansToAnnotations,
+  chunkSpanToAnnotation,
   CommandPalette,
   ConfigPanel,
   ConfigPopover,
