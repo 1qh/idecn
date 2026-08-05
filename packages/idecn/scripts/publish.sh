@@ -14,9 +14,9 @@ echo "-> Pushing"
 git push
 
 echo "-> Cleaning git history (BFG)"
-git clone --mirror "$REPO_URL" "$DIR/bare"
-bfg --strip-blobs-bigger-than 100K "$DIR/bare"
-cd "$DIR/bare"
+git clone --mirror "${REPO_URL}" "${DIR}/bare"
+bfg --strip-blobs-bigger-than 100K "${DIR}/bare"
+cd "${DIR}/bare"
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 git push --force

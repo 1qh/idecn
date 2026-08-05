@@ -7,9 +7,9 @@
 set -eu
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 REG=apps/web/public/r/idecn.json
-bun "$ROOT/packages/idecn/scripts/build-registry.ts" >/dev/null
-if ! git -C "$ROOT" diff --quiet -- "$REG"; then
-	echo "registry is stale — run 'bun run gen' in packages/idecn and commit the result" >&2
-	git -C "$ROOT" diff --stat -- "$REG" >&2
-	exit 1
+bun "${ROOT}/packages/idecn/scripts/build-registry.ts" > /dev/null
+if ! git -C "${ROOT}" diff --quiet -- "${REG}"; then
+  echo "registry is stale — run 'bun run gen' in packages/idecn and commit the result" >&2
+  git -C "${ROOT}" diff --stat -- "${REG}" >&2
+  exit 1
 fi

@@ -98,6 +98,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import type { GridEditorHostProps, TextAnnotationHostProps } from './annotation-hosts'
 import type { ChunkSpan } from './text-annotation'
+import { badgeStyle, chunkColor, regionStyle, rowStyle, textColor, tint } from './chunk-color'
 import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotation'
 
 let pdfWorkerSet = false
@@ -4241,7 +4242,9 @@ export type {
   WorkspaceRef
 }
 export {
+  badgeStyle,
   CheckTree,
+  chunkColor,
   chunkSpansToAnnotations,
   chunkSpanToAnnotation,
   CommandPalette,
@@ -4256,9 +4259,13 @@ export {
   InfoButton,
   PdfViewer,
   persistConfig,
+  regionStyle,
+  rowStyle,
   ScrubInput,
   Tab,
   TextAnnotationHost,
+  textColor,
+  tint,
   toLevaSchema,
   Tree,
   TreeFile,
