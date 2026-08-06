@@ -231,7 +231,7 @@ Every lintmax version runs configless by default. `lintmax` (TypeScript) is the 
 ### MUST
 
 - Run only `bun run fix` for code maintenance. Why: it fixes then verifies internally (all 5 linters twice); a clean run prints `ok` on a single line + exit 0 — `ok` IS the success signal, not silence.
-- Read failure output directly. Why: already grouped file→linter→rule, compressed line numbers, deduped across 5 linters.
+- Read failure output directly: grouped file→linter→rule, and each rule line is `L<line>,<line>,… rule/name`. Why: the numbers are SOURCE LINE LOCATIONS — the `L` prefix says so — and a rule’s finding COUNT is how many locations it lists, never the numbers themselves; `L89 useTopLevelRegex` is ONE finding at line 89, not 89 findings, so never read a leading number as a count.
 - Make ALL edits first, then run `fix` foreground to completion. Why: editing during a backgrounded `fix` races it — the formatter writes its pre-edit buffer back and silently reverts your change.
 - WHEN a `fix` is running, wait until `pgrep -f 'lintmax|bun.*fix'` is clear before editing. Why: same revert race.
 - Commit a checkpoint before any multi-file mutator (`fix` after stripping directives, audit/codemod, sed-all/rename-all). Why: `fix` mixes autofixes with your edits; `git reset --hard` then restores in one command.
