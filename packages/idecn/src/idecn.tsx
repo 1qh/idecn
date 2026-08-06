@@ -4252,18 +4252,23 @@ interface ChunkListEntry {
   located?: boolean
   order: number
   page?: number
+  statusClass?: string
   text: string
 }
 interface ChunkListPanelProps {
   bulkActions?: (picked: readonly string[]) => ReactNode
   chunks: readonly ChunkListEntry[]
   emptyLabel?: ReactNode
+  error?: boolean
   filter: string
   header?: ReactNode
   hoveredId?: null | string
+  loading?: boolean
   onFilterChange: (value: string) => void
   onHover?: (id: null | string) => void
+  onLoadMore?: () => void
   onPickedChange: (picked: ReadonlySet<string>) => void
+  onRetry?: () => void
   onSelect: (id: string) => void
   picked: ReadonlySet<string>
   selectedId: null | string
@@ -4277,12 +4282,16 @@ const ChunkListPanel = ({
   bulkActions,
   chunks,
   emptyLabel,
+  error,
   filter,
   header,
   hoveredId,
+  loading,
   onFilterChange,
   onHover,
+  onLoadMore,
   onPickedChange,
+  onRetry,
   onSelect,
   picked,
   selectedId
@@ -4350,8 +4359,30 @@ const ChunkListPanel = ({
           </div>
         ) : null}
       </div>
-      <div className='min-h-0 flex-1 overflow-auto' ref={listRef}>
-        {chunks.length === 0 ? (
+      <div
+        className='min-h-0 flex-1 overflow-auto'
+        onScroll={event => {
+          if (!onLoadMore) return
+          const el = event.currentTarget
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight * 1.5) onLoadMore()
+        }}
+        ref={listRef}>
+        {loading && chunks.length === 0 ? (
+          <div className='flex flex-col gap-1 p-2'>
+            {['a', 'b', 'c', 'd'].map(key => (
+              <div className='h-8 animate-pulse rounded bg-muted' key={key} />
+            ))}
+          </div>
+        ) : null}
+        {error && chunks.length === 0 ? (
+          <button
+            className='flex w-full items-center justify-center gap-1.5 p-4 text-xs text-destructive hover:underline'
+            onClick={() => onRetry?.()}
+            type='button'>
+            couldn’t load chunks · retry
+          </button>
+        ) : null}
+        {!(loading || error) && chunks.length === 0 ? (
           <div className='p-4 text-center text-xs text-muted-foreground'>{emptyLabel ?? 'No chunks.'}</div>
         ) : null}
         <div className='relative w-full' style={{ height: `${String(rowVirtualizer.getTotalSize())}px` }}>
@@ -4394,7 +4425,7 @@ const ChunkListPanel = ({
                       <span
                         className={cn(
                           'size-2 shrink-0 rounded-full',
-                          entry.disabled ? 'bg-muted-foreground' : 'bg-current'
+                          entry.statusClass ?? (entry.disabled ? 'bg-muted-foreground' : 'bg-current')
                         )}
                       />
                       #{entry.order}
@@ -4439,6 +4470,12 @@ const ChunkListPanel = ({
   )
 }
 interface ChunkEditorPanelProps {
+  editor?: (props: {
+    fontSize: number
+    onChange: (value: string) => void
+    onCursor?: (position: number) => void
+    value: string
+  }) => ReactNode
   emptyLabel?: ReactNode
   extra?: ReactNode
   fontSize?: number
@@ -4452,6 +4489,7 @@ interface ChunkEditorPanelProps {
   value: string
 }
 const ChunkEditorPanel = ({
+  editor,
   emptyLabel,
   extra,
   fontSize = 13,
@@ -4487,14 +4525,18 @@ const ChunkEditorPanel = ({
           />
         ) : null}
       </div>
-      <Textarea
-        className='min-h-0 flex-1 resize-none rounded-none border-x-0 font-mono'
-        onChange={event => onChange(event.target.value)}
-        onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
-        placeholder={placeholder}
-        style={style}
-        value={value}
-      />
+      {editor ? (
+        <div className='flex min-h-0 flex-1 flex-col'>{editor({ fontSize, onChange, onCursor, value })}</div>
+      ) : (
+        <Textarea
+          className='min-h-0 flex-1 resize-none rounded-none border-x-0 font-mono'
+          onChange={event => onChange(event.target.value)}
+          onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
+          placeholder={placeholder}
+          style={style}
+          value={value}
+        />
+      )}
       <div className='flex shrink-0 flex-wrap items-center p-2'>{toolbar}</div>
       {extra ? <div className='flex shrink-0 flex-col gap-1.5 p-2 pt-0'>{extra}</div> : null}
     </div>
