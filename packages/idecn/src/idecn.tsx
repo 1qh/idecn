@@ -3479,12 +3479,15 @@ interface PdfRegion {
 }
 interface PdfViewerProps {
   className?: string
+  hoveredRegionIds?: readonly string[]
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
+  onRegionHover?: (id: null | string) => void
   onRegionResize?: (id: string, box: readonly [number, number, number, number], page: number) => void
   regions?: readonly PdfRegion[]
   scale?: number
   selectedRegionId?: null | string
+  selectedRegionIds?: readonly string[]
   src: string
 }
 interface RegionDrag {
@@ -3525,23 +3528,29 @@ const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, nu
   return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
 }
 const PdfPage = ({
+  hoveredSet,
   onRegionClick,
   onRegionDraw,
+  onRegionHover,
   onRegionResize,
   pageNo,
   pdf,
   regions,
   scale,
-  selectedRegionId
+  selectedRegionId,
+  selectedSet
 }: {
+  hoveredSet: ReadonlySet<string>
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
+  onRegionHover?: (id: null | string) => void
   onRegionResize?: (id: string, box: readonly [number, number, number, number], page: number) => void
   pageNo: number
   pdf: PDFDocumentProxy
   regions: readonly PdfRegion[]
   scale: number
   selectedRegionId: null | string
+  selectedSet: ReadonlySet<string>
 }) => {
   const ref = useRef<HTMLCanvasElement>(null)
   const taskRef = useRef<null | RenderTask>(null)
@@ -3666,8 +3675,9 @@ const PdfPage = ({
       {vp
         ? pageRegions.map((r, i) => {
             const color = r.color ?? 'var(--primary)'
-            const isSelected = r.id === selectedRegionId
-            const editable = isSelected && Boolean(onRegionResize)
+            const isSelected = r.id === selectedRegionId || selectedSet.has(r.id)
+            const isHovered = hoveredSet.has(r.id)
+            const editable = r.id === selectedRegionId && Boolean(onRegionResize)
             const active = rDrag?.id === r.id ? rDrag : null
             const geom = active
               ? {
@@ -3685,11 +3695,14 @@ const PdfPage = ({
                   aria-label={r.label ?? `region ${r.id}`}
                   className={cn(
                     'absolute rounded-sm border-2 transition-[filter] hover:brightness-125',
-                    isSelected && 'ring-2 ring-offset-1'
+                    isSelected && 'ring-2 ring-offset-1',
+                    isHovered && !isSelected && 'brightness-125 ring-1 ring-offset-1'
                   )}
                   key={key}
                   onClick={() => onRegionClick?.(r.id)}
-                  ref={isSelected ? setSelRef : undefined}
+                  onPointerEnter={() => onRegionHover?.(r.id)}
+                  onPointerLeave={() => onRegionHover?.(null)}
+                  ref={r.id === selectedRegionId ? setSelRef : undefined}
                   style={{ ...geom, ...fill }}
                   title={r.label}
                   type='button'
@@ -3791,14 +3804,19 @@ const PdfThumb = ({
 const TBTN = 'rounded p-1 hover:bg-accent'
 const PdfViewer = ({
   className,
+  hoveredRegionIds,
   onRegionClick,
   onRegionDraw,
+  onRegionHover,
   onRegionResize,
   regions = NO_REGIONS,
   scale,
   selectedRegionId = null,
+  selectedRegionIds,
   src
 }: PdfViewerProps) => {
+  const selectedSet = useMemo(() => new Set(selectedRegionIds), [selectedRegionIds])
+  const hoveredSet = useMemo(() => new Set(hoveredRegionIds), [hoveredRegionIds])
   const [doc, setDoc] = useState<PDFDocumentProxy>()
   const [zoom, setZoom] = useState(scale ?? 1.4)
   const [fit, setFit] = useState<FitMode>('width')
@@ -3887,15 +3905,18 @@ const PdfViewer = ({
           ref={scrollRef}>
           {pages.map(n => (
             <PdfPage
+              hoveredSet={hoveredSet}
               key={n}
               onRegionClick={onRegionClick}
               onRegionDraw={onRegionDraw}
+              onRegionHover={onRegionHover}
               onRegionResize={onRegionResize}
               pageNo={n}
               pdf={doc}
               regions={showRegions ? regions : NO_REGIONS}
               scale={effZoom}
               selectedRegionId={selectedRegionId}
+              selectedSet={selectedSet}
             />
           ))}
         </div>
