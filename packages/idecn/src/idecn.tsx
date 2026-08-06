@@ -3621,6 +3621,7 @@ const PdfPage = ({
     const controller = new AbortController()
     const draw = async () => {
       const page = await pdf.getPage(pageNo)
+      controller.signal.throwIfAborted()
       const viewport = page.getViewport({ scale })
       const canvas = ref.current
       const ctx = canvas?.getContext('2d')
@@ -3628,6 +3629,7 @@ const PdfPage = ({
       const prev = taskRef.current
       prev?.cancel()
       await prev?.promise.catch(() => undefined)
+      controller.signal.throwIfAborted()
       const dpr = Math.max(1, globalThis.devicePixelRatio)
       canvas.width = Math.ceil(viewport.width * dpr)
       canvas.height = Math.ceil(viewport.height * dpr)
@@ -3645,7 +3647,8 @@ const PdfPage = ({
       } catch {
         return
       }
-      if (!controller.signal.aborted) setVp(viewport)
+      controller.signal.throwIfAborted()
+      setVp(viewport)
     }
     draw().catch(() => undefined)
     return () => {
