@@ -4398,7 +4398,7 @@ const ChunkListPanel = ({
                         )}
                       />
                       #{entry.order}
-                      {entry.page === undefined ? <span className='opacity-70'> · p{entry.page}</span> : null}
+                      {entry.page === undefined ? null : <span className='opacity-70'> · p{entry.page}</span>}
                       {entry.dirty ? (
                         <span className='size-1.5 shrink-0 rounded-full bg-primary' title='Unsaved edit' />
                       ) : null}
