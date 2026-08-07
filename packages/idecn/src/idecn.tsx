@@ -1575,6 +1575,7 @@ const Tab = (_props: {
   activeClassName?: string
   children: ReactNode
   closable?: boolean
+  contextMenu?: TabMenuKey[]
   defaultOpen?: boolean
   headerClassName?: string
   icon?: boolean | IconComponent
@@ -1773,12 +1774,114 @@ const FilePanel = ({
     </div>
   )
 }
+type TabMenuKey = 'close' | 'closeAll' | 'closeOthers' | 'closeRight' | 'copyPath' | 'pin' | 'split'
+const TabMenu = ({
+  api,
+  closable,
+  dv,
+  isPinned,
+  keys,
+  pinnedTabs,
+  setPinnedTabs
+}: {
+  api: IDockviewPanelHeaderProps['api']
+  closable: boolean
+  dv: DockviewApi
+  isPinned: boolean
+  keys: TabMenuKey[] | undefined
+  pinnedTabs: string[]
+  setPinnedTabs: (update: (prev: string[]) => string[]) => void
+  // eslint-disable-next-line sonarjs/cognitive-complexity -- declarative tab context-menu: a flat list of independently guarded items, not nested control flow
+}) => {
+  const allow = (key: TabMenuKey) => keys === undefined || keys.includes(key)
+  const showClose = closable && allow('close')
+  const showOthers = closable && allow('closeOthers')
+  const showRight = closable && allow('closeRight')
+  const showAll = closable && allow('closeAll')
+  const showCopy = allow('copyPath')
+  const showPin = allow('pin')
+  const showSplit = allow('split')
+  const anyClose = showClose || showOthers || showRight || showAll
+  const anyMeta = showCopy || showPin
+  if (!(anyClose || anyMeta || showSplit)) return null
+  const closeMany = (keep: (panel: (typeof dv.panels)[number], index: number) => boolean) => {
+    for (const [index, panel] of dv.panels.entries())
+      if (!(pinnedTabs.includes(panel.id) || keep(panel, index)))
+        try {
+          panel.api.close()
+        } catch {
+          /* already gone */
+        }
+  }
+  const selfIndex = dv.panels.findIndex(panel => panel.id === api.id)
+  return (
+    <ContextMenuContent>
+      {showClose ? (
+        <ContextMenuItem onClick={() => api.close()}>
+          <X /> Close <ContextMenuShortcut>⌥W</ContextMenuShortcut>
+        </ContextMenuItem>
+      ) : null}
+      {showOthers ? (
+        <ContextMenuItem onClick={() => closeMany(panel => panel.id === api.id)}>
+          <Trash /> Close Others
+        </ContextMenuItem>
+      ) : null}
+      {showRight ? (
+        <ContextMenuItem onClick={() => closeMany((_panel, index) => index <= selfIndex)}>
+          <ArrowRightToLine /> Close to the Right
+        </ContextMenuItem>
+      ) : null}
+      {showAll ? (
+        <ContextMenuItem onClick={() => closeMany(() => false)}>
+          <Trash2 /> Close All
+        </ContextMenuItem>
+      ) : null}
+      {anyClose && anyMeta ? <ContextMenuSeparator /> : null}
+      {showCopy ? (
+        <ContextMenuItem
+          onClick={() => {
+            navigator.clipboard
+              .writeText(api.id)
+              .then(() => toast('Copied to clipboard'))
+              .catch(() => undefined)
+          }}>
+          <ClipboardCopy /> Copy Path
+        </ContextMenuItem>
+      ) : null}
+      {showPin ? (
+        <ContextMenuItem
+          onClick={() => setPinnedTabs(prev => (isPinned ? prev.filter(id => id !== api.id) : [...prev, api.id]))}>
+          {isPinned ? <PinOff /> : <Pin />} {isPinned ? 'Unpin' : 'Pin'}
+        </ContextMenuItem>
+      ) : null}
+      {(anyClose || anyMeta) && showSplit ? <ContextMenuSeparator /> : null}
+      {showSplit ? (
+        <ContextMenuItem
+          onClick={() => {
+            const found = dv.panels.find(panel => panel.id === api.id)
+            if (found)
+              dv.addPanel({
+                component: found.view.contentComponent,
+                id: `${found.id}-split-${Date.now()}`,
+                params: found.params,
+                position: { direction: 'right', referencePanel: found },
+                tabComponent: 'default',
+                title: found.title ?? ''
+              })
+          }}>
+          <SplitSquareHorizontal /> Split Right
+        </ContextMenuItem>
+      ) : null}
+    </ContextMenuContent>
+  )
+}
 const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
   const p = params as
     | undefined
     | {
         activeClassName?: string
         closable?: boolean
+        contextMenu?: TabMenuKey[]
         headerClassName?: string
         icon?: boolean | IconComponent
         iconName?: string
@@ -1845,78 +1948,15 @@ const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
         {tabTrailing}
       </ContextMenuTrigger>
       {dv ? (
-        <ContextMenuContent>
-          <ContextMenuItem onClick={() => api.close()}>
-            <X /> Close <ContextMenuShortcut>⌥W</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => {
-              for (const pnl of dv.panels)
-                if (pnl.id !== api.id && !pinnedTabs.includes(pnl.id))
-                  try {
-                    pnl.api.close()
-                  } catch {
-                    /* Removed */
-                  }
-            }}>
-            <Trash /> Close Others
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => {
-              const idx = dv.panels.findIndex(pnl => pnl.id === api.id)
-              for (let i = dv.panels.length - 1; i > idx; i -= 1)
-                if (!pinnedTabs.includes(dv.panels[i].id))
-                  try {
-                    dv.panels[i].api.close()
-                  } catch {
-                    /* Removed */
-                  }
-            }}>
-            <ArrowRightToLine /> Close to the Right
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => {
-              for (let i = dv.panels.length - 1; i >= 0; i -= 1)
-                if (!pinnedTabs.includes(dv.panels[i].id))
-                  try {
-                    dv.panels[i].api.close()
-                  } catch {
-                    /* Removed */
-                  }
-            }}>
-            <Trash2 /> Close All
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => {
-              navigator.clipboard
-                .writeText(api.id)
-                .then(() => toast('Copied to clipboard'))
-                .catch(() => undefined)
-            }}>
-            <ClipboardCopy /> Copy Path
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => setPinnedTabs(prev => (isPinned ? prev.filter(id => id !== api.id) : [...prev, api.id]))}>
-            {isPinned ? <PinOff /> : <Pin />} {isPinned ? 'Unpin' : 'Pin'}
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => {
-              const found = dv.panels.find(pnl => pnl.id === api.id)
-              if (found)
-                dv.addPanel({
-                  component: found.view.contentComponent,
-                  id: `${found.id}-split-${Date.now()}`,
-                  params: found.params,
-                  position: { direction: 'right', referencePanel: found },
-                  tabComponent: 'default',
-                  title: found.title ?? ''
-                })
-            }}>
-            <SplitSquareHorizontal /> Split Right
-          </ContextMenuItem>
-        </ContextMenuContent>
+        <TabMenu
+          api={api}
+          closable={closable}
+          dv={dv}
+          isPinned={isPinned}
+          keys={p?.contextMenu}
+          pinnedTabs={pinnedTabs}
+          setPinnedTabs={setPinnedTabs}
+        />
       ) : null}
     </ContextMenu>
   )
@@ -2149,6 +2189,7 @@ const restoreLayout = (api: DockviewApi, key: string, tabs: TabProps[]): boolean
         activeClassName: tab.activeClassName,
         closable: tab.closable,
         content: tab.children,
+        contextMenu: tab.contextMenu,
         headerClassName: tab.headerClassName,
         icon: tab.icon,
         inactiveClassName: tab.inactiveClassName
@@ -2508,6 +2549,7 @@ const Workspace = ({
         activeClassName: tab.activeClassName,
         closable: tab.closable,
         content: tab.children,
+        contextMenu: tab.contextMenu,
         headerClassName: tab.headerClassName,
         icon: tab.icon,
         inactiveClassName: tab.inactiveClassName
@@ -4576,6 +4618,7 @@ export type {
   PdfRegion,
   PdfViewerProps,
   ScrubInputProps,
+  TabMenuKey,
   TabProps,
   TextAnnotationHostProps,
   TreeContextAction,
