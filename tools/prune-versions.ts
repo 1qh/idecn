@@ -29,11 +29,13 @@ if (old.length === 0) {
 }
 const results = await Promise.all(
   old.map(async v => {
-    const r = await $`npm unpublish ${pkg.name}@${v}`.nothrow()
-    return { ok: r.exitCode === 0, v }
+    const un = await $`npm unpublish ${pkg.name}@${v}`.nothrow()
+    if (un.exitCode === 0) return { how: 'unpublished', ok: true, v }
+    const dep = await $`npm deprecate ${pkg.name}@${v} ${'superseded by latest'}`.nothrow()
+    return { how: dep.exitCode === 0 ? 'deprecated' : 'stuck', ok: dep.exitCode === 0, v }
   })
 )
-for (const { ok, v } of results) if (ok) console.log(`${pkg.name}@${v} unpublished`)
+for (const { how, ok, v } of results) if (ok) console.log(`${pkg.name}@${v} ${how}`)
 const stuck = results.filter(r => !r.ok)
 if (stuck.length > 0) {
   console.error(`${pkg.name}: still on npm after prune: ${stuck.map(s => s.v).join(', ')}`)

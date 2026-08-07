@@ -3911,6 +3911,14 @@ const PdfViewer = ({
     return () => ro.disconnect()
   }, [doc])
   useEffect(() => {
+    if (selectedRegionId === null || !doc) return
+    const target = regions.find(r => r.id === selectedRegionId)?.page
+    if (target === undefined) return
+    scrollRef.current
+      ?.querySelector(`#pdf-page-${String(target)}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [selectedRegionId, regions, doc])
+  useEffect(() => {
     const root = scrollRef.current
     if (!(root && doc)) return
     const observer = new IntersectionObserver(
