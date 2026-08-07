@@ -3483,6 +3483,7 @@ interface PdfRegion {
 }
 interface PdfViewerProps {
   className?: string
+  controls?: ReactNode
   hoveredRegionIds?: readonly string[]
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
@@ -3811,6 +3812,7 @@ const PdfThumb = ({
 const TBTN = 'rounded p-1 hover:bg-accent'
 const PdfViewer = ({
   className,
+  controls,
   hoveredRegionIds,
   onRegionClick,
   onRegionDraw,
@@ -3989,6 +3991,7 @@ const PdfViewer = ({
               {showRegions ? <Eye className='size-3.5' /> : <EyeOff className='size-3.5' />}
             </button>
           ) : null}
+          {controls}
         </div>
       </div>
     </div>
@@ -4540,8 +4543,19 @@ const ChunkEditorPanel = ({
           value={value}
         />
       )}
-      <div className='flex shrink-0 flex-wrap items-center p-2'>{toolbar}</div>
-      {extra ? <div className='flex shrink-0 flex-col gap-1.5 p-2 pt-0'>{extra}</div> : null}
+      <div className='flex shrink-0 flex-wrap items-center gap-1 p-2'>
+        {toolbar}
+        {extra ? (
+          <Popover>
+            <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
+              <SlidersHorizontal className='size-3.5' />
+            </PopoverTrigger>
+            <PopoverContent align='end' className='flex w-80 max-w-[92vw] flex-col gap-1.5 p-2'>
+              {extra}
+            </PopoverContent>
+          </Popover>
+        ) : null}
+      </div>
     </div>
   )
 }
