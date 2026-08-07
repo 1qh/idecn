@@ -3761,7 +3761,7 @@ const PdfPage = ({
             return (
               <button
                 aria-label={r.label ?? `region ${r.id}`}
-                className='absolute cursor-move touch-none rounded-sm border-2 ring-2 ring-offset-1'
+                className='absolute animate-pulse cursor-move touch-none rounded-sm border-2 ring-2 ring-offset-1'
                 key={key}
                 onClick={() => {
                   if (movedRef.current) return
