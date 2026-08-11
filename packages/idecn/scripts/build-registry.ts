@@ -71,7 +71,7 @@ mkdirSync(outDir, { recursive: true })
 let content = src
 content = rewriteWorkspaceAliases(
   content
-    .replace("import 'dockview-core/dist/styles/dockview.css'\n", '')
+    .replace("import 'dockview-react/dist/styles/dockview.css'\n", '')
     .replaceAll('./_generated/icons', '@/lib/icons')
     .replaceAll('./monokai-lite', '@/lib/monokai-lite')
     .replaceAll('./annotation-hosts', '@/lib/annotation-hosts')

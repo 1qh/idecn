@@ -1,7 +1,7 @@
 /* eslint-disable @eslint-react/dom-no-dangerously-set-innerhtml, @eslint-react/set-state-in-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react/no-danger, complexity, @next/next/no-img-element */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
-import 'dockview-core/dist/styles/dockview.css'
+import 'dockview-react/dist/styles/dockview.css'
 import type { EditorProps } from '@monaco-editor/react'
 import type { DockviewApi, DockviewReadyEvent, IDockviewPanelHeaderProps, IDockviewPanelProps } from 'dockview-react'
 import type { Schema, StoreType } from 'leva/dist/declarations/src/types'
