@@ -4534,6 +4534,7 @@ interface ChunkEditorPanelProps {
   }) => ReactNode
   emptyLabel?: ReactNode
   extra?: ReactNode
+  extraInPopover?: boolean
   fontSize?: number
   heading?: ReactNode
   onChange: (value: string) => void
@@ -4548,6 +4549,7 @@ const ChunkEditorPanel = ({
   editor,
   emptyLabel,
   extra,
+  extraInPopover = false,
   fontSize = 13,
   heading,
   onChange,
@@ -4595,7 +4597,7 @@ const ChunkEditorPanel = ({
       )}
       <div className='flex shrink-0 flex-wrap items-center gap-1 p-2'>
         {toolbar}
-        {extra ? (
+        {extra && extraInPopover ? (
           <Popover>
             <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
               <SlidersHorizontal className='size-3.5' />
@@ -4606,6 +4608,7 @@ const ChunkEditorPanel = ({
           </Popover>
         ) : null}
       </div>
+      {extra && !extraInPopover ? <div className='flex shrink-0 flex-col gap-1.5 p-2 pt-0'>{extra}</div> : null}
     </div>
   )
 }
