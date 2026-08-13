@@ -1,6 +1,11 @@
 name: ' '
 on:
   push:
+    paths-ignore:
+      - 'CLAUDE.md'
+      - '**/CLAUDE.md'
+      - 'AGENTS.md'
+      - '**/AGENTS.md'
   schedule:
     - cron: '0 0 * * 1'
 concurrency:
