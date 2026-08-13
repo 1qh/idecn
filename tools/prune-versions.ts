@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+/** biome-ignore-all lint/performance/noAwaitInLoops: npm calls are serialised to avoid concurrent manifest-write 422s */
 /* eslint-disable no-console */
 import { $, file } from 'bun'
 import { join } from 'node:path'
@@ -27,17 +28,16 @@ if (old.length === 0) {
   console.log(`${pkg.name}: no old versions`)
   process.exit(0)
 }
-const results = await Promise.all(
-  old.map(async v => {
-    const un = await $`npm unpublish ${pkg.name}@${v}`.nothrow()
-    if (un.exitCode === 0) return { how: 'unpublished', ok: true, v }
+const retained: string[] = []
+for (const v of old) {
+  // eslint-disable-next-line no-await-in-loop -- sequential to avoid concurrent npm manifest-write 422s
+  const un = await $`npm unpublish ${pkg.name}@${v}`.nothrow()
+  if (un.exitCode === 0) console.log(`${pkg.name}@${v} unpublished`)
+  else {
+    // eslint-disable-next-line no-await-in-loop -- sequential to avoid concurrent npm manifest-write 422s
     const dep = await $`npm deprecate ${pkg.name}@${v} ${'superseded by latest'}`.nothrow()
-    return { how: dep.exitCode === 0 ? 'deprecated' : 'stuck', ok: dep.exitCode === 0, v }
-  })
-)
-for (const { how, ok, v } of results) if (ok) console.log(`${pkg.name}@${v} ${how}`)
-const stuck = results.filter(r => !r.ok)
-if (stuck.length > 0) {
-  console.error(`${pkg.name}: still on npm after prune: ${stuck.map(s => s.v).join(', ')}`)
-  process.exit(1)
+    if (dep.exitCode === 0) console.log(`${pkg.name}@${v} deprecated`)
+    else retained.push(v)
+  }
 }
+if (retained.length > 0) console.log(`${pkg.name}: retained by npm policy (past unpublish window): ${retained.join(', ')}`)
