@@ -3575,24 +3575,28 @@ const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, nu
   return { height: Math.abs(y2 - y1), left: Math.min(x1, x2), top: Math.min(y1, y2), width: Math.abs(x2 - x1) }
 }
 const PdfPage = ({
+  active = true,
   hoveredSet,
   onRegionClick,
   onRegionDraw,
   onRegionHover,
   onRegionResize,
   pageNo,
+  pageSize,
   pdf,
   regions,
   scale,
   selectedRegionId,
   selectedSet
 }: {
+  active?: boolean
   hoveredSet: ReadonlySet<string>
   onRegionClick?: (id: string) => void
   onRegionDraw?: (box: readonly [number, number, number, number], page: number) => void
   onRegionHover?: (id: null | string) => void
   onRegionResize?: (id: string, box: readonly [number, number, number, number], page: number) => void
   pageNo: number
+  pageSize?: { h: number; w: number }
   pdf: PDFDocumentProxy
   regions: readonly PdfRegion[]
   scale: number
@@ -3606,6 +3610,8 @@ const PdfPage = ({
     selectedRef.current = el
   }, [])
   const [vp, setVp] = useState<PageViewport>()
+  const renderedScaleRef = useRef<number | undefined>(undefined)
+  const [renderedScale, setRenderedScale] = useState<number | undefined>(undefined)
   const [drag, setDrag] = useState<null | { x0: number; x1: number; y0: number; y1: number }>(null)
   const [rDrag, setRDrag] = useState<null | RegionDrag>(null)
   const originRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -3692,15 +3698,49 @@ const PdfPage = ({
       }
       controller.signal.throwIfAborted()
       setVp(viewport)
+      renderedScaleRef.current = scale
+      setRenderedScale(scale)
     }
-    draw().catch(() => undefined)
+    if (active) {
+      const delay = renderedScaleRef.current === undefined ? 0 : 140
+      const timer = setTimeout(() => {
+        draw().catch(() => undefined)
+      }, delay)
+      return () => {
+        clearTimeout(timer)
+        controller.abort()
+        taskRef.current?.cancel()
+      }
+    }
     return () => {
       controller.abort()
       taskRef.current?.cancel()
     }
-  }, [pdf, pageNo, scale])
+  }, [active, pdf, pageNo, scale])
+  const previewRatio = renderedScale === undefined ? 1 : scale / renderedScale
+  let layoutWidth: number | undefined
+  let layoutHeight: number | undefined
+  if (vp) {
+    layoutWidth = vp.width * previewRatio
+    layoutHeight = vp.height * previewRatio
+  } else if (pageSize) {
+    layoutWidth = pageSize.w * scale
+    layoutHeight = pageSize.h * scale
+  }
   return (
-    <div className='relative w-fit scroll-mt-12 border-b border-border/40 pb-2 last:border-b-0' id={`pdf-page-${pageNo}`}>
+    <div
+      className='relative w-fit scroll-mt-12 border-b border-border/40 pb-2 last:border-b-0'
+      id={`pdf-page-${pageNo}`}
+      style={
+        layoutWidth && layoutHeight
+          ? {
+              height: layoutHeight,
+              transform: `scale(${String(previewRatio)})`,
+              transformOrigin: 'top left',
+              width: layoutWidth
+            }
+          : undefined
+      }>
       <canvas aria-label={`Page ${pageNo}`} className='block' ref={ref} />
       {onRegionDraw && vp ? (
         <div
@@ -3728,13 +3768,13 @@ const PdfPage = ({
             const isSelected = r.id === selectedRegionId || selectedSet.has(r.id)
             const isHovered = hoveredSet.has(r.id)
             const editable = r.id === selectedRegionId && Boolean(onRegionResize)
-            const active = rDrag?.id === r.id ? rDrag : null
-            const geom = active
+            const activeDrag = rDrag?.id === r.id ? rDrag : null
+            const geom = activeDrag
               ? {
-                  height: Math.abs(active.y1 - active.y0),
-                  left: Math.min(active.x0, active.x1),
-                  top: Math.min(active.y0, active.y1),
-                  width: Math.abs(active.x1 - active.x0)
+                  height: Math.abs(activeDrag.y1 - activeDrag.y0),
+                  left: Math.min(activeDrag.x0, activeDrag.x1),
+                  top: Math.min(activeDrag.y0, activeDrag.y1),
+                  width: Math.abs(activeDrag.x1 - activeDrag.x0)
                 }
               : pdfBoxStyle(vp, r.box)
             const fill = { backgroundColor: `color-mix(in oklch, ${color} 15%, transparent)`, borderColor: color }
@@ -3876,6 +3916,7 @@ const PdfViewer = ({
   const [page, setPage] = useState(1)
   const [showThumbs, setShowThumbs] = useState(false)
   const [showRegions, setShowRegions] = useState(true)
+  const [activePages, setActivePages] = useState<ReadonlySet<number>>(() => new Set([1]))
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let active = true
@@ -3883,6 +3924,7 @@ const PdfViewer = ({
     setDoc(undefined)
     setBase(null)
     setPage(1)
+    setActivePages(new Set([1]))
     const run = async () => {
       const pdfjs = await loadPdfjs()
       const d = await pdfjs.getDocument({ url: src }).promise.catch(() => undefined)
@@ -3925,6 +3967,15 @@ const PdfViewer = ({
       entries => {
         const top = entries.filter(e => e.isIntersecting).toSorted((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
         if (top) setPage(Number(top.target.id.replace('pdf-page-', '')))
+        setActivePages(previous => {
+          const next = new Set(previous)
+          for (const entry of entries) {
+            const pageNo = Number(entry.target.id.replace('pdf-page-', ''))
+            if (entry.isIntersecting) next.add(pageNo)
+            else next.delete(pageNo)
+          }
+          return next
+        })
       },
       { root, threshold: [0.1, 0.5, 0.9] }
     )
@@ -3945,6 +3996,7 @@ const PdfViewer = ({
       fit === 'width'
         ? Math.max(0.2, (box.w - 24) / base.w)
         : Math.max(0.2, Math.min((box.w - 24) / base.w, (box.h - 24) / base.h))
+  const pageOverflow = Boolean(base && box.w > 0 && base.w * effZoom > box.w)
   const setManualZoom = (next: number): void => {
     setFit('none')
     setZoom(next)
@@ -3960,10 +4012,14 @@ const PdfViewer = ({
       ) : null}
       <div className='relative min-w-0 flex-1 overflow-hidden'>
         <div
-          className='flex h-full flex-col items-center gap-0 overflow-auto bg-muted/20 p-2 [scrollbar-gutter:stable]'
+          className={cn(
+            'flex h-full flex-col gap-0 overflow-auto bg-muted/20 p-2 [scrollbar-gutter:stable]',
+            pageOverflow ? 'items-start' : 'items-center'
+          )}
           ref={scrollRef}>
           {pages.map(n => (
             <PdfPage
+              active={activePages.has(n)}
               hoveredSet={hoveredSet}
               key={n}
               onRegionClick={onRegionClick}
@@ -3971,6 +4027,7 @@ const PdfViewer = ({
               onRegionHover={onRegionHover}
               onRegionResize={onRegionResize}
               pageNo={n}
+              pageSize={base ?? undefined}
               pdf={doc}
               regions={showRegions ? regions : NO_REGIONS}
               scale={effZoom}
@@ -4314,6 +4371,7 @@ interface ChunkListEntry {
 interface ChunkListPanelProps {
   bulkActions?: (picked: readonly string[]) => ReactNode
   chunks: readonly ChunkListEntry[]
+  density?: 'comfortable' | 'compact'
   emptyLabel?: ReactNode
   error?: boolean
   filter: string
@@ -4337,6 +4395,7 @@ const sizeToneColor = (length: number): string => {
 const ChunkListPanel = ({
   bulkActions,
   chunks,
+  density = 'compact',
   emptyLabel,
   error,
   filter,
@@ -4353,6 +4412,7 @@ const ChunkListPanel = ({
   selectedId
 }: ChunkListPanelProps) => {
   const [anchor, setAnchor] = useState<null | number>(null)
+  const [expandedChunks, setExpandedChunks] = useState<ReadonlySet<string>>(() => new Set())
   const listRef = useRef<HTMLDivElement>(null)
   const maxLength = useMemo(() => {
     let max = 1
@@ -4448,6 +4508,7 @@ const ChunkListPanel = ({
             const selected = entry.id === selectedId
             const inPicked = picked.has(entry.id)
             const hovered = entry.id === hoveredId
+            const expanded = expandedChunks.has(entry.id)
             const { length } = entry.text
             return (
               <div
@@ -4458,7 +4519,7 @@ const ChunkListPanel = ({
                 style={{ transform: `translateY(${String(virtualRow.start)}px)` }}>
                 <div
                   className={cn(
-                    'flex w-full items-start gap-2 rounded-md px-2 py-1.5 transition-[filter] hover:brightness-110',
+                    'group flex w-full items-start gap-2 rounded-md px-2 py-1.5 transition-[filter] hover:brightness-110',
                     selected && 'ring-1 ring-inset',
                     hovered && !selected && 'brightness-110 ring-1 ring-inset',
                     entry.disabled && 'opacity-50'
@@ -4500,7 +4561,12 @@ const ChunkListPanel = ({
                         </Badge>
                       ) : null}
                     </span>
-                    <span className='line-clamp-2 text-xs' title={entry.text}>
+                    <span
+                      className={cn(
+                        density === 'comfortable' ? 'line-clamp-4' : 'line-clamp-2',
+                        expanded && 'line-clamp-none'
+                      )}
+                      title={entry.text}>
                       {entry.text}
                     </span>
                     <span className='flex items-center gap-1.5' title={`${String(length)} characters`}>
@@ -4515,6 +4581,20 @@ const ChunkListPanel = ({
                       </span>
                       <span className='shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums'>{length}</span>
                     </span>
+                  </button>
+                  <button
+                    aria-label={expanded ? `Collapse chunk ${String(entry.order)}` : `Expand chunk ${String(entry.order)}`}
+                    className='mt-0.5 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100'
+                    onClick={() =>
+                      setExpandedChunks(previous => {
+                        const next = new Set(previous)
+                        if (next.has(entry.id)) next.delete(entry.id)
+                        else next.add(entry.id)
+                        return next
+                      })
+                    }
+                    type='button'>
+                    <ChevronRight className={cn('size-3 transition-transform', expanded && 'rotate-90')} />
                   </button>
                 </div>
               </div>
