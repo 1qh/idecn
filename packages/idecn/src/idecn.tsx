@@ -3014,46 +3014,46 @@ const Workspace = ({
         <span className='text-sm uppercase text-xs text-muted-foreground'>explorer</span>
         <div className='flex items-center gap-0.5'>
           {fileActions?.onCreateFile ? (
-            <button
+            <TipButton
               className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              label='New File'
               onClick={() => setRootCreating({ type: 'file' })}
-              title='New File'
-              type='button'>
+              title='New File'>
               <FilePlus className='stroke-1 size-4' />
-            </button>
+            </TipButton>
           ) : null}
           {fileActions?.onCreateFolder ? (
-            <button
+            <TipButton
               className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              label='New Folder'
               onClick={() => setRootCreating({ type: 'folder' })}
-              title='New Folder'
-              type='button'>
+              title='New Folder'>
               <FolderPlus className='stroke-1 size-4' />
-            </button>
+            </TipButton>
           ) : null}
           {fileActions?.onUpload ? (
-            <button
+            <TipButton
               className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+              label='Upload files'
               onClick={() => {
                 setUploadTarget('')
                 uploadInputRef.current?.click()
               }}
-              title='Upload'
-              type='button'>
+              title='Upload'>
               <Download className='stroke-1 size-4 rotate-180' />
-            </button>
+            </TipButton>
           ) : null}
-          <button
+          <TipButton
             className='text-muted-foreground hover:text-foreground transition-colors p-0.5'
+            label={treeCollapsed ? 'Expand All' : 'Collapse All'}
             onClick={() => {
               log(treeCollapsed ? 'Tree expanded all' : 'Tree collapsed all')
               setTreeCollapsed(c => !c)
               setTreeKey(k => k + 1)
             }}
-            title={treeCollapsed ? 'Expand All' : 'Collapse All'}
-            type='button'>
+            title={treeCollapsed ? 'Expand All' : 'Collapse All'}>
             {treeCollapsed ? <ChevronRight className='stroke-1 size-4' /> : <ChevronsDownUp className='stroke-1 size-4' />}
-          </button>
+          </TipButton>
         </div>
       </div>
       <input
@@ -3546,6 +3546,23 @@ const IconButton = ({
     </Tooltip>
   )
 }
+const TipButton = ({
+  children,
+  label,
+  side,
+  ...props
+}: ComponentProps<'button'> & { label: string; side?: 'bottom' | 'left' | 'right' | 'top' }) => (
+  <Tooltip>
+    <TooltipTrigger
+      render={triggerProps => (
+        <button aria-label={label} type='button' {...triggerProps} {...props}>
+          {children}
+        </button>
+      )}
+    />
+    <TooltipContent side={side}>{label}</TooltipContent>
+  </Tooltip>
+)
 interface PdfRegion {
   box: readonly [number, number, number, number]
   color?: string
@@ -4074,66 +4091,50 @@ const PdfViewer = ({
           ))}
         </div>
         <div className='absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background/90 px-2 py-1 text-xs shadow-md backdrop-blur'>
-          <button
-            aria-label='Thumbnails'
-            aria-pressed={showThumbs}
-            className={TBTN}
-            onClick={() => setShowThumbs(t => !t)}
-            type='button'>
+          <TipButton aria-pressed={showThumbs} className={TBTN} label='Thumbnails' onClick={() => setShowThumbs(t => !t)}>
             <Images className='size-3.5' />
-          </button>
-          <button
-            aria-label='Previous page'
+          </TipButton>
+          <TipButton
             className={TBTN}
             disabled={page <= 1}
-            onClick={() => jump(Math.max(1, page - 1))}
-            type='button'>
+            label='Previous page'
+            onClick={() => jump(Math.max(1, page - 1))}>
             <ChevronLeft className='size-3.5' />
-          </button>
+          </TipButton>
           <span className='tabular-nums'>
             {page}/{doc.numPages}
           </span>
-          <button
-            aria-label='Next page'
+          <TipButton
             className={TBTN}
             disabled={page >= doc.numPages}
-            onClick={() => jump(Math.min(doc.numPages, page + 1))}
-            type='button'>
+            label='Next page'
+            onClick={() => jump(Math.min(doc.numPages, page + 1))}>
             <ChevronRight className='size-3.5' />
-          </button>
-          <button
-            aria-label='Zoom out'
+          </TipButton>
+          <TipButton
             className={TBTN}
-            onClick={() => setManualZoom(Math.max(0.4, Math.round((effZoom - 0.2) * 10) / 10))}
-            type='button'>
+            label='Zoom out'
+            onClick={() => setManualZoom(Math.max(0.4, Math.round((effZoom - 0.2) * 10) / 10))}>
             <Minus className='size-3.5' />
-          </button>
+          </TipButton>
           <span className='tabular-nums'>{Math.round(effZoom * 100)}%</span>
-          <button
-            aria-label='Zoom in'
+          <TipButton
             className={TBTN}
-            onClick={() => setManualZoom(Math.min(4, Math.round((effZoom + 0.2) * 10) / 10))}
-            type='button'>
+            label='Zoom in'
+            onClick={() => setManualZoom(Math.min(4, Math.round((effZoom + 0.2) * 10) / 10))}>
             <Plus className='size-3.5' />
-          </button>
-          <button
-            aria-label='Fit'
-            aria-pressed={fit !== 'none'}
-            className={TBTN}
-            onClick={() => setFit(nextFit)}
-            title={fitLabel(fit)}
-            type='button'>
+          </TipButton>
+          <TipButton aria-pressed={fit !== 'none'} className={TBTN} label={fitLabel(fit)} onClick={() => setFit(nextFit)}>
             <Maximize className='size-3.5' />
-          </button>
+          </TipButton>
           {regions.length > 0 ? (
-            <button
-              aria-label='Toggle regions'
+            <TipButton
               aria-pressed={showRegions}
               className={TBTN}
-              onClick={() => setShowRegions(s => !s)}
-              type='button'>
+              label='Toggle regions'
+              onClick={() => setShowRegions(s => !s)}>
               {showRegions ? <Eye className='size-3.5' /> : <EyeOff className='size-3.5' />}
-            </button>
+            </TipButton>
           ) : null}
           {controls}
         </div>
@@ -4303,12 +4304,12 @@ const CheckTree = ({ checkedIds, className, data, onCheckedChange }: CheckTreePr
                   </span>
                 </button>
                 {isFolder ? (
-                  <button
+                  <TipButton
                     className='flex size-5 shrink-0 items-center justify-center'
-                    onClick={() => toggleExpand(item.id)}
-                    type='button'>
+                    label={open ? `Collapse ${item.name}` : `Expand ${item.name}`}
+                    onClick={() => toggleExpand(item.id)}>
                     <ChevronRight className={cn('size-3 transition-transform', open ? 'rotate-90' : '')} />
-                  </button>
+                  </TipButton>
                 ) : (
                   <span className='w-2 shrink-0' />
                 )}
@@ -4619,9 +4620,9 @@ const ChunkListPanel = ({
                       <span className='shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums'>{length}</span>
                     </span>
                   </button>
-                  <button
-                    aria-label={expanded ? `Collapse chunk ${String(entry.order)}` : `Expand chunk ${String(entry.order)}`}
+                  <TipButton
                     className='mt-0.5 shrink-0 rounded p-0.5 text-muted-foreground opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100'
+                    label={expanded ? `Collapse chunk ${String(entry.order)}` : `Expand chunk ${String(entry.order)}`}
                     onClick={() =>
                       setExpandedChunks(previous => {
                         const next = new Set(previous)
@@ -4629,10 +4630,9 @@ const ChunkListPanel = ({
                         else next.add(entry.id)
                         return next
                       })
-                    }
-                    type='button'>
+                    }>
                     <ChevronRight className={cn('size-3 transition-transform', expanded && 'rotate-90')} />
-                  </button>
+                  </TipButton>
                 </div>
               </div>
             )
@@ -4711,14 +4711,13 @@ const ChunkEditorPanel = ({
         <div className='min-w-0 truncate text-xs text-muted-foreground'>{heading}</div>
         <div className='flex shrink-0 items-center gap-1'>
           {editor ? null : (
-            <button
-              aria-label={preview ? 'Edit markdown' : 'Preview markdown'}
+            <TipButton
               className={TBTN}
+              label={preview ? 'Edit markdown' : 'Preview markdown'}
               onClick={() => setPreview(shown => !shown)}
-              title={preview ? 'Edit' : 'Preview'}
-              type='button'>
+              title={preview ? 'Edit' : 'Preview'}>
               {preview ? <Pencil className='size-3.5' /> : <Eye className='size-3.5' />}
-            </button>
+            </TipButton>
           )}
           {onFontSize ? (
             <ScrubInput
