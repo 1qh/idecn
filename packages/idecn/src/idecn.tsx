@@ -4737,9 +4737,17 @@ const ChunkEditorPanel = ({
         {toolbar}
         {extra && extraInPopover ? (
           <Popover>
-            <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
-              <SlidersHorizontal className='size-3.5' />
-            </PopoverTrigger>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- base-ui composition contract: the element-form render merges the tooltip and popover trigger refs, where the function form re-clobbers one
+                  <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
+                    <SlidersHorizontal className='size-3.5' />
+                  </PopoverTrigger>
+                }
+              />
+              <TooltipContent>Keywords and questions</TooltipContent>
+            </Tooltip>
             <PopoverContent align='end' className='flex w-80 max-w-[92vw] flex-col gap-1.5 p-2'>
               {extra}
             </PopoverContent>
