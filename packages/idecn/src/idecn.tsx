@@ -99,10 +99,12 @@ import {
 } from 'react'
 import { createHighlighter } from 'shiki'
 import { toast } from 'sonner'
+import { Streamdown } from 'streamdown'
 import { z } from 'zod'
 import type { GridEditorHostProps, TextAnnotationHostProps } from './annotation-hosts'
 import type { ChunkSpan } from './text-annotation'
 import { badgeStyle, chunkColor, regionStyle, rowStyle, textColor, tint } from './chunk-color'
+import { parseJson } from './parse-json'
 import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotation'
 
 let pdfWorkerSet = false
@@ -286,6 +288,7 @@ interface MonacoApi {
 }
 const initMonaco = async (): Promise<MonacoApi> => {
   const instance: unknown = await loader.init()
+  /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Monaco loader returns an untyped external API instance */
   return instance as MonacoApi
 }
 const CORE_LANGS = ['javascript', 'json', 'markdown', 'tsx', 'typescript'] as const
@@ -312,6 +315,7 @@ const defineThemes = (
 ) => {
   for (const name of highlighter.getLoadedThemes()) {
     const resolved = highlighter.getTheme(name)
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Shiki theme conversion crosses the external Monaco theme boundary */
     const converted = textmateThemeToMonacoTheme(resolved) as { colors: Record<string, string> }
     const isDark = resolved.type === 'dark'
     if (isDark) {
@@ -337,12 +341,16 @@ const shikiSetup =
         const theme = mod.monokaiLite
         const highlighter = await createHighlighter({
           langs: [...CORE_LANGS],
-          themes: [theme as Parameters<typeof createHighlighter>[0]['themes'][0], 'github-light']
+          themes: [
+            /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Shiki theme value crosses the external highlighter parameter boundary */
+            theme as Parameters<typeof createHighlighter>[0]['themes'][0],
+            'github-light'
+          ]
         })
         const monaco = await initMonaco()
         shikiToMonaco(highlighter, monaco)
         defineThemes(highlighter, monaco)
-        const remaining = ALL_LANGS.filter(l => !CORE_LANGS.includes(l as (typeof CORE_LANGS)[number]))
+        const remaining = ALL_LANGS.filter(l => !CORE_LANGS.some(k => k === l))
         if (remaining.length > 0)
           highlighter
             .loadLanguage(...remaining)
@@ -392,7 +400,13 @@ const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: st
 const extractTabs = (children: ReactNode): TabProps[] => {
   const tabs: TabProps[] = []
   Children.forEach(children, child => {
-    if (isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE) tabs.push(child.props as TabProps)
+    if (
+      isValidElement(child) &&
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: React element type metadata is an untyped external boundary */
+      (child.type as { _type?: symbol })._type === TAB_TYPE
+    )
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: React element props cross the untyped tab component boundary */
+      tabs.push(child.props as TabProps)
   })
   return tabs
 }
@@ -625,8 +639,8 @@ const classifyTreeKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
 }
 const runNav = (e: React.KeyboardEvent<HTMLDivElement>, target: HTMLElement): void => {
   const items = e.currentTarget.querySelectorAll<HTMLElement>('[role=treeitem]')
-  const treeItem = target.closest('[role=treeitem]')
-  const idx = treeItem ? [...items].indexOf(treeItem as HTMLElement) : -1
+  const treeItem = target.closest<HTMLElement>('[role=treeitem]')
+  const idx = treeItem ? [...items].indexOf(treeItem) : -1
   if (e.key === 'ArrowDown') items[Math.min(idx + 1, items.length - 1)]?.focus()
   else if (e.key === 'ArrowUp') items[Math.max(idx - 1, 0)]?.focus()
   else target.click()
@@ -886,7 +900,8 @@ const Tree = ({
             )
           )
             return
-          const target = e.target as HTMLElement
+          const { target } = e
+          if (!(target instanceof HTMLElement)) return
           if (!target.closest('[role=treeitem]')) return
           e.preventDefault()
           e.stopPropagation()
@@ -918,8 +933,9 @@ const Tree = ({
           runNav(e, target)
         }}
         onPointerDown={e => {
-          const inside = e.currentTarget.contains(e.target as Node)
-          if (e.button !== 0 || !inside || (e.target as HTMLElement).closest('[role=treeitem]')) return
+          const { target } = e
+          const inside = target instanceof Node && e.currentTarget.contains(target)
+          if (e.button !== 0 || !inside || (target instanceof HTMLElement && target.closest('[role=treeitem]'))) return
           marqueeRef.current = localPoint(e)
           setMarquee(null)
         }}
@@ -1274,7 +1290,7 @@ const TreeFolder = ({
           </ContextMenu>
         )}
         <Accordion.Panel className='relative overflow-hidden h-(--accordion-panel-height) transition-[height] duration-150 ease-out data-ending-style:h-0 data-starting-style:h-0'>
-          <span className='absolute top-0 bottom-0 w-px bg-accent' style={{ left: `${String(depth * indent + 16)}px` }} />
+          <span className='absolute inset-y-0 w-px bg-accent' style={{ left: `${String(depth * indent + 16)}px` }} />
           <DepthContext value={depth + 1}>
             {showingInput ? (
               <InlineInput
@@ -1593,6 +1609,7 @@ const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode 
   const [content, setContent] = useState(params.content)
   useEffect(() => {
     const d = api.onDidParametersChange(e => {
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview parameter event crosses the external panel payload boundary */
       const p = e as { content?: ReactNode }
       if (p.content !== undefined) setContent(p.content)
     })
@@ -1607,6 +1624,7 @@ const ImagePanel = ({ api, params }: IDockviewPanelProps<{ src: string }>) => {
   const [src, setSrc] = useState(params.src)
   useEffect(() => {
     const d = api.onDidParametersChange(e => {
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview parameter event crosses the external panel payload boundary */
       const p = e as { src?: string }
       if (p.src !== undefined) setSrc(p.src)
     })
@@ -1652,6 +1670,7 @@ const FilePanel = ({
   }, [])
   useEffect(() => {
     const d = api.onDidParametersChange(e => {
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview parameter event crosses the external panel payload boundary */
       const p = e as {
         content?: string
         editorOptions?: Record<string, unknown>
@@ -1696,7 +1715,7 @@ const FilePanel = ({
         <Skeleton className='h-4 w-2/3' />
       </div>
     )
-  const editablePanel = (editorOpts as undefined | { readOnly?: boolean })?.readOnly === false
+  const editablePanel = typeof editorOpts?.readOnly === 'boolean' && !editorOpts.readOnly
   if (!(content || editablePanel)) return <div className={cn(CENTER, 'text-sm text-muted-foreground')}>Empty file</div>
   const pathParts = api.id.split('/')
   return (
@@ -1875,19 +1894,20 @@ const TabMenu = ({
     </ContextMenuContent>
   )
 }
+interface TabHeaderParams {
+  activeClassName?: string
+  closable?: boolean
+  contextMenu?: TabMenuKey[]
+  headerClassName?: string
+  icon?: boolean | IconComponent
+  iconName?: string
+  inactiveClassName?: string
+  preview?: boolean
+}
 const TabHeader = ({ api, params }: IDockviewPanelHeaderProps) => {
-  const p = params as
-    | undefined
-    | {
-        activeClassName?: string
-        closable?: boolean
-        contextMenu?: TabMenuKey[]
-        headerClassName?: string
-        icon?: boolean | IconComponent
-        iconName?: string
-        inactiveClassName?: string
-        preview?: boolean
-      }
+  const p =
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview header params are typed at this external panel boundary */
+    params as TabHeaderParams | undefined
   const dv = use(DockviewApiContext)
   const previewId = useAtomValue(previewPanelAtom)
   const [pinnedTabs, setPinnedTabs] = useAtom(pinnedTabsAtom)
@@ -2170,7 +2190,7 @@ const restoreLayout = (api: DockviewApi, key: string, tabs: TabProps[]): boolean
   }
   if (raw === null || raw === '') return false
   try {
-    api.fromJSON(JSON.parse(raw) as Parameters<typeof api.fromJSON>[0])
+    api.fromJSON(parseJson<Parameters<typeof api.fromJSON>[0]>(raw))
   } catch {
     return false
   }
@@ -2292,7 +2312,9 @@ const Workspace = ({
     log(next ? 'Sidebar opened' : 'Sidebar closed')
   }, [log, onSidebarChange, sidebarVisible])
   const stateRef = useRef({
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview state stores an externally typed API reference */
     api: null as DockviewApi | null,
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Dockview state stores externally typed disposable handles */
     disposables: [] as { dispose: () => void }[],
     fileIds: new Set<string>(),
     geom: new Map<string, { height: number; width: number }>(),
@@ -2519,7 +2541,14 @@ const Workspace = ({
   const sidebarChildren = useMemo(() => {
     const items: ReactNode[] = []
     Children.forEach(children, child => {
-      if (!(isValidElement(child) && (child.type as { _type?: symbol })._type === TAB_TYPE)) items.push(child)
+      if (
+        !(
+          isValidElement(child) &&
+          /** biome-ignore lint/nursery/noUnsafeTypeAssertion: React element type metadata is an untyped external boundary */
+          (child.type as { _type?: symbol })._type === TAB_TYPE
+        )
+      )
+        items.push(child)
     })
     return items
   }, [children])
@@ -3320,7 +3349,9 @@ const toLevaSchema = (
       } else top[key] = control
   }
   const out: Record<string, unknown> = { ...top }
+  /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Leva folder API requires its external Schema shape */
   for (const [name, controls] of Object.entries(folders)) out[name] = folder(controls as Schema, { collapsed: true })
+  /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Leva panel API consumes the assembled external Schema shape */
   return out as Schema
 }
 const configTheme: ConfigLevaTheme = {
@@ -3347,7 +3378,7 @@ const persistConfig = (key: string): { load: () => unknown; save: (values: unkno
   load: () => {
     try {
       const raw = globalThis.localStorage.getItem(key)
-      return raw === null ? null : (JSON.parse(raw) as unknown)
+      return raw === null ? null : parseJson<unknown>(raw)
     } catch {
       return null
     }
@@ -3374,9 +3405,7 @@ const useConfig = <T extends z.ZodObject>(
   const overlayDep = JSON.stringify(Object.entries(options?.overlay ?? {}).map(([key, meta]) => [key, meta.enum ?? null]))
   const [values] = useControls(
     () => {
-      const loaded = options?.load
-        ? (schema.partial().safeParse(options.load()).data as Record<string, unknown> | undefined)
-        : undefined
+      const loaded = options?.load ? schema.partial().safeParse(options.load()).data : undefined
       return toLevaSchema(schema, {
         acronyms: options?.acronyms,
         icons: options?.icons,
@@ -3386,6 +3415,7 @@ const useConfig = <T extends z.ZodObject>(
     },
     { store },
     [overlayDep]
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: third-party Leva hook return value lacks a generic tuple type */
   ) as unknown as [z.infer<T>, unknown]
   const saveRef = useRef(options?.save)
   useEffect(() => {
@@ -3568,6 +3598,7 @@ interface ViewportGeom {
   convertToPdfPoint: (x: number, y: number) => [number, number]
   convertToViewportPoint: (x: number, y: number) => [number, number]
 }
+/** biome-ignore lint/nursery/noUnsafeTypeAssertion: pdfjs viewport exposes the required geometry methods without the local interface */
 const vpGeom = (vp: PageViewport): ViewportGeom => vp as unknown as ViewportGeom
 const pdfBoxStyle = (vp: PageViewport, box: readonly [number, number, number, number]) => {
   const [x1, y1] = vpGeom(vp).convertToViewportPoint(box[0], box[1])
@@ -3808,7 +3839,13 @@ const PdfPage = ({
                   onRegionClick?.(r.id)
                 }}
                 onPointerDown={e =>
-                  rStart(e, r.id, ((e.target as HTMLElement).dataset.mode as ResizeMode | undefined) ?? 'move')
+                  rStart(
+                    e,
+                    r.id,
+                    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: DOM data attribute crosses the ResizeMode union boundary */
+                    ((e.target instanceof HTMLElement ? e.target.dataset.mode : undefined) as ResizeMode | undefined) ??
+                      'move'
+                  )
                 }
                 onPointerMove={rMove}
                 onPointerUp={rEnd}
@@ -4641,6 +4678,27 @@ const ChunkEditorPanel = ({
   value
 }: ChunkEditorPanelProps) => {
   const style = useMemo(() => ({ fontSize: `${String(fontSize)}px` }), [fontSize])
+  const [preview, setPreview] = useState(false)
+  const editorBody = (): ReactNode => {
+    if (editor)
+      return <div className='flex min-h-0 flex-1 flex-col'>{editor({ fontSize, onChange, onCursor, value })}</div>
+    if (preview)
+      return (
+        <div className='min-h-0 flex-1 overflow-auto p-3' style={style}>
+          <Streamdown>{value}</Streamdown>
+        </div>
+      )
+    return (
+      <Textarea
+        className='min-h-0 flex-1 resize-none rounded-none border-x-0 font-mono'
+        onChange={event => onChange(event.target.value)}
+        onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
+        placeholder={placeholder}
+        style={style}
+        value={value}
+      />
+    )
+  }
   if (!show)
     return (
       <div className='@container flex h-full min-h-0 min-w-0 flex-col items-center justify-center overflow-auto p-4 text-center text-sm text-muted-foreground'>
@@ -4651,30 +4709,31 @@ const ChunkEditorPanel = ({
     <div className='@container flex h-full min-h-0 min-w-0 flex-col overflow-auto'>
       <div className='flex shrink-0 items-center justify-between gap-2 p-2'>
         <div className='min-w-0 truncate text-xs text-muted-foreground'>{heading}</div>
-        {onFontSize ? (
-          <ScrubInput
-            ariaLabel='Editor font size'
-            label='Font'
-            max={24}
-            min={9}
-            onChange={onFontSize}
-            title='px'
-            value={fontSize}
-          />
-        ) : null}
+        <div className='flex shrink-0 items-center gap-1'>
+          {editor ? null : (
+            <button
+              aria-label={preview ? 'Edit markdown' : 'Preview markdown'}
+              className={TBTN}
+              onClick={() => setPreview(shown => !shown)}
+              title={preview ? 'Edit' : 'Preview'}
+              type='button'>
+              {preview ? <Pencil className='size-3.5' /> : <Eye className='size-3.5' />}
+            </button>
+          )}
+          {onFontSize ? (
+            <ScrubInput
+              ariaLabel='Editor font size'
+              label='Font'
+              max={24}
+              min={9}
+              onChange={onFontSize}
+              title='px'
+              value={fontSize}
+            />
+          ) : null}
+        </div>
       </div>
-      {editor ? (
-        <div className='flex min-h-0 flex-1 flex-col'>{editor({ fontSize, onChange, onCursor, value })}</div>
-      ) : (
-        <Textarea
-          className='min-h-0 flex-1 resize-none rounded-none border-x-0 font-mono'
-          onChange={event => onChange(event.target.value)}
-          onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
-          placeholder={placeholder}
-          style={style}
-          value={value}
-        />
-      )}
+      {editorBody()}
       <div className='flex shrink-0 flex-wrap items-center gap-1 p-2'>
         {toolbar}
         {extra && extraInPopover ? (

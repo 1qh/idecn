@@ -46,5 +46,5 @@ const data = JSON.stringify({
 // oxlint-disable-next-line node/no-sync
 writeFileSync(resolve(outDir, 'icons.ts'), `const icons = ${data}\nexport { icons }\n`)
 console.log(
-  `Generated ${Object.keys(svgMap).length} icon SVGs, manifest with ${Object.keys(manifest.folderNames as object).length} folder mappings`
+  `Generated ${Object.keys(svgMap).length} icon SVGs, manifest with ${Object.keys(manifest.folderNames).length} folder mappings`
 )

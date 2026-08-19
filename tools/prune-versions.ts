@@ -4,8 +4,17 @@
 import { $, file } from 'bun'
 import { join } from 'node:path'
 
+const toVersionList = (parsed: unknown): string[] => {
+  if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string')
+  if (typeof parsed === 'string') return [parsed]
+  return []
+}
+const readPkg = async (path: string): Promise<{ name?: string; version?: string }> => {
+  const parsed: unknown = await file(path).json()
+  return typeof parsed === 'object' && parsed !== null ? parsed : {}
+}
 const pkgPath = join(process.cwd(), 'package.json')
-const pkg = (await file(pkgPath).json()) as { name?: string; version?: string }
+const pkg = await readPkg(pkgPath)
 if (!(pkg.name && pkg.version)) {
   console.error('package.json missing name or version')
   process.exit(1)
@@ -21,8 +30,7 @@ if (view.exitCode !== 0) {
   console.log(`${pkg.name}: first publish, nothing to clean`)
   process.exit(0)
 }
-const versions = JSON.parse(view.stdout.toString()) as string | string[]
-const allVersions = Array.isArray(versions) ? versions : [versions]
+const allVersions = toVersionList(JSON.parse(view.stdout.toString()))
 const old = allVersions.filter(v => v !== pkg.version)
 if (old.length === 0) {
   console.log(`${pkg.name}: no old versions`)

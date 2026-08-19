@@ -9,6 +9,7 @@ import { AlertTriangle, Moon, PanelLeft, Search, Star, Sun, X } from 'lucide-rea
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { parseJson } from '../../../packages/idecn/src/parse-json'
 import { downloadFile, downloadFolder, fetchFile, fetchTree } from './actions'
 import { DEFAULT_FILES, DEFAULT_REPO, EXPAND_EXCLUDE } from './constants'
 
@@ -42,7 +43,6 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
     (): VirtualFile[] => [{ content: activity, language: 'log', name: 'Activity', open: true, pin: 'bottom' }],
     [activity]
   )
-  /** biome-ignore lint/correctness/useExhaustiveDependencies: mount only */
   useEffect(() => {
     setMounted(true)
     log(`Loaded ${DEFAULT_REPO} with ${initialTree.length} root items`)
@@ -52,7 +52,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps, @eslint-react/exhaustive-deps
+  }, [initialTree, log])
   useEffect(() => {
     setError(null)
     if (repo === DEFAULT_REPO) {
@@ -63,13 +63,13 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
     log(`Fetching tree for ${repo}`)
     const loadFromJsdelivr = async () => {
       const r = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
-      const d = (await r.json()) as { files?: unknown[] }
+      const d = parseJson<{ files?: TreeDataItem[] }>(await r.text())
       if (!d.files) throw new Error('no files')
-      setTree(d.files as TreeDataItem[])
+      setTree(d.files)
     }
     const loadFromGithubApi = async () => {
       const r = await fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`)
-      const d = (await r.json()) as { tree?: { path: string; type: string }[] }
+      const d = parseJson<{ tree?: { path: string; type: string }[] }>(await r.text())
       if (!d.tree) throw new Error('no tree')
       const items: TreeDataItem[] = []
       const dirs = new Map<string, TreeDataItem>()
@@ -273,7 +273,7 @@ const Explorer = ({ tree: initialTree }: { tree: TreeDataItem[] }) => {
             return raw
           }
           const ghContent = await fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`)
-            .then(async r => r.json() as Promise<{ content?: string }>)
+            .then(async r => parseJson<{ content?: string }>(await r.text()))
             .then(d => (d.content ? atob(d.content) : null))
             .catch(() => null)
           if (ghContent !== null) {

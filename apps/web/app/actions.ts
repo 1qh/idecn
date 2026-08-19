@@ -2,6 +2,7 @@
 import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parseJson } from '../../../packages/idecn/src/parse-json'
 import { DEFAULT_REPO } from './constants'
 
 const findRoot = (): null | string => {
@@ -13,7 +14,7 @@ const findRoot = (): null | string => {
 const root = findRoot()
 const bundledRepo = await (async (): Promise<Record<string, string>> => {
   try {
-    const mod = (await import('./.cache/repo.json')) as { default: Record<string, string> }
+    const mod = await import('./.cache/repo.json')
     return mod.default
   } catch {
     return {}
@@ -134,7 +135,7 @@ const fetchTree = async (repo: string): Promise<TreeItem[]> => {
   }
   const r = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}@main`)
   if (!r.ok) throw new Error(`jsdelivr: ${String(r.status)}`)
-  const d = (await r.json()) as { files?: JsdelivrFile[] }
+  const d = parseJson<{ files?: JsdelivrFile[] }>(await r.text())
   return d.files ? jsdelivrToTree(d.files) : []
 }
 const IMAGE_EXTS = new Set(['apng', 'avif', 'bmp', 'gif', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'webp'])

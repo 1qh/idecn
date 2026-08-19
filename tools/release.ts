@@ -19,10 +19,19 @@ interface Target {
 }
 /** Only a 404 means the package is genuinely not on npm; every other npm failure is the registry declining to answer. */
 const notFoundRe = /E404|404 Not Found/u
+const toVersionList = (parsed: unknown): string[] => {
+  if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string')
+  if (typeof parsed === 'string') return [parsed]
+  return []
+}
+const readPkg = async (path: string): Promise<Pkg> => {
+  const parsed: unknown = await file(path)
+    .json()
+    .catch(() => ({}))
+  return typeof parsed === 'object' && parsed !== null ? parsed : {}
+}
 const root = process.cwd()
-const rootPkg = (await file(join(root, 'package.json'))
-  .json()
-  .catch(() => ({}))) as Pkg
+const rootPkg = await readPkg(join(root, 'package.json'))
 const globs = rootPkg.workspaces ?? ['packages/*']
 const scanned = await Promise.all(
   globs.map(async g =>
@@ -34,9 +43,7 @@ const paths = [...rootCandidate, ...scanned.flat()]
 const pkgs = await Promise.all(
   paths.map(async path => ({
     path,
-    pkg: (await file(path)
-      .json()
-      .catch(() => ({}))) as Pkg
+    pkg: await readPkg(path)
   }))
 )
 const resolve = async (path: string, pkg: Pkg): Promise<null | Target> => {
@@ -46,8 +53,7 @@ const resolve = async (path: string, pkg: Pkg): Promise<null | Target> => {
     throw new Error(
       `npm view ${pkg.name} failed, so whether it needs publishing is unknown: ${view.stderr.toString().trim()}`
     )
-  const versions = view.exitCode === 0 ? (JSON.parse(view.stdout.toString().trim() || '[]') as string | string[]) : []
-  const all = Array.isArray(versions) ? versions : [versions]
+  const all = toVersionList(view.exitCode === 0 ? JSON.parse(view.stdout.toString().trim() || '[]') : [])
   return {
     dir: dirname(path),
     name: pkg.name,

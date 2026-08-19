@@ -2,16 +2,17 @@
 import { file, write } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parseJson } from '../src/parse-json'
 
 const root = resolve(import.meta.dir, '..')
 const repoRoot = resolve(root, '../..')
 const outDir = resolve(repoRoot, 'apps/web/public/r')
 const read = async (path: string) => file(resolve(root, path)).text()
 const readUi = async (path: string) => file(resolve(repoRoot, 'readonly/ui/src', path)).text()
-const pkg = JSON.parse(await read('package.json')) as { dependencies: Record<string, string> }
-const uiPkg = JSON.parse(await file(resolve(repoRoot, 'readonly/ui/package.json')).text()) as {
-  dependencies: Record<string, string>
-}
+const pkg = parseJson<{ dependencies: Record<string, string> }>(await read('package.json'))
+const uiPkg = parseJson<{ dependencies: Record<string, string> }>(
+  await file(resolve(repoRoot, 'readonly/ui/package.json')).text()
+)
 /** A vendored ui file carries its own npm deps (its package declares them, this one does not), so resolving an import against this package alone silently drops them and the consumer installs a component whose imports cannot resolve. */
 const knownDeps = { ...uiPkg.dependencies, ...pkg.dependencies }
 /** The consumer's own app already provides these; declaring them would fight their versions. */
@@ -75,14 +76,18 @@ content = rewriteWorkspaceAliases(
     .replaceAll('./_generated/icons', '@/lib/icons')
     .replaceAll('./monokai-lite', '@/lib/monokai-lite')
     .replaceAll('./annotation-hosts', '@/lib/annotation-hosts')
+    .replaceAll('./parse-json', '@/lib/parse-json')
 )
 /** Every sibling the main component imports has to be emitted; one that is rewritten to an alias but never shipped resolves to nothing in the consumer's app. */
 const annotationHosts = rewriteWorkspaceAliases(await read('src/annotation-hosts.tsx'))
 const icons = await read('src/_generated/icons.ts')
 const monokai = await read('src/monokai-lite.ts')
+const parseJsonSource = await read('src/parse-json.ts')
 /** Derived from what is actually emitted, never a hand-kept list: a dep reachable only from a vendored ui file or a sibling module is invisible to a scan of the main component alone. */
 const deps = [
-  ...new Set([content, annotationHosts, icons, monokai, ...uiFiles.map(f => f.content)].flatMap(externalPackages))
+  ...new Set(
+    [content, annotationHosts, icons, monokai, parseJsonSource, ...uiFiles.map(f => f.content)].flatMap(externalPackages)
+  )
 ]
   .filter(dep => dep in knownDeps && !peerProvided.has(dep))
   .toSorted((a, b) => (a < b ? -1 : Number(a > b)))
@@ -105,6 +110,11 @@ const files = [
   {
     content: monokai,
     path: 'lib/monokai-lite.ts',
+    type: 'registry:lib'
+  },
+  {
+    content: parseJsonSource,
+    path: 'lib/parse-json.ts',
     type: 'registry:lib'
   },
   ...uiFiles

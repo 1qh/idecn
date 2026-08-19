@@ -2,7 +2,7 @@ import { downloadZip } from 'client-zip'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import bundled from '../../.cache/repo.json' with { type: 'json' }
-
+/** biome-ignore lint/nursery/noUnsafeTypeAssertion: imported JSON module crosses the untyped asset boundary */
 const bundledRepo = bundled as Record<string, string>
 const findRoot = (): null | string => {
   const candidates = [process.cwd(), resolve(process.cwd(), '../..'), resolve(process.cwd(), '../../..')]
@@ -75,12 +75,16 @@ const GET = (req: Request): Response => {
   const name = path.split('/').at(-1) ?? 'download'
   const buf = readFile(path)
   if (buf)
-    return new Response(new Blob([buf as BlobPart]), {
-      headers: {
-        'content-disposition': `attachment; filename="${name}"`,
-        'content-type': 'application/octet-stream'
+    return new Response(
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: Uint8Array crosses the DOM BlobPart boundary */
+      new Blob([buf as BlobPart]),
+      {
+        headers: {
+          'content-disposition': `attachment; filename="${name}"`,
+          'content-type': 'application/octet-stream'
+        }
       }
-    })
+    )
   const entries = collectLocalFiles(path).map(f => ({ input: f.content, name: f.path }))
   if (entries.length === 0) return new Response('Not found', { status: 404 })
   return new Response(downloadZip(entries).body, {

@@ -33,6 +33,7 @@ const rowStyle = (color: string, selected: boolean): CSSProperties =>
     '--chunk-ring': color,
     backgroundColor: tint(color, selected ? 22 : 8),
     borderLeftColor: selected ? color : undefined
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: CSS custom-property style object crosses the React CSSProperties boundary */
   }) as CSSProperties
 const PAD = 2
 const regionBgPct = (retrieved: boolean, selected: boolean): number => {
@@ -65,6 +66,7 @@ const regionStyle = ({
     left: base.left - PAD,
     top: base.top - PAD,
     width: base.width + PAD * 2
+    /** biome-ignore lint/nursery/noUnsafeTypeAssertion: CSS custom-property style object crosses the React CSSProperties boundary */
   }) as CSSProperties
 const badgeStyle = (color: string): CSSProperties => ({ backgroundColor: color })
 const textColor = (color: string): CSSProperties => ({ color })

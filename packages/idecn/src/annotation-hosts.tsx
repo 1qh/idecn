@@ -43,7 +43,9 @@ const AnnotatorBinding = ({
   const anno = useAnnotator<RecogitoTextAnnotator>()
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- useAnnotator returns null until the annotator mounts
-    if (anno) anno.setAnnotations(annotations as TextAnnotation[])
+    if (anno)
+      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: third-party annotator API requires a mutable annotation array */
+      anno.setAnnotations(annotations as TextAnnotation[])
   }, [anno, annotations])
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- useAnnotator returns null until the annotator mounts
