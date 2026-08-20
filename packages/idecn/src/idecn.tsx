@@ -4701,7 +4701,7 @@ const ChunkEditorPanel = ({
       )
     return (
       <Textarea
-        className='min-h-0 flex-1 resize-none rounded-none border-0 px-3 font-mono'
+        className='min-h-0 flex-1 resize-none rounded-none border-0 px-3 font-mono focus-visible:border-0 focus-visible:ring-0'
         onChange={event => onChange(event.target.value)}
         onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
         placeholder={placeholder}
