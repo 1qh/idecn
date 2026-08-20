@@ -4659,6 +4659,7 @@ interface ChunkEditorPanelProps {
   onFontSize?: (value: number) => void
   placeholder?: string
   show: boolean
+  subject?: ReactNode
   toolbar: ReactNode
   value: string
 }
@@ -4674,23 +4675,33 @@ const ChunkEditorPanel = ({
   onFontSize,
   placeholder,
   show,
+  subject,
   toolbar,
   value
 }: ChunkEditorPanelProps) => {
   const style = useMemo(() => ({ fontSize: `${String(fontSize)}px` }), [fontSize])
   const [preview, setPreview] = useState(false)
+  const modeLabel = preview ? 'Previewing' : 'Editing'
+  const headerNode: ReactNode =
+    subject === undefined ? (
+      heading
+    ) : (
+      <>
+        {modeLabel} {subject}
+      </>
+    )
   const editorBody = (): ReactNode => {
     if (editor)
       return <div className='flex min-h-0 flex-1 flex-col'>{editor({ fontSize, onChange, onCursor, value })}</div>
     if (preview)
       return (
-        <div className='min-h-0 flex-1 overflow-auto p-3' style={style}>
+        <div className='min-h-0 flex-1 overflow-auto px-3 py-1' style={style}>
           <Streamdown>{value}</Streamdown>
         </div>
       )
     return (
       <Textarea
-        className='min-h-0 flex-1 resize-none rounded-none border-x-0 font-mono'
+        className='min-h-0 flex-1 resize-none rounded-none border-0 px-3 font-mono'
         onChange={event => onChange(event.target.value)}
         onSelect={event => onCursor?.(event.currentTarget.selectionStart)}
         placeholder={placeholder}
@@ -4707,9 +4718,28 @@ const ChunkEditorPanel = ({
     )
   return (
     <div className='@container flex h-full min-h-0 min-w-0 flex-col overflow-auto'>
-      <div className='flex shrink-0 items-center justify-between gap-2 p-2'>
-        <div className='min-w-0 truncate text-xs text-muted-foreground'>{heading}</div>
-        <div className='flex shrink-0 items-center gap-1'>
+      <div className='flex shrink-0 flex-wrap items-center justify-between gap-1 px-2'>
+        <div className='min-w-0 truncate text-xs text-muted-foreground'>{headerNode}</div>
+        <div className='flex shrink-0 flex-wrap items-center gap-1'>
+          {toolbar}
+          {extra && extraInPopover ? (
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- base-ui composition contract: the element-form render merges the tooltip and popover trigger refs, where the function form re-clobbers one
+                    <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
+                      <SlidersHorizontal className='size-3.5' />
+                    </PopoverTrigger>
+                  }
+                />
+                <TooltipContent>Keywords and questions</TooltipContent>
+              </Tooltip>
+              <PopoverContent align='end' className='flex w-80 max-w-[92vw] flex-col gap-1.5 p-2'>
+                {extra}
+              </PopoverContent>
+            </Popover>
+          ) : null}
           {editor ? null : (
             <TipButton
               className={TBTN}
@@ -4733,27 +4763,6 @@ const ChunkEditorPanel = ({
         </div>
       </div>
       {editorBody()}
-      <div className='flex shrink-0 flex-wrap items-center gap-1 p-2'>
-        {toolbar}
-        {extra && extraInPopover ? (
-          <Popover>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- base-ui composition contract: the element-form render merges the tooltip and popover trigger refs, where the function form re-clobbers one
-                  <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
-                    <SlidersHorizontal className='size-3.5' />
-                  </PopoverTrigger>
-                }
-              />
-              <TooltipContent>Keywords and questions</TooltipContent>
-            </Tooltip>
-            <PopoverContent align='end' className='flex w-80 max-w-[92vw] flex-col gap-1.5 p-2'>
-              {extra}
-            </PopoverContent>
-          </Popover>
-        ) : null}
-      </div>
       {extra && !extraInPopover ? <div className='flex shrink-0 flex-col gap-1.5 p-2 pt-0'>{extra}</div> : null}
     </div>
   )
