@@ -4720,7 +4720,7 @@ const ChunkEditorPanel = ({
     <div className='@container flex h-full min-h-0 min-w-0 flex-col overflow-auto'>
       <div className='flex shrink-0 flex-wrap items-center justify-between gap-1 px-2'>
         <div className='min-w-0 truncate text-xs text-muted-foreground'>{headerNode}</div>
-        <div className='flex shrink-0 flex-wrap items-center gap-1'>
+        <div className='flex shrink-0 flex-wrap items-center gap-1 [&_button]:inline-flex [&_button]:size-8 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:hover:bg-accent [&_svg]:size-4'>
           {toolbar}
           {extra && extraInPopover ? (
             <Popover>
@@ -4728,8 +4728,8 @@ const ChunkEditorPanel = ({
                 <TooltipTrigger
                   render={
                     // oxlint-disable-next-line react-perf/jsx-no-jsx-as-prop -- base-ui composition contract: the element-form render merges the tooltip and popover trigger refs, where the function form re-clobbers one
-                    <PopoverTrigger aria-label='Keywords and questions' className={TBTN}>
-                      <SlidersHorizontal className='size-3.5' />
+                    <PopoverTrigger aria-label='Keywords and questions'>
+                      <SlidersHorizontal />
                     </PopoverTrigger>
                   }
                 />
@@ -4742,18 +4742,17 @@ const ChunkEditorPanel = ({
           ) : null}
           {editor ? null : (
             <TipButton
-              className={TBTN}
               label={preview ? 'Edit markdown' : 'Preview markdown'}
               onClick={() => setPreview(shown => !shown)}
               title={preview ? 'Edit' : 'Preview'}>
-              {preview ? <Pencil className='size-3.5' /> : <Eye className='size-3.5' />}
+              {preview ? <Pencil /> : <Eye />}
             </TipButton>
           )}
           {onFontSize ? (
             <ScrubInput
               ariaLabel='Editor font size'
               label='Font'
-              max={24}
+              max={48}
               min={9}
               onChange={onFontSize}
               title='px'
