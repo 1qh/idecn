@@ -27,6 +27,10 @@
       "types": "./dist/idecn.d.ts",
       "import": "./dist/idecn.js"
     },
+    "./chunk-studio": {
+      "types": "./dist/chunk-studio.d.ts",
+      "import": "./dist/chunk-studio.js"
+    },
     "./styles.css": "./dist/dockview.css"
   },
   "main": "./dist/idecn.js",
@@ -53,9 +57,13 @@
     "@tanstack/react-virtual": "latest",
     "dockview-core": "latest",
     "dockview-react": "latest",
+    "headrace": "latest",
     "jotai": "latest",
     "leva": "latest",
+    "next-themes": "latest",
     "pdfjs-dist": "latest",
+    "ragworks": "latest",
+    "sonner": "latest",
     "streamdown": "latest"
   },
   "peerDependencies": {
