@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: dockview panel ids are stable layout keys, not DOM element ids */
+/* oxlint-disable promise/prefer-await-to-then, promise/always-return, react-perf/jsx-no-jsx-as-prop -- fire-and-forget mutation handlers and the nested render-prop tooltip/popover triggers are the established idecn pattern */
 'use client'
 import type { ReactNode } from 'react'
 import { cn } from '@a/ui'
@@ -49,6 +50,7 @@ import {
   TextAnnotationHost,
   Workspace
 } from './idecn'
+
 type Box = readonly [number, number, number, number]
 type ChunksView = SpatialView | TextView
 type InitResult = 'error' | 'no-token' | 'ok'
@@ -418,7 +420,8 @@ const useStudio = (
   }, [data, picked, runMutation])
   const onPickedChange = useCallback((next: ReadonlySet<string>) => setPicked(next), [])
   const onEditorFont = useCallback((value: number) => {
-    setEditorFont(Math.max(9, Math.min(MAX_FONT, Math.round(value))))
+    const rounded = Math.round(value)
+    setEditorFont(Math.max(9, Math.min(MAX_FONT, rounded)))
   }, [])
   const shownChunks = useMemo(() => {
     const chunks = data?.chunks ?? []
@@ -1096,4 +1099,4 @@ export type {
   TextChunk,
   TextView
 }
-export { ChunkEditorView, ChunkListView, ChunkStudio, DocumentView, StudioContext, StudioProvider, type useSt, useStudio }
+export { ChunkEditorView, ChunkListView, ChunkStudio, DocumentView, StudioContext, StudioProvider, useSt, useStudio }
