@@ -32,7 +32,7 @@ import {
   ZoomOut
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { mergeChunkTexts, splitChunkText,findReplaceChunks } from 'ragworks/chunk-edit'
+import { findReplaceChunks, mergeChunkTexts, splitChunkText } from 'ragworks/chunk-edit'
 import { chunkKey, pollUntilChanged, pollUntilKey } from 'ragworks/chunk-poll'
 import { chunkPreviews } from 'ragworks/synthetic'
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -181,8 +181,8 @@ const DEFAULT_COPY: StudioCopy = {
 type Phase = 'authing' | 'error' | 'init' | 'no-token' | 'ready'
 const MAX_FONT = 48
 const StudioContext = createContext<null | StudioValue>(null)
-const
-StudioContext.displayName = "StudioContext"; useSt = (): StudioValue => {
+StudioContext.displayName = 'ChunkStudioContext'
+const useSt = (): StudioValue => {
   const value = use(StudioContext)
   if (!value) throw new Error('useSt must be used within a ChunkStudio')
   return value
