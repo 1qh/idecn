@@ -108,6 +108,16 @@ import { parseJson } from './parse-json'
 import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotation'
 
 let pdfWorkerSet = false
+interface PdfAssets {
+  cMapPacked?: boolean
+  cMapUrl?: string
+  standardFontDataUrl?: string
+  wasmUrl?: string
+}
+const pdfAssets: PdfAssets = {}
+const configurePdfAssets = (assets: PdfAssets): void => {
+  Object.assign(pdfAssets, assets)
+}
 const loadPdfjs = async () => {
   const pdfjs = await import('pdfjs-dist')
   if (!pdfWorkerSet && !pdfjs.GlobalWorkerOptions.workerSrc) {
@@ -3981,7 +3991,7 @@ const PdfViewer = ({
     setActivePages(new Set([1]))
     const run = async () => {
       const pdfjs = await loadPdfjs()
-      const d = await pdfjs.getDocument({ url: src }).promise.catch(() => undefined)
+      const d = await pdfjs.getDocument({ url: src, ...pdfAssets }).promise.catch(() => undefined)
       if (!d) return
       loaded = d
       const v = (await d.getPage(1)).getViewport({ scale: 1 })
@@ -4803,6 +4813,7 @@ export {
   CommandPalette,
   ConfigPanel,
   ConfigPopover,
+  configurePdfAssets,
   FileIcon,
   FileTree,
   FolderIcon,
