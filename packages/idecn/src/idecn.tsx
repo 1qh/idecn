@@ -110,7 +110,7 @@ import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotatio
 let pdfWorkerSet = false
 const loadPdfjs = async () => {
   const pdfjs = await import('pdfjs-dist')
-  if (!pdfWorkerSet) {
+  if (!pdfWorkerSet && !pdfjs.GlobalWorkerOptions.workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
     pdfWorkerSet = true
   }
