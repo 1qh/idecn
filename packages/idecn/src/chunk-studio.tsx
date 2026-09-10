@@ -944,7 +944,7 @@ const DocumentView = () => {
         annotations={chunkSpansToAnnotations(data.chunks)}
         className='h-full overflow-auto p-4'
         onCreateSelection={onCreateSelection}
-        onSelect={ids => select(ids[0] ?? '')}
+        onSelect={(ids: readonly string[]) => select(ids[0] ?? '')}
         text={data.text}
       />
       <div className='bg-secondary/70 absolute top-3 right-3 flex items-center rounded-md backdrop-blur'>
