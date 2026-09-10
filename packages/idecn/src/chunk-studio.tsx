@@ -38,18 +38,16 @@ import { chunkKey, pollUntilChanged, pollUntilKey } from 'ragworks/chunk-poll'
 import { chunkPreviews } from 'ragworks/synthetic'
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import type { ChunkListEntry, PdfRegion, WorkspaceRef } from './idecn'
-import {
-  chunkColor,
-  ChunkEditorPanel,
-  ChunkListPanel,
-  chunkSpansToAnnotations,
-  IconButton,
-  PdfViewer,
-  Tab,
-  TextAnnotationHost,
-  Workspace
-} from './idecn'
+import type { ChunkListEntry } from './chunk-panels'
+import type { PaneHostRef } from './panes'
+import type { PdfRegion } from './pdf'
+import { IconButton } from './base'
+import { chunkColor } from './chunk-color'
+import { ChunkEditorPanel, ChunkListPanel } from './chunk-panels'
+import { PaneHost, Tab } from './panes'
+import { PdfViewer } from './pdf'
+import { chunkSpansToAnnotations } from './text-annotation'
+import { TextAnnotationHost } from './text-annotation-host'
 
 type Box = readonly [number, number, number, number]
 type ChunksView = SpatialView | TextView
@@ -999,7 +997,7 @@ const handlePlainKey = ({
   event: KeyboardEvent
   studio: StudioValue
   toggleShortcuts: () => void
-  workspace: null | WorkspaceRef
+  workspace: null | PaneHostRef
 }): void => {
   if (event.key === 'j' || event.key === 'k') {
     const id = nextChunkId(studio.shownChunks, studio.selectedId, event.key)
@@ -1022,7 +1020,7 @@ const ChunkStudio = ({
   source: StudioSource
 }) => {
   const { phase, progress, studio } = useStudio(source, reproGlobal)
-  const workspaceRef = useRef<WorkspaceRef>(null)
+  const workspaceRef = useRef<PaneHostRef>(null)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const toggleShortcuts = useCallback(() => setShortcutsOpen(open => !open), [])
   useEffect(() => {
@@ -1048,13 +1046,7 @@ const ChunkStudio = ({
     <StudioProvider value={studio}>
       <div className='flex h-svh w-full overflow-hidden [--dv-active-tab-border-color:transparent]'>
         <div className='min-w-0 flex-1'>
-          <Workspace
-            className='h-full'
-            layoutKey={layoutKey}
-            ref={workspaceRef}
-            shortcuts={false}
-            sidebar={false}
-            statusBar={false}>
+          <PaneHost className='h-full' layoutKey={layoutKey} ref={workspaceRef}>
             <Tab closable={false} contextMenu={NO_TAB_MENU} defaultOpen icon={FileText} id='document' title='Document'>
               <DocumentView />
             </Tab>
@@ -1078,7 +1070,7 @@ const ChunkStudio = ({
               title='Editor'>
               <ChunkEditorView />
             </Tab>
-          </Workspace>
+          </PaneHost>
         </div>
       </div>
       <ShortcutsOverlay onOpenChange={setShortcutsOpen} open={shortcutsOpen} />

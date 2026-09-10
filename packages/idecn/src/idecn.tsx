@@ -1,4 +1,4 @@
-/* eslint-disable @eslint-react/dom-no-dangerously-set-innerhtml, @eslint-react/set-state-in-effect, @eslint-react/no-children-for-each, @eslint-react/no-unused-props, @typescript-eslint/no-use-before-define, react-hooks/incompatible-library, react/no-danger, complexity, @next/next/no-img-element */
+/* eslint-disable @eslint-react/dom-no-dangerously-set-innerhtml, @eslint-react/set-state-in-effect, @eslint-react/no-children-for-each, @typescript-eslint/no-use-before-define, react-hooks/incompatible-library, react/no-danger, complexity, @next/next/no-img-element */
 /* oxlint-disable promise/prefer-await-to-then, promise/always-return, promise/prefer-await-to-callbacks, no-react-children, jsx-no-new-object-as-prop, unicorn/prefer-top-level-await */
 'use client'
 import 'dockview-react/dist/styles/dockview.css'
@@ -90,12 +90,14 @@ import { z } from 'zod'
 import type { ScrubInputProps } from './base'
 import type { ChunkEditorPanelProps, ChunkListEntry, ChunkListPanelProps } from './chunk-panels'
 import type { GridEditorHostProps } from './grid-editor-host'
+import type { TabProps } from './panes'
 import type { PdfRegion, PdfViewerProps } from './pdf'
 import type { ChunkSpan } from './text-annotation'
 import type { TextAnnotationHostProps } from './text-annotation-host'
 import { CENTER, IconButton, InfoButton, ScrubInput, TipButton } from './base'
 import { badgeStyle, chunkColor, regionStyle, rowStyle, textColor, tint } from './chunk-color'
 import { ChunkEditorPanel, ChunkListPanel } from './chunk-panels'
+import { extractTabs, getTabId, persistLayout, pruneStaleLayoutKeys, restoreLayout, Tab, TAB_TYPE } from './panes'
 import { parseJson } from './parse-json'
 import { configurePdfAssets, PdfViewer } from './pdf'
 import { chunkSpansToAnnotations, chunkSpanToAnnotation } from './text-annotation'
@@ -129,7 +131,6 @@ const EDITOR_OPTIONS: NonNullable<EditorProps['options']> = {
   smoothScrolling: true,
   stickyScroll: { enabled: true }
 }
-const TAB_TYPE = Symbol('idecn-tab')
 const EXT_TO_LANG: Record<string, string> = {
   cjs: 'javascript',
   css: 'css',
@@ -380,20 +381,6 @@ const compactFolder = (item: TreeDataItem): { children: TreeDataItem[]; name: st
   }
   return { children: current.children ?? [], name: merged }
 }
-const extractTabs = (children: ReactNode): TabProps[] => {
-  const tabs: TabProps[] = []
-  Children.forEach(children, child => {
-    if (
-      isValidElement(child) &&
-      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: React element type metadata is an untyped external boundary */
-      (child.type as { _type?: symbol })._type === TAB_TYPE
-    )
-      /** biome-ignore lint/nursery/noUnsafeTypeAssertion: React element props cross the untyped tab component boundary */
-      tabs.push(child.props as TabProps)
-  })
-  return tabs
-}
-const getTabId = (tab: TabProps) => tab.id ?? tab.title
 const useAltKeys = (bindings: Record<string, () => void>, enabled: boolean) => {
   const ref = useRef(bindings)
   useEffect(() => {
@@ -1558,24 +1545,6 @@ const FileTree = ({
     </Tree>
   )
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Tab = (_props: {
-  activeClassName?: string
-  children: ReactNode
-  closable?: boolean
-  contextMenu?: TabMenuKey[]
-  defaultOpen?: boolean
-  headerClassName?: string
-  icon?: boolean | IconComponent
-  id?: string
-  inactive?: boolean
-  inactiveClassName?: string
-  initialWidth?: number
-  onClose?: () => void
-  position?: { direction: 'above' | 'below' | 'left' | 'right' | 'within'; referenceTab?: string }
-  title: string
-}): null => null
-Tab._type = TAB_TYPE
 const ContentPanel = ({ api, params }: IDockviewPanelProps<{ content: ReactNode }>) => {
   const registry = use(TabContentContext)
   const [content, setContent] = useState(params.content)
@@ -2126,68 +2095,6 @@ const QuickOpenDialog = ({
       </DialogContent>
     </Dialog>
   )
-}
-const layoutVersionSuffix = /v\d+$/u
-const pruneStaleLayoutKeys = (key: string) => {
-  const prefix = key.replace(layoutVersionSuffix, '')
-  if (prefix === key) return
-  try {
-    const store = globalThis.localStorage
-    const drop: string[] = []
-    for (let i = 0; i < store.length; i += 1) {
-      const k = store.key(i)
-      if (k !== null && k !== key && k.startsWith(prefix) && layoutVersionSuffix.test(k)) drop.push(k)
-    }
-    for (const k of drop) store.removeItem(k)
-  } catch {
-    /* localStorage unavailable */
-  }
-}
-const persistLayout = (api: DockviewApi, key: string) => {
-  try {
-    const json = api.toJSON()
-    const panels: Record<string, unknown> = {}
-    for (const [id, panel] of Object.entries(json.panels)) panels[id] = { ...panel, params: {} }
-    globalThis.localStorage.setItem(key, JSON.stringify({ ...json, panels }))
-  } catch {
-    /* layout snapshot not serializable this tick */
-  }
-}
-const restoreLayout = (api: DockviewApi, key: string, tabs: TabProps[]): boolean => {
-  let raw: null | string
-  try {
-    raw = globalThis.localStorage.getItem(key)
-  } catch {
-    return false
-  }
-  if (raw === null || raw === '') return false
-  try {
-    api.fromJSON(parseJson<Parameters<typeof api.fromJSON>[0]>(raw))
-  } catch {
-    return false
-  }
-  const tabIds = new Set(tabs.map(getTabId))
-  const stale = api.panels.filter(panel => !tabIds.has(panel.id))
-  for (const panel of stale)
-    try {
-      api.removePanel(panel)
-    } catch {
-      /* already gone */
-    }
-  for (const tab of tabs) {
-    const panel = api.panels.find(p => p.id === getTabId(tab))
-    if (panel)
-      panel.api.updateParameters({
-        activeClassName: tab.activeClassName,
-        closable: tab.closable,
-        content: tab.children,
-        contextMenu: tab.contextMenu,
-        headerClassName: tab.headerClassName,
-        icon: tab.icon,
-        inactiveClassName: tab.inactiveClassName
-      })
-  }
-  return api.panels.length > 0
 }
 const Workspace = ({
   activityLog,
@@ -3447,7 +3354,6 @@ interface FlatRow {
   isFolder: boolean
   item: TreeDataItem
 }
-type TabProps = ComponentProps<typeof Tab>
 type WorkspaceProps = ComponentProps<typeof Workspace>
 const fileIdsOf = (item: TreeDataItem): string[] => (item.children ? item.children.flatMap(fileIdsOf) : [item.id])
 const allFolderIds = (items: TreeDataItem[]): string[] =>
